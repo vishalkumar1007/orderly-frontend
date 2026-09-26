@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<!--
+			viewport-fit=cover lets the app draw under the iPhone notch and home
+			indicator; the shell pads its fixed bars with env(safe-area-inset-*).
+			maximum-scale is intentionally NOT set — pinch zoom must keep working.
+		-->
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1, viewport-fit=cover"
+		/>
+		<meta name="text-scale" content="scale" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap"
+			rel="stylesheet"
+		/>
+
+		<!--
+			Critical boot styles. These must stay in sync with the token values in
+			src/routes/layout.css — they paint the first frame before the stylesheet
+			arrives, so the page never flashes white or unstyled.
+		-->
+		<style>
+			:root,
+			[data-theme='light'] {
+				--bg: #f7f8fb;
+				--surface: #ffffff;
+				--text: #0d1424;
+				--border: #e4e7ef;
+			}
+			[data-theme='dark'] {
+				--bg: #08090f;
+				--surface: #10121d;
+				--text: #eef1f7;
+				--border: #242939;
+			}
+			html {
+				background: var(--bg);
+				color-scheme: light;
+			}
+			html[data-theme='dark'] {
+				color-scheme: dark;
+			}
+			body {
+				margin: 0;
+				min-height: 100vh;
+				background: var(--bg);
+				color: var(--text);
+				font-family: 'Inter', system-ui, -apple-system, sans-serif;
+				-webkit-font-smoothing: antialiased;
+			}
+		</style>
+
+		<script>
+			// Resolve the theme BEFORE first paint. This script is synchronous in
+			// <head>, so the browser cannot paint before it runs — the page never
+			// flashes light mode while Svelte hydrates. The token values above
+			// must stay in sync with layout.css.
+			(function () {
+				var root = document.documentElement;
+				var mode = 'light';
+				try {
+					var stored = localStorage.getItem('orderly-theme');
+					if (stored === 'light' || stored === 'dark') {
+						mode = stored;
+					} else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+						mode = 'dark';
+					}
+				} catch (e) {
+					/* private mode — fall through to the light default */
+				}
+				root.setAttribute('data-theme', mode);
+			})();
+		</script>
+		<!--
+			Standalone / installed-app behaviour. The theme-color and title are set
+			by the root layout at runtime, because a tenant's storefront has its own
+			brand colour and a hard-coded one here would always win the first paint.
+		-->
+		%sveltekit.head%
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>
