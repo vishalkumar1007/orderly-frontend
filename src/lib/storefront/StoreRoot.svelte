@@ -19,9 +19,21 @@
 
 	let {
 		config,
+		tenantSlug = '',
 		children
 	}: {
 		config: StoreConfig | null;
+		/**
+		 * The slug the server resolved from the hostname. Rendered onto the element
+		 * so the rendered page says which shop it is.
+		 *
+		 * This is not decoration. A storefront with no tenant behind it and a
+		 * storefront for a real shop render almost identically, and
+		 * `scripts/check_storefront_routes.sh` needs to tell them apart — a route
+		 * check that passes while serving the empty state is worse than no check,
+		 * because it looks like coverage.
+		 */
+		tenantSlug?: string;
 		children: import('svelte').Snippet;
 	} = $props();
 
@@ -45,6 +57,6 @@
 	const resolved = $derived(theme.mode === 'system' ? (systemDark ? 'dark' : 'light') : mode);
 </script>
 
-<div class="sf-root" data-sf-theme={resolved} style={vars}>
+<div class="sf-root" data-sf-theme={resolved} data-sf-tenant={tenantSlug || undefined} style={vars}>
 	{@render children()}
 </div>

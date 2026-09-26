@@ -120,7 +120,7 @@
 </svelte:head>
 
 {#if isTenant}
-	<StoreRoot {config}>
+	<StoreRoot {config} tenantSlug={slug}>
 		<div class="sf-shell">
 			<StoreHeader {config} lines={cart.lines} search={showSearch} signedIn={signedIn} loginEnabled={loginEnabled} bind:searchTerm />
 			<main class="sf-main" data-has-cart={showsCartBar}>
