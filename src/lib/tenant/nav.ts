@@ -160,13 +160,20 @@ export type TenantCrumb = { label: string; href: string | null };
 /**
  * Label for one segment of a `/shop/*` path.
  *
+ * `index` is an index into the *full* path, with or without a leading `shop`.
+ * Both call sites resolve against the same array on purpose: an earlier version
+ * let `tenantTitle` pass the whole path and `tenantCrumbs` pass the shop-stripped
+ * one, and the storefront check below silently stopped matching for the caller
+ * that used the other convention — which showed up as "Opening hours" rendering
+ * as "Hours" in the page title while the breadcrumb was right.
+ *
  * Inside `/shop/storefront/*` the storefront navigation owns the wording, because
  * those segment names repeat with a different meaning elsewhere — `login` is a
  * customer setting under `/shop/storefront` and the staff sign-in page on its own.
  */
 function segmentLabel(segments: string[], index: number): string {
 	const seg = segments[index];
-	if (segments[0] === 'storefront' && index >= 1) {
+	if (segments[1] === 'storefront' && index >= 2) {
 		return storefrontSegmentLabel(seg) ?? humanise(seg);
 	}
 	return TENANT_SEGMENT_LABELS[seg] ?? humanise(seg);
@@ -190,7 +197,7 @@ export function tenantCrumbs(pathname: string): TenantCrumb[] {
 	rest.forEach((seg, i) => {
 		const isLast = i === rest.length - 1;
 		const href = '/' + ['shop', ...rest.slice(0, i + 1)].join('/');
-		const label = segmentLabel(rest, i);
+		const label = segmentLabel(segments, i + 1);
 
 		if (SECTION_SEGMENTS.has(seg)) {
 			// No page lives here; point at wherever the trail already points so

@@ -23,10 +23,17 @@ export type StorefrontNavItem = {
 	label: string;
 	description: string;
 	icon: Component;
-	/** Match nested paths, so a screen can add sub-tabs later. */
-	nested?: boolean;
 };
 
+/**
+ * The screens, in the order a shopkeeper configures them.
+ *
+ * `isStorefrontActive` always matches child paths, so a screen stays lit while
+ * any sub-tab under it is open. An earlier version gated that on a per-item
+ * `nested` flag, and the two entries that were missed — Branding and Theme —
+ * simply never highlighted, which reads as a dead link rather than as a bug.
+ * A flag every entry has to remember is a bug waiting for the next entry.
+ */
 export const STOREFRONT_NAV: StorefrontNavItem[] = [
 	{
 		href: '/shop/storefront',
@@ -50,66 +57,58 @@ export const STOREFRONT_NAV: StorefrontNavItem[] = [
 		href: '/shop/storefront/homepage',
 		label: 'Homepage',
 		description: 'Choose and order the sections on your home page',
-		icon: LayoutTemplate,
-		nested: true
+		icon: LayoutTemplate
 	},
 	{
 		href: '/shop/storefront/store-info',
 		label: 'Store information',
 		description: 'Description, phone and pickup address',
-		icon: Store,
-		nested: true
+		icon: Store
 	},
 	{
 		href: '/shop/storefront/hours',
 		label: 'Opening hours',
 		description: 'When customers can order',
-		icon: Clock,
-		nested: true
+		icon: Clock
 	},
 	{
 		href: '/shop/storefront/login',
 		label: 'Customer login',
 		description: 'Whether customers can sign in with their phone',
-		icon: Smartphone,
-		nested: true
+		icon: Smartphone
 	},
 	{
 		href: '/shop/storefront/payments',
 		label: 'Payments',
 		description: 'Online payment and cash at pickup',
-		icon: CreditCard,
-		nested: true
+		icon: CreditCard
 	},
 	{
 		href: '/shop/storefront/workflow',
 		label: 'Order workflow',
 		description: 'Acceptance, payment timing and auto-complete',
-		icon: ListOrdered,
-		nested: true
+		icon: ListOrdered
 	},
 	{
 		href: '/shop/storefront/qr',
 		label: 'QR code',
 		description: 'Share your storefront on a sticker or a table tent',
-		icon: QrCode,
-		nested: true
+		icon: QrCode
 	},
 	{
 		href: '/shop/storefront/preview',
 		label: 'Preview',
 		description: 'See exactly what your customers see',
-		icon: Eye,
-		nested: true
+		icon: Eye
 	}
 ];
 
 /** `isStorefrontActive` lights a nav item without lighting its siblings. */
 export function isStorefrontActive(pathname: string, item: StorefrontNavItem): boolean {
 	const path = pathname.replace(/\/+$/, '') || '/';
+	// Exact for the overview, so visiting a screen does not leave it lit too.
 	if (item.href === '/shop/storefront') return path === item.href;
-	if (item.nested) return path === item.href || path.startsWith(item.href + '/');
-	return false;
+	return path === item.href || path.startsWith(item.href + '/');
 }
 
 /**
@@ -117,13 +116,20 @@ export function isStorefrontActive(pathname: string, item: StorefrontNavItem): b
  * navigation itself so a renamed screen cannot drift from the trail that links
  * to it.
  *
+ * The overview is excluded deliberately. Its own path segment is `storefront`,
+ * which is also the name of the section these labels live under, and a map that
+ * said `storefront -> Overview` would be a trap for the next reader.
+ *
  * It lives here because this subtree is the one place where a segment name is
  * ambiguous outside its parent: `/shop/storefront/login` is the customer sign-in
  * setting, while `/shop/login` is the staff sign-in page. Keying labels on the
  * segment alone would have to pick one meaning for both.
  */
 export const STOREFRONT_SEGMENT_LABELS: Record<string, string> = Object.fromEntries(
-	STOREFRONT_NAV.map((item) => [item.href.split('/').pop() ?? '', item.label])
+	STOREFRONT_NAV.filter((item) => item.href !== '/shop/storefront').map((item) => [
+		item.href.split('/').pop() ?? '',
+		item.label
+	])
 );
 
 /** The label for a storefront screen, or `null` when the segment is unknown. */
