@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Order, OrderStage } from '$lib/tenant/orders.svelte';
-	import { orderBoard } from '$lib/tenant/orders.svelte';
+	import { orderBoard, stageAfterAction } from '$lib/tenant/orders.svelte';
 	import { toast } from '$lib/components/admin/toast';
 
 	let {
@@ -8,11 +8,13 @@
 		/** The stage this card is being shown under; supplies the next action. */
 		stage,
 		/** Hide the primary action where the screen handles it elsewhere. */
-		actionable = true
+		actionable = true,
+		onclick
 	}: {
 		order: Order;
 		stage: OrderStage;
 		actionable?: boolean;
+		onclick?: () => void;
 	} = $props();
 
 	const busy = $derived(orderBoard.isBusy(order.id));
@@ -31,16 +33,22 @@
 		return `${Math.round(hrs / 24)}d ago`;
 	});
 
-	async function advance() {
+	const totalLabel = $derived(
+		Number.isFinite(order.total) ? `₹${Math.round(order.total)}` : '—'
+	);
+
+	async function advance(e: MouseEvent) {
+		e.stopPropagation();
 		try {
 			await orderBoard.transition(order, stage.action);
-			toast.success(`Order #${order.order_number} → ${stage.short.toLowerCase()}`);
+			toast.success(`Order #${order.order_number} → ${stageAfterAction(stage.action)}`);
 		} catch {
 			toast.error('Could not update that order');
 		}
 	}
 
-	async function markPaid() {
+	async function markPaid(e: MouseEvent) {
+		e.stopPropagation();
 		try {
 			await orderBoard.confirmPay(order);
 			toast.success(`Payment confirmed for #${order.order_number}`);
@@ -50,14 +58,28 @@
 	}
 </script>
 
-<article class="osorder" aria-busy={busy}>
+<article
+	class="osorder"
+	class:osorder-clickable={Boolean(onclick)}
+	aria-busy={busy}
+	role={onclick ? 'button' : undefined}
+	tabindex={onclick ? 0 : undefined}
+	onclick={onclick}
+	onkeydown={(e) => {
+		if (!onclick) return;
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			onclick();
+		}
+	}}
+>
 	<div class="osorder-head">
 		<span class="osorder-num">#{order.order_number}</span>
 		{#if when}<span class="osorder-when">{when}</span>{/if}
 	</div>
 
 	<ul class="osorder-items">
-		{#each order.items as item (item.product_name)}
+		{#each order.items as item, i (item.product_name + '-' + i)}
 			<li>
 				<span class="osorder-qty">{item.quantity}×</span>
 				<span>{item.product_name}</span>
@@ -66,14 +88,14 @@
 	</ul>
 
 	<div class="osorder-foot">
-		<span class="osorder-total">₹{order.total}</span>
+		<span class="osorder-total">{totalLabel}</span>
 		{#if order.payment}
 			<span class="osorder-meta">
 				{order.payment.method}
 				{#if order.payment.status === 'PENDING'}
-					· <span style="color:var(--warn);font-weight:650;">unpaid</span>
+					· <span class="osorder-unpaid">unpaid</span>
 				{:else if order.payment.status === 'PAID'}
-					· <span style="color:var(--success);font-weight:650;">paid</span>
+					· <span class="osorder-paid">paid</span>
 				{/if}
 			</span>
 		{/if}
@@ -85,14 +107,40 @@
 
 	{#if actionable}
 		<div class="osorder-actions">
-			<button class="btn btn-primary" type="button" disabled={busy} onclick={advance}>
+			<button class="btn btn-primary" type="button" disabled={busy || !order.id} onclick={advance}>
 				{stage.actionLabel}
 			</button>
 			{#if order.payment && order.payment.status === 'PENDING'}
-				<button class="btn btn-ghost" type="button" disabled={busy} onclick={markPaid}>
+				<button
+					class="btn btn-ghost"
+					type="button"
+					disabled={busy || !order.payment.id}
+					onclick={markPaid}
+				>
 					Mark paid
 				</button>
 			{/if}
 		</div>
 	{/if}
 </article>
+
+<style>
+	.osorder-clickable {
+		cursor: pointer;
+	}
+
+	.osorder-clickable:focus-visible {
+		outline: 2px solid var(--accent, #3b82f6);
+		outline-offset: 2px;
+	}
+
+	.osorder-unpaid {
+		color: var(--warn);
+		font-weight: 650;
+	}
+
+	.osorder-paid {
+		color: var(--success);
+		font-weight: 650;
+	}
+</style>

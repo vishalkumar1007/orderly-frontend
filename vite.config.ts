@@ -32,13 +32,16 @@ export default defineConfig({
 		host: true,
 		allowedHosts: true,
 		proxy: {
+			// Keep the browser Host (e.g. momo-magic.localhost) so the API can
+			// resolve the tenant. changeOrigin:true rewrites Host to 127.0.0.1
+			// and MatchHostTenant then returns 403 "tenant host required".
 			'/api': {
 				target: 'http://127.0.0.1:8080',
-				changeOrigin: true
+				changeOrigin: false
 			},
 			'/health': {
 				target: 'http://127.0.0.1:8080',
-				changeOrigin: true
+				changeOrigin: false
 			}
 		}
 	}

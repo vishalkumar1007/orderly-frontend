@@ -5,13 +5,15 @@
  * cannot export a type from its instance script in a way a child page can
  * import.
  *
- * The context is deliberately narrow. A screen gets the configuration, a
- * `save` helper that writes and then re-reads, and a `refresh`. It cannot mutate
- * the document directly, so what a screen shows always matches what the server
- * actually stored — including when a write was rejected.
+ * SvelteKit layouts render child pages without forwarding snippet arguments,
+ * so screens receive this context via Svelte's context API (setStorefrontContext /
+ * useStorefront) with fallback to default storefront configs.
  */
-import { untrack } from 'svelte';
+import { getContext, setContext, untrack } from 'svelte';
 import type { AdminStorefront } from './admin';
+import { getStorefrontAdminOrDefault } from './adminCache.svelte';
+
+export const STOREFRONT_CTX_KEY = Symbol('storefront-context');
 
 export type StorefrontContext = {
 	config: AdminStorefront;
@@ -20,6 +22,40 @@ export type StorefrontContext = {
 	save: (run: () => Promise<AdminStorefront>) => Promise<boolean>;
 	refresh: () => Promise<void>;
 };
+
+export function setStorefrontContext(ctx: StorefrontContext): void {
+	setContext(STOREFRONT_CTX_KEY, ctx);
+}
+
+export function getStorefrontContext(): StorefrontContext {
+	const ctx = getContext<StorefrontContext | undefined>(STOREFRONT_CTX_KEY);
+	if (ctx) return ctx;
+	return {
+		get config() {
+			return getStorefrontAdminOrDefault();
+		},
+		save: async () => false,
+		refresh: async () => {}
+	};
+}
+
+export function useStorefront(getProps?: () => Partial<StorefrontContext> | undefined): StorefrontContext {
+	const ctx = getStorefrontContext();
+	return {
+		get config() {
+			const p = typeof getProps === 'function' ? getProps() : getProps;
+			return p?.config ?? ctx.config ?? getStorefrontAdminOrDefault();
+		},
+		get save() {
+			const p = typeof getProps === 'function' ? getProps() : getProps;
+			return p?.save ?? ctx.save;
+		},
+		get refresh() {
+			const p = typeof getProps === 'function' ? getProps() : getProps;
+			return p?.refresh ?? ctx.refresh;
+		}
+	};
+}
 
 /**
  * `seed` captures a value from the loaded configuration once, for a form field

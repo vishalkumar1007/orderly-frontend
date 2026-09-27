@@ -128,23 +128,28 @@ try {
 	/* ---------------------------------------------------------------- */
 	group('The storefront control is reachable and owner-only');
 
-	if (!nav.TENANT_NAV.some((g) => g.items.some((i) => i.href === '/shop/storefront'))) {
+	if (!nav.TENANT_NAV.some((g) => g.items.some((i) => i.href === '/shop/customize'))) {
 		failures++;
-		console.log('  FAIL /shop/storefront is not in the tenant rail, so it can only be reached by typing the URL');
+		console.log('  FAIL /shop/customize is not in the tenant rail, so it can only be reached by typing the URL');
 	} else {
-		ok('tenant rail links the storefront control');
+		ok('tenant rail links the storefront control (Customize)');
 	}
 
 	/* ---------------------------------------------------------------- */
 	group('Titles');
 
 	eq('/shop', nav.tenantTitle('/shop'), 'Dashboard');
-	eq('/shop/orders', nav.tenantTitle('/shop/orders'), 'Orders');
-	eq('/shop/settings/smtp', nav.tenantTitle('/shop/settings/smtp'), 'Email / SMTP');
-	eq('/shop/kitchen', nav.tenantTitle('/shop/kitchen'), 'Prep board');
+	eq('/shop/orders', nav.tenantTitle('/shop/orders'), 'Selling');
+	eq('/shop/settings/integrations/smtp', nav.tenantTitle('/shop/settings/integrations/smtp'), 'Email / SMTP');
+	eq('/shop/settings', nav.tenantTitle('/shop/settings'), 'Settings');
+	eq('/shop/kitchen', nav.tenantTitle('/shop/kitchen'), 'Kitchen');
+	eq('/shop/live', nav.tenantTitle('/shop/live'), 'Live Activity');
 	eq('/shop/brand', nav.tenantTitle('/shop/brand'), 'Console appearance');
-	eq('/shop/storefront', nav.tenantTitle('/shop/storefront'), 'Customer site');
+	eq('/shop/customize', nav.tenantTitle('/shop/customize'), 'Customize');
+	eq('/shop/organization/hours', nav.tenantTitle('/shop/organization/hours'), 'Operating Hours');
 	eq('/shop/setup', nav.tenantTitle('/shop/setup'), 'Launch checklist');
+	eq('/shop/customers', nav.tenantTitle('/shop/customers'), 'Customers');
+	eq('/shop/iam', nav.tenantTitle('/shop/iam'), 'IAM');
 
 	// The ambiguity that motivated the storefront owning its own labels: the same
 	// segment means two different things depending on its parent.
@@ -160,25 +165,25 @@ try {
 
 	eq(
 		'a storefront trail links every crumb but the last',
-		nav.tenantCrumbs('/shop/storefront/theme'),
+		nav.tenantCrumbs('/shop/customize/theme'),
 		[
 			{ label: 'Overview', href: '/shop' },
-			{ label: 'Customer site', href: '/shop/storefront' },
+			{ label: 'Customize', href: '/shop/customize' },
 			{ label: 'Theme', href: null }
 		]
 	);
 
 	eq('a path that is not a shop route has no trail', nav.tenantCrumbs('/menu'), []);
 
-	// `settings` groups a section with no page of its own, so it must not offer a
-	// dead link.
+	// Settings integrations nest under Settings → Integrations → service.
 	eq(
-		'a grouping segment reuses the previous target',
-		nav.tenantCrumbs('/shop/settings/ai'),
+		'settings integrations smtp crumb trail',
+		nav.tenantCrumbs('/shop/settings/integrations/smtp'),
 		[
 			{ label: 'Overview', href: '/shop' },
-			{ label: 'Settings', href: '/shop' },
-			{ label: 'AI', href: null }
+			{ label: 'Settings', href: '/shop/settings' },
+			{ label: 'Integrations', href: '/shop/settings/integrations' },
+			{ label: 'Email / SMTP', href: null }
 		]
 	);
 
@@ -187,7 +192,17 @@ try {
 		nav.tenantCrumbs('/shop/kitchen'),
 		[
 			{ label: 'Overview', href: '/shop' },
-			{ label: 'Prep board', href: null }
+			{ label: 'Kitchen', href: null }
+		]
+	);
+
+	eq(
+		'organization hours trail',
+		nav.tenantCrumbs('/shop/organization/hours'),
+		[
+			{ label: 'Overview', href: '/shop' },
+			{ label: 'Organization', href: '/shop/organization' },
+			{ label: 'Operating Hours', href: null }
 		]
 	);
 
@@ -195,7 +210,7 @@ try {
 		const crumbs = nav.tenantCrumbs(item.href);
 		const last = crumbs[crumbs.length - 1];
 		eq(`trail for ${item.href} ends on the screen`, last, {
-			label: item.href === '/shop/storefront' ? 'Customer site' : item.label,
+			label: item.href === '/shop/customize' ? 'Customize' : item.label,
 			href: null
 		});
 	}
@@ -204,7 +219,11 @@ try {
 	group('Storefront nav: every screen titles and lights itself, and only itself');
 
 	for (const item of sf.STOREFRONT_NAV) {
-		eq(`title ${item.href}`, nav.tenantTitle(item.href), item.href === '/shop/storefront' ? 'Customer site' : item.label);
+		eq(
+			`title ${item.href}`,
+			nav.tenantTitle(item.href),
+			item.href === '/shop/customize' ? 'Customize' : item.label
+		);
 
 		const lit = sf.STOREFRONT_NAV.filter((o) => sf.isStorefrontActive(item.href, o));
 		if (lit.length === 1 && lit[0] === item) {
@@ -219,12 +238,33 @@ try {
 
 	// A screen must stay lit while a sub-tab under it is open, or the rail looks
 	// broken the moment a screen grows one.
-	if (sf.isStorefrontActive('/shop/storefront/theme/warm', sf.STOREFRONT_NAV[2])) {
+	if (sf.isStorefrontActive('/shop/customize/theme/warm', sf.STOREFRONT_NAV[2])) {
 		ok('a screen stays lit on a sub-path');
 	} else {
 		failures++;
 		console.log('  FAIL a screen does not stay lit on a sub-path');
 	}
+
+	/* ---------------------------------------------------------------- */
+	group('Org rail IA sections');
+
+	const labels = nav.TENANT_NAV.map((g) => g.label);
+	eq('org rail section labels', labels, [
+		'Overview',
+		'Running',
+		'Management',
+		'Storefront',
+		'Organization',
+		'Activity'
+	]);
+
+	const running = nav.TENANT_NAV.find((g) => g.label === 'Running');
+	eq('Running is emphasized', running?.emphasis, 'running');
+	eq(
+		'Running destinations',
+		running?.items.map((i) => i.label),
+		['Selling', 'Kitchen', 'Live Activity']
+	);
 
 	/* ---------------------------------------------------------------- */
 	group('Staff-facing nav is unaffected');
@@ -240,9 +280,9 @@ try {
 
 	if (!itemsOf(nav.TENANT_NAV).some((i) => i.href === '/shop/kitchen')) {
 		failures++;
-		console.log('  FAIL prep board is missing from the org rail');
+		console.log('  FAIL Kitchen is missing from the org rail');
 	} else {
-		ok('org rail links the prep board under /shop/kitchen');
+		ok('org rail links Kitchen under /shop/kitchen');
 	}
 
 	if (!nav.TENANT_NAV.some((g) => g.label === 'Organization')) {
@@ -250,6 +290,13 @@ try {
 		console.log('  FAIL Organization group is missing from the org rail');
 	} else {
 		ok('org rail has a distinct Organization group');
+	}
+
+	if (!nav.isOpsFullscreenPath('/shop/kitchen') || !nav.isOpsFullscreenPath('/shop/live')) {
+		failures++;
+		console.log('  FAIL Kitchen/Live Activity are not recognized as fullscreen ops paths');
+	} else {
+		ok('Kitchen and Live Activity support fullscreen ops mode');
 	}
 } finally {
 	await vite.close();

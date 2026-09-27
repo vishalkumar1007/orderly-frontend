@@ -1,9 +1,10 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount, untrack } from 'svelte';
 	import WifiOff from '@lucide/svelte/icons/wifi-off';
 	import SuperAdminLogin from '$lib/components/admin/SuperAdminLogin.svelte';
-	import '$lib/storefront/storefront.css';
+	import '$lib/storefront/storefront-app.css';
 	import { createCart, loadInitialCart, provideCart } from '$lib/storefront/cart-state.svelte';
 	import { customerSession } from '$lib/storefront/session.svelte';
 	import { FALLBACK_THEME, fontImportFor, hasCompleteTokens, themeVars } from '$lib/storefront/theme';
@@ -22,10 +23,20 @@
 	const cart = provideCart(createCart(slug, loadInitialCart(slug)));
 
 	const isTenant = $derived(data.hostKind === 'tenant');
-	const isPublished = $derived(isTenant && config !== null);
+	/** API said the shop is unpublished / not found — intentional empty state. */
+	const isUnpublished = $derived(isTenant && !config && data.configErrorCode === 'not_found');
+	/**
+	 * Config failed for a transient reason (network, 5xx, timeout). Show a
+	 * degraded shell with FALLBACK_THEME — never confuse this with unpublished.
+	 */
+	const isConfigError = $derived(
+		isTenant && !config && Boolean(data.configError) && data.configErrorCode !== 'not_found'
+	);
+	const canBrowse = $derived(isTenant && (config !== null || isConfigError));
 
 	let signedIn = $state(false);
 	let online = $state(true);
+	let retrying = $state(false);
 
 	onMount(() => {
 		signedIn = Boolean(customerSession.load(slug));
@@ -69,7 +80,7 @@
 			pathname.startsWith('/verify-otp')
 	);
 
-	const showsCartBar = $derived(isPublished && !hidesCartBar && cart.count > 0);
+	const showsCartBar = $derived(canBrowse && config !== null && !hidesCartBar && cart.count > 0);
 
 	const footerShowsHours = $derived(
 		!config?.homepage?.sections?.some((section) => section.enabled && section.type === 'OPENING_HOURS')
@@ -83,6 +94,15 @@
 
 	function add(product: StoreProduct) {
 		cart.add(product, 1);
+	}
+
+	async function retryConfig() {
+		retrying = true;
+		try {
+			await invalidateAll();
+		} finally {
+			retrying = false;
+		}
 	}
 </script>
 
@@ -103,7 +123,7 @@
 
 {#if !isTenant}
 	<SuperAdminLogin />
-{:else if !isPublished}
+{:else if isUnpublished && !isConfigError}
 	<div class="sf-unpublished">
 		<div class="sf-unpublished-inner">
 			<div class="sf-unpublished-icon" aria-hidden="true">
@@ -116,14 +136,30 @@
 			<p>This store hasn't been set up yet. Please check back later.</p>
 		</div>
 	</div>
-{:else}
+{:else if canBrowse}
 	<StoreRoot {config} tenantSlug={slug}>
 		<div class="sf-shell">
 			<StoreHeader {config} lines={cart.lines} search={showSearch} signedIn={signedIn} loginEnabled={loginEnabled} bind:searchTerm />
 			<main class="sf-main" data-has-cart={showsCartBar}>
-				{#if data.configError}
+				{#if isConfigError || data.configError}
 					<div class="sf-wrap sf-notice">
-						<div class="sf-alert" data-tone="error" role="alert">{data.configError}</div>
+						<div
+							class="sf-alert"
+							data-tone="error"
+							role="alert"
+							style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;"
+						>
+							<span>{data.configError || 'Could not load this store right now.'}</span>
+							<button
+								class="sf-btn sf-btn-secondary"
+								type="button"
+								style="min-height:32px;font-size:0.75rem;padding:0 0.75rem;"
+								disabled={retrying}
+								onclick={() => void retryConfig()}
+							>
+								{retrying ? 'Retrying…' : 'Try again'}
+							</button>
+						</div>
 					</div>
 				{/if}
 				{#if !online}
@@ -153,6 +189,16 @@
 			<StoreToast message={cart.notice} />
 		</div>
 	</StoreRoot>
+{:else}
+	<div class="sf-unpublished">
+		<div class="sf-unpublished-inner">
+			<h1>Shopfront unavailable</h1>
+			<p>{data.configError || 'Please try again in a moment.'}</p>
+			<button class="sf-btn sf-btn-primary" type="button" style="margin-top:1rem;" disabled={retrying} onclick={() => void retryConfig()}>
+				{retrying ? 'Retrying…' : 'Try again'}
+			</button>
+		</div>
+	</div>
 {/if}
 
 <style>

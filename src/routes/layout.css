@@ -400,6 +400,43 @@ select.input {
 	white-space: nowrap;
 }
 
+/* Quiet sections — management / config / history sit below ops visually. */
+.rail-group-quiet .rail-group-label {
+	color: color-mix(in srgb, var(--rail-text) 48%, transparent);
+	font-weight: 600;
+}
+
+.rail-group-quiet .rail-link {
+	font-weight: 500;
+	color: color-mix(in srgb, var(--rail-text) 88%, transparent);
+}
+
+/* RUNNING — daily ops must read as the primary cluster. */
+.rail-group-running {
+	gap: 0.4rem;
+	padding: 0.35rem 0.15rem 0.45rem;
+	margin: 0 -0.15rem;
+	border-radius: 12px;
+	background: color-mix(in srgb, var(--rail-hover) 55%, transparent);
+}
+
+.rail-group-running .rail-group-label {
+	font-size: 0.6875rem;
+	font-weight: 750;
+	letter-spacing: 0.1em;
+	color: color-mix(in srgb, #fff 82%, var(--rail-text));
+}
+
+.rail-group-running .rail-link {
+	font-weight: 650;
+	font-size: 0.84375rem;
+	color: #fff;
+}
+
+.rail-group-running .rail-link:hover {
+	background: color-mix(in srgb, var(--rail-hover) 140%, transparent);
+}
+
 .rail-link {
 	display: flex;
 	align-items: center;
@@ -623,10 +660,15 @@ select.input {
 }
 
 .rail-mobile-name {
+	flex: 1;
+	min-width: 0;
 	font-family: var(--font-display);
 	font-size: 0.9rem;
-	font-weight: 600;
+	font-weight: 650;
 	color: var(--text);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .mobile-burger {
@@ -802,6 +844,35 @@ select.input {
 	position: sticky;
 	top: 0;
 	z-index: 20;
+}
+
+.rail-mobile-quick {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	flex: none;
+	margin-left: auto;
+}
+
+.rail-mobile-quick-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	padding: 0.35rem 0.55rem;
+	border-radius: 8px;
+	border: 1px solid var(--border);
+	background: var(--bg);
+	color: var(--text);
+	font-size: 0.75rem;
+	font-weight: 650;
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.rail-mobile-quick-link.active {
+	border-color: color-mix(in srgb, var(--accent, #3b82f6) 45%, var(--border));
+	background: color-mix(in srgb, var(--accent, #3b82f6) 12%, var(--surface));
+	color: var(--text-2, var(--text));
 }
 
 @media (max-width: 900px) {

@@ -4,15 +4,17 @@
 	import Search from '@lucide/svelte/icons/search';
 	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
 	import User from '@lucide/svelte/icons/user';
+	import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
+	import X from '@lucide/svelte/icons/x';
 	import type { StoreConfig } from '$lib/storefront/api';
 	import { cartCount, type CartLine } from '$lib/storefront/cart.svelte';
 
 	/**
-	 * The storefront header.
+	 * Professional Food Order App Storefront Header.
 	 *
-	 * Compact by design: logo, store name, live open/closed state, search and a
-	 * cart button. The search field only appears where the page can use it, so the
-	 * header never carries a control that does nothing.
+	 * Includes restaurant brand avatar, live opening status badge with animated radar,
+	 * prominent search bar with instant clear, quick menu link, user account button,
+	 * and an interactive cart counter.
 	 */
 	let {
 		config,
@@ -38,16 +40,21 @@
 	const count = $derived(cartCount(lines));
 	const pathname = $derived($page.url.pathname);
 
-	const storeStatus = $derived(ordering?.store_status ?? 'OPEN');
-	const statusMessage = $derived(ordering?.status_message_display ?? '');
-	const statusLabel = $derived(ordering?.store_status_label ?? 'Open');
+	const storeStatus = $derived(ordering?.store_status ?? (hours?.is_open ? 'OPEN' : 'CLOSED'));
+	const statusLabel = $derived(
+		ordering?.store_status_label ?? (hours?.is_open ? 'Open Now' : 'Closed')
+	);
 
 	const statusDotClass = $derived.by(() => {
 		switch (storeStatus) {
-			case 'BUSY': return 'busy';
-			case 'AWAY': return 'away';
-			case 'CLOSED': return 'closed';
-			default: return 'open';
+			case 'BUSY':
+				return 'busy';
+			case 'AWAY':
+				return 'away';
+			case 'CLOSED':
+				return 'closed';
+			default:
+				return 'open';
 		}
 	});
 
@@ -60,87 +67,150 @@
 		const url = new URL($page.url);
 		if (value) url.searchParams.set('q', value);
 		else url.searchParams.delete('q');
-		void goto(`${url.pathname}${url.search}`, { keepFocus: true, noScroll: true, replaceState: true });
+		void goto(`${url.pathname}${url.search}`, {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true
+		});
 	}
 
 	function clearSearch() {
 		searchTerm = '';
 		const url = new URL($page.url);
 		url.searchParams.delete('q');
-		void goto(`${url.pathname}${url.search}`, { keepFocus: true, noScroll: true, replaceState: true });
+		void goto(`${url.pathname}${url.search}`, {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true
+		});
 	}
 </script>
 
-<header class="sf-header" data-transparent={config?.theme?.header === 'transparent'}>
-	<div class="sf-header-row">
-		<a class="sf-brand" href="/">
-			{#if store?.logo_url}
-				<img class="sf-brand-logo" src={store.logo_url} alt="" width="34" height="34" />
-			{:else}
-				<span class="sf-brand-mark" aria-hidden="true">
-					{(store?.name ?? 'S').trim().charAt(0).toUpperCase() || 'S'}
-				</span>
-			{/if}
-			<span class="sf-brand-text">
-				<span class="sf-brand-name">{store?.name ?? 'Orderly'}</span>
-				{#if hours}
-					<span class="sf-brand-meta">
-						<span class="sf-open-dot" data-open={String(hours.is_open)} data-status={statusDotClass} aria-hidden="true"></span>
-						{statusLabel}
+<header class="sf-header sf-app-header" data-transparent={config?.theme?.header === 'transparent'}>
+	<div class="sf-header-container">
+		<div class="sf-header-row">
+			<!-- Brand identity -->
+			<a class="sf-brand" href="/" aria-label="{store?.name ?? 'Store'} home">
+				{#if store?.logo_url}
+					<div class="sf-brand-logo-wrap">
+						<img class="sf-brand-logo" src={store.logo_url} alt="" width="40" height="40" />
+					</div>
+				{:else}
+					<span class="sf-brand-mark" aria-hidden="true">
+						{(store?.name ?? 'S').trim().charAt(0).toUpperCase() || 'S'}
 					</span>
 				{/if}
-			</span>
-		</a>
-
-		<div class="sf-header-actions">
-			{#if loginEnabled}
-				<a
-					class="sf-icon-btn"
-					href={signedIn ? '/profile' : '/login'}
-					aria-label={signedIn ? 'Your profile' : 'Sign in with phone'}
-					aria-current={pathname === '/profile' ? 'page' : undefined}
-				>
-					<User size={20} strokeWidth={1.9} />
-				</a>
-			{/if}
-			<a
-				class="sf-icon-btn"
-				href="/cart"
-				aria-label={count ? `Cart, ${count} items` : 'Cart, empty'}
-				aria-current={pathname === '/cart' ? 'page' : undefined}
-			>
-				<ShoppingBag size={20} strokeWidth={1.9} />
-				{#if count > 0}
-					<span class="sf-cart-count">{count > 99 ? '99+' : count}</span>
-				{/if}
+				<div class="sf-brand-text">
+					<div class="sf-brand-title-wrap">
+						<span class="sf-brand-name">{store?.name ?? 'Orderly'}</span>
+					</div>
+					{#if hours || ordering}
+						<div class="sf-brand-meta">
+							<span
+								class="sf-status-dot sf-status-{statusDotClass}"
+								aria-hidden="true"
+							></span>
+							<span class="sf-status-text">{statusLabel}</span>
+							{#if ordering?.prep_time_minutes}
+								<span class="sf-status-sep">·</span>
+								<span class="sf-prep-time">~{ordering.prep_time_minutes}m</span>
+							{/if}
+						</div>
+					{/if}
+				</div>
 			</a>
-		</div>
-	</div>
 
-	{#if search}
-		<form class="sf-search" role="search" onsubmit={submitSearch}>
-			<div class="sf-search-field">
-				<Search size={17} strokeWidth={1.9} aria-hidden="true" />
-				<input
-					type="search"
-					name="q"
-					bind:value={searchTerm}
-					placeholder="Search the menu"
-					aria-label="Search the menu"
-					enterkeyhint="search"
-					autocomplete="off"
-				/>
-				{#if searchTerm}
-					<button class="sf-search-clear" type="button" onclick={clearSearch}>
-						<span class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">
-							Clear search
-						</span>
-						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-							<path d="M18 6 6 18M6 6l12 12" />
-						</svg>
-					</button>
+			<!-- Center Search (Desktop / Tablet view) -->
+			{#if search}
+				<div class="sf-header-search-wrap sf-desktop-search">
+					<form class="sf-search sf-header-search" role="search" onsubmit={submitSearch}>
+						<div class="sf-search-field">
+							<Search size={17} strokeWidth={2.2} class="sf-search-icon" aria-hidden="true" />
+							<input
+								type="search"
+								name="q"
+								bind:value={searchTerm}
+								placeholder="Search dishes, drinks, or categories..."
+								aria-label="Search dishes"
+								enterkeyhint="search"
+								autocomplete="off"
+							/>
+							{#if searchTerm}
+								<button class="sf-search-clear" type="button" onclick={clearSearch} aria-label="Clear search">
+									<X size={15} strokeWidth={2.4} aria-hidden="true" />
+								</button>
+							{/if}
+						</div>
+					</form>
+				</div>
+			{/if}
+
+			<!-- Right Actions -->
+			<div class="sf-header-actions">
+				<a
+					class="sf-header-link sf-desktop-only"
+					href="/menu"
+					aria-current={pathname.startsWith('/menu') ? 'page' : undefined}
+				>
+					<UtensilsCrossed size={16} strokeWidth={2} aria-hidden="true" />
+					<span>Menu</span>
+				</a>
+
+				{#if loginEnabled}
+					<a
+						class="sf-icon-btn sf-user-btn"
+						href={signedIn ? '/profile' : '/login'}
+						aria-label={signedIn ? 'Your profile' : 'Sign in'}
+						aria-current={pathname === '/profile' ? 'page' : undefined}
+						title={signedIn ? 'Your account' : 'Sign in'}
+					>
+						<User size={19} strokeWidth={2} />
+					</a>
 				{/if}
+
+				<a
+					class="sf-cart-btn"
+					href="/cart"
+					aria-label={count ? `Cart, ${count} items` : 'Cart, empty'}
+					aria-current={pathname === '/cart' ? 'page' : undefined}
+					data-has-items={String(count > 0)}
+				>
+					<div class="sf-cart-icon-wrap">
+						<ShoppingBag size={19} strokeWidth={2.2} />
+						{#if count > 0}
+							<span class="sf-cart-badge">{count > 99 ? '99+' : count}</span>
+						{/if}
+					</div>
+					{#if count > 0}
+						<span class="sf-cart-label sf-desktop-only">Cart ({count})</span>
+					{/if}
+				</a>
 			</div>
-		</form>
-	{/if}
+		</div>
+
+		<!-- Mobile Search Row -->
+		{#if search}
+			<div class="sf-mobile-search">
+				<form class="sf-search" role="search" onsubmit={submitSearch}>
+					<div class="sf-search-field">
+						<Search size={17} strokeWidth={2.2} class="sf-search-icon" aria-hidden="true" />
+						<input
+							type="search"
+							name="q"
+							bind:value={searchTerm}
+							placeholder="Search dishes, drinks, or categories..."
+							aria-label="Search dishes"
+							enterkeyhint="search"
+							autocomplete="off"
+						/>
+						{#if searchTerm}
+							<button class="sf-search-clear" type="button" onclick={clearSearch} aria-label="Clear search">
+								<X size={15} strokeWidth={2.4} aria-hidden="true" />
+							</button>
+						{/if}
+					</div>
+				</form>
+			</div>
+		{/if}
+	</div>
 </header>

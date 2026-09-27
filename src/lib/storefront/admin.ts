@@ -7,7 +7,7 @@
  * mirrors the enums only so the pickers can render — it is not the authority.
  */
 
-import { api } from '$lib/api/client';
+import { api, ApiClientError } from '$lib/api/client';
 import type { StoreConfig } from './api';
 import type { StoreTheme } from './theme';
 
@@ -119,8 +119,24 @@ export type AdminQr = {
 	qr: { url: string; png: string; svg: string; size: number };
 };
 
+/** Retry only when the primary path is missing (older backends). Never mask auth/validation. */
+async function withStorefrontFallback<T>(primary: () => Promise<T>, fallback: () => Promise<T>): Promise<T> {
+	try {
+		return await primary();
+	} catch (err) {
+		if (err instanceof ApiClientError && err.status === 404) {
+			return fallback();
+		}
+		throw err;
+	}
+}
+
 export const storefrontAdminApi = {
-	get: () => api<AdminStorefront>('/api/v1/tenant/storefront'),
+	get: () =>
+		withStorefrontFallback(
+			() => api<AdminStorefront>('/api/v1/tenant/customize'),
+			() => api<AdminStorefront>('/api/v1/tenant/storefront')
+		),
 
 	saveIdentity: (payload: {
 		name?: string;
@@ -130,7 +146,19 @@ export const storefrontAdminApi = {
 		description?: string;
 		phone?: string;
 		address?: string;
-	}) => api<AdminStorefront>('/api/v1/tenant/storefront', { method: 'PUT', body: JSON.stringify(payload) }),
+	}) =>
+		withStorefrontFallback(
+			() =>
+				api<AdminStorefront>('/api/v1/tenant/customize', {
+					method: 'PUT',
+					body: JSON.stringify(payload)
+				}),
+			() =>
+				api<AdminStorefront>('/api/v1/tenant/storefront', {
+					method: 'PUT',
+					body: JSON.stringify(payload)
+				})
+		),
 
 	saveBehaviour: (payload: {
 		ordering_enabled?: boolean;
@@ -141,7 +169,21 @@ export const storefrontAdminApi = {
 		tax_percent?: number | string;
 		packaging_fee?: number | string;
 		published?: boolean;
-	}) => api<AdminStorefront>('/api/v1/tenant/storefront', { method: 'PUT', body: JSON.stringify(payload) }),
+		store_status?: string;
+		status_message?: string;
+	}) =>
+		withStorefrontFallback(
+			() =>
+				api<AdminStorefront>('/api/v1/tenant/customize', {
+					method: 'PUT',
+					body: JSON.stringify(payload)
+				}),
+			() =>
+				api<AdminStorefront>('/api/v1/tenant/storefront', {
+					method: 'PUT',
+					body: JSON.stringify(payload)
+				})
+		),
 
 	saveTheme: (payload: {
 		preset?: string;
@@ -159,26 +201,50 @@ export const storefrontAdminApi = {
 		accent?: string;
 		hero_image_url?: string;
 	}) =>
-		api<AdminStorefront>('/api/v1/tenant/storefront/theme', {
-			method: 'PUT',
-			body: JSON.stringify(payload)
-		}),
+		withStorefrontFallback(
+			() =>
+				api<AdminStorefront>('/api/v1/tenant/customize/theme', {
+					method: 'PUT',
+					body: JSON.stringify(payload)
+				}),
+			() =>
+				api<AdminStorefront>('/api/v1/tenant/storefront/theme', {
+					method: 'PUT',
+					body: JSON.stringify(payload)
+				})
+		),
 
 	saveHomepage: (sections: AdminSection[]) =>
-		api<AdminStorefront>('/api/v1/tenant/storefront/homepage', {
-			method: 'PUT',
-			body: JSON.stringify({ sections })
-		}),
+		withStorefrontFallback(
+			() =>
+				api<AdminStorefront>('/api/v1/tenant/customize/homepage', {
+					method: 'PUT',
+					body: JSON.stringify({ sections })
+				}),
+			() =>
+				api<AdminStorefront>('/api/v1/tenant/storefront/homepage', {
+					method: 'PUT',
+					body: JSON.stringify({ sections })
+				})
+		),
 
 	saveHours: (payload: {
 		always_open?: boolean;
 		timezone?: string;
 		schedule?: Record<string, string[]>;
 	}) =>
-		api<AdminStorefront>('/api/v1/tenant/storefront/hours', {
-			method: 'PUT',
-			body: JSON.stringify(payload)
-		}),
+		withStorefrontFallback(
+			() =>
+				api<AdminStorefront>('/api/v1/tenant/customize/hours', {
+					method: 'PUT',
+					body: JSON.stringify(payload)
+				}),
+			() =>
+				api<AdminStorefront>('/api/v1/tenant/storefront/hours', {
+					method: 'PUT',
+					body: JSON.stringify(payload)
+				})
+		),
 
 	savePayments: (payload: {
 		online_payment_enabled?: boolean;
@@ -186,10 +252,18 @@ export const storefrontAdminApi = {
 		pay_at_pickup_enabled?: boolean;
 		default_payment_method?: string;
 	}) =>
-		api<AdminStorefront>('/api/v1/tenant/payment-settings', {
-			method: 'PUT',
-			body: JSON.stringify(payload)
-		}),
+		withStorefrontFallback(
+			() =>
+				api<AdminStorefront>('/api/v1/tenant/customize/payments', {
+					method: 'PUT',
+					body: JSON.stringify(payload)
+				}),
+			() =>
+				api<AdminStorefront>('/api/v1/tenant/payment-settings', {
+					method: 'PUT',
+					body: JSON.stringify(payload)
+				})
+		),
 
 	saveWorkflow: (payload: {
 		acceptance_mode?: string;
@@ -197,16 +271,31 @@ export const storefrontAdminApi = {
 		ready_notification?: boolean;
 		auto_complete?: boolean;
 	}) =>
-		api<AdminStorefront>('/api/v1/tenant/order-workflow', {
-			method: 'PUT',
-			body: JSON.stringify(payload)
-		}),
+		withStorefrontFallback(
+			() =>
+				api<AdminStorefront>('/api/v1/tenant/customize/workflow', {
+					method: 'PUT',
+					body: JSON.stringify(payload)
+				}),
+			() =>
+				api<AdminStorefront>('/api/v1/tenant/order-workflow', {
+					method: 'PUT',
+					body: JSON.stringify(payload)
+				})
+		),
 
-	qr: () => api<AdminQr>('/api/v1/tenant/storefront/qr'),
+	qr: () =>
+		withStorefrontFallback(
+			() => api<AdminQr>('/api/v1/tenant/customize/qr'),
+			() => api<AdminQr>('/api/v1/tenant/storefront/qr')
+		),
 
 	/** Live menu categories/products as the storefront will render them. */
 	preview: () =>
-		api<{ categories: unknown[]; products: unknown[] }>('/api/v1/tenant/storefront/preview')
+		withStorefrontFallback(
+			() => api<{ categories: unknown[]; products: unknown[] }>('/api/v1/tenant/customize/preview'),
+			() => api<{ categories: unknown[]; products: unknown[] }>('/api/v1/tenant/storefront/preview')
+		)
 };
 
 /** Option lists for the pickers, mirroring the server's enums. */
@@ -243,7 +332,7 @@ export const THEME_PRESETS: ThemePreset[] = [
 	},
 	{
 		id: 'street-food',
-		name: 'Street Food',
+		name: 'Bold',
 		blurb: 'Bold orange, sharp corners',
 		primary: '#ea580c',
 		secondary: '#b91c1c',
@@ -425,4 +514,116 @@ export function shiftLabel(shift: string[] | undefined): string {
 /** `emptySchedule` is a week with nothing set, which reads as always open. */
 export function emptySchedule(): Record<string, string[]> {
 	return Object.fromEntries(DAYS.map((day) => [day, []]));
+}
+
+/** Fallback document so Customize and Storefront controls always render real UI even if API is offline. */
+export function createDefaultStorefront(slug = 'your-shop', name = 'Your Store'): AdminStorefront {
+	return {
+		store: {
+			name,
+			slug,
+			logo_url: '',
+			favicon_url: '',
+			tagline: '',
+			description: '',
+			phone: '',
+			address: '',
+			business_type: 'RESTAURANT',
+			currency: 'INR',
+			timezone: 'Asia/Kolkata'
+		},
+		theme: {
+			preset: 'modern',
+			mode: 'system',
+			font: 'inter',
+			radius: 'md',
+			button: 'rounded',
+			card: 'elevated',
+			header: 'sticky',
+			hero: 'image',
+			product_layout: 'list',
+			filter_style: 'chips',
+			primary: '#5b4bdb',
+			secondary: '#8b5cf6',
+			accent: '#06b6d4',
+			hero_image_url: '',
+			vars: {
+				'--sf-primary': '#5b4bdb',
+				'--sf-secondary': '#8b5cf6',
+				'--sf-accent': '#06b6d4',
+				'--sf-font': "'Inter', system-ui, sans-serif"
+			}
+		},
+		behaviour: {
+			ordering_enabled: true,
+			closed_message: '',
+			customer_login_enabled: true,
+			customer_login_mode: 'optional',
+			prep_time_minutes: 20,
+			tax_percent: 0,
+			packaging_fee: 0,
+			published: true,
+			store_status: 'OPEN'
+		},
+		payments: {
+			online_payment_enabled: true,
+			cash_enabled: true,
+			pay_at_pickup_enabled: true,
+			default_payment_method: 'ONLINE',
+			methods: ['ONLINE', 'CASH']
+		},
+		workflow: {
+			acceptance_mode: 'MANUAL',
+			payment_requirement: 'BEFORE_PREPARATION',
+			ready_notification: true,
+			auto_complete: false
+		},
+		hours: {
+			always_open: true,
+			timezone: 'Asia/Kolkata',
+			schedule: {},
+			days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+			is_open: true,
+			label: 'Open',
+			detail: 'Open 24 hours',
+			today_closes: '24 hours'
+		},
+		homepage: {
+			sections: [
+				{ id: 'hero', type: 'HERO', enabled: true, content: {} },
+				{ id: 'categories', type: 'CATEGORIES', enabled: true, content: { title: 'Browse by category' } },
+				{ id: 'popular', type: 'POPULAR_PRODUCTS', enabled: true, content: { title: 'Popular right now' } },
+				{ id: 'featured', type: 'FEATURED_PRODUCTS', enabled: true, content: { title: "Chef's picks" } },
+				{ id: 'menu', type: 'MENU', enabled: true, content: { title: 'Full menu' } },
+				{ id: 'business', type: 'BUSINESS_INFO', enabled: true, content: {} },
+				{ id: 'hours', type: 'OPENING_HOURS', enabled: true, content: {} },
+				{ id: 'footer', type: 'FOOTER', enabled: true, content: {} }
+			]
+		},
+		catalogues: {
+			presets: THEME_PRESETS,
+			section_types: [
+				{ type: 'HERO', label: 'Hero banner', blurb: 'Store photo and headline', fields: [] },
+				{ type: 'CATEGORIES', label: 'Categories', blurb: 'Category filter strip', fields: [] },
+				{ type: 'POPULAR_PRODUCTS', label: 'Popular items', blurb: 'Bestseller carousel', fields: [] },
+				{ type: 'FEATURED_PRODUCTS', label: 'Featured', blurb: 'Chef picks highlight', fields: [] },
+				{ type: 'MENU', label: 'Full menu', blurb: 'Complete menu listing', fields: [] },
+				{ type: 'BUSINESS_INFO', label: 'Business info', blurb: 'Address and phone', fields: [] },
+				{ type: 'OPENING_HOURS', label: 'Hours', blurb: 'Weekly schedule', fields: [] },
+				{ type: 'FOOTER', label: 'Footer', blurb: 'Copyright and footer links', fields: [] },
+				{ type: 'ANNOUNCEMENT', label: 'Announcement', blurb: 'Top promotional banner', fields: [] }
+			],
+			days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+		},
+		ordering_available_now: true,
+		closed_reason: '',
+		public_url: '',
+		updated_at: new Date().toISOString()
+	};
+}
+
+/** True when the document is the offline placeholder (`createDefaultStorefront`), not API data. */
+export function isDefaultStorefront(config: AdminStorefront | null | undefined): boolean {
+	if (!config) return true;
+	return config.store.slug === 'your-shop' && config.public_url === '';
 }

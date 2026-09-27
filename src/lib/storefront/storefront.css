@@ -6,16 +6,15 @@
  * the server-rendered layout, so a tenant's brand is present in the first
  * painted frame and no component ever hard-codes a colour.
  *
- * Scoping: everything is under `.sf-root`, and light/dark surfaces are keyed off
- * `[data-sf-theme]`. The admin console and kitchen board use a completely
- * separate token set (`--accent`, `--surface`, …) in the app stylesheet, so the
- * two systems cannot bleed into each other in either direction.
+ * Scoping: everything is under `.sf-root` (or an `sf-*` class used inside it),
+ * and light/dark surfaces are keyed off `[data-sf-theme]`. The admin console
+ * uses a separate token set in layout.css — Tailwind is imported there (and in
+ * the public store layout), not here, so admin theme/preview can safely load
+ * these rules without a second preflight pass.
  *
  * Mobile first. The base rules describe a 320–430px phone; wider viewports only
  * ever add space or a second column. Touch targets are never smaller than 44px.
  */
-
-@import 'tailwindcss';
 
 .sf-root {
 	/* Neutral surface tokens, resolved per colour mode. */
@@ -3064,3 +3063,1382 @@
 	background: var(--sf-accent-soft, var(--sf-primary-soft));
 	color: var(--sf-accent);
 }
+
+/* ==========================================================================
+   PROFESSIONAL FOOD APP ENHANCEMENTS
+   ========================================================================== */
+
+/* --- 1. Top Navigation Header --- */
+.sf-app-header {
+	position: sticky;
+	top: 0;
+	z-index: 40;
+	background: var(--sf-header-bg, var(--sf-surface));
+	border-bottom: 1px solid var(--sf-border);
+	transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sf-app-header[data-transparent='true'] {
+	background: color-mix(in srgb, var(--sf-surface) 88%, transparent);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+}
+
+.sf-header-container {
+	max-width: var(--sf-maxw, 1200px);
+	margin: 0 auto;
+	padding: 0 var(--sf-gutter);
+}
+
+.sf-header-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: var(--sf-header-h, 60px);
+	gap: 16px;
+}
+
+.sf-brand {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	text-decoration: none;
+	color: inherit;
+	min-width: 0;
+}
+
+.sf-brand-logo-wrap {
+	width: 40px;
+	height: 40px;
+	border-radius: var(--sf-radius-sm, 10px);
+	overflow: hidden;
+	background: var(--sf-surface-3);
+	border: 1px solid var(--sf-border);
+	flex-shrink: 0;
+	box-shadow: var(--sf-shadow-xs);
+}
+
+.sf-brand-logo {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.sf-brand-text {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.sf-brand-name {
+	font-weight: 750;
+	font-size: 1.0625rem;
+	color: var(--sf-text);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	letter-spacing: -0.01em;
+}
+
+.sf-brand-meta {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	font-size: 0.75rem;
+	color: var(--sf-text-2);
+	font-weight: 500;
+}
+
+/* Status radar pulse indicator */
+.sf-status-dot {
+	position: relative;
+	width: 7px;
+	height: 7px;
+	border-radius: 999px;
+	flex-shrink: 0;
+}
+
+.sf-status-open {
+	background: #16a34a;
+}
+
+.sf-status-open::after {
+	content: '';
+	position: absolute;
+	inset: -3px;
+	border-radius: 999px;
+	background: rgba(22, 163, 74, 0.45);
+	animation: sf-status-radar 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+}
+
+@keyframes sf-status-radar {
+	0% { transform: scale(0.8); opacity: 0.9; }
+	100% { transform: scale(2.4); opacity: 0; }
+}
+
+.sf-status-busy {
+	background: #ea580c;
+}
+
+.sf-status-away {
+	background: #d97706;
+}
+
+.sf-status-closed {
+	background: #dc2626;
+}
+
+.sf-status-sep {
+	color: var(--sf-text-3);
+}
+
+.sf-prep-time {
+	color: var(--sf-primary);
+	font-weight: 600;
+}
+
+/* Header Search */
+.sf-header-search-wrap {
+	flex: 1;
+	max-width: 440px;
+}
+
+.sf-desktop-search {
+	display: none;
+}
+
+.sf-mobile-search {
+	padding-bottom: 10px;
+}
+
+@media (min-width: 768px) {
+	.sf-desktop-search {
+		display: block;
+	}
+	.sf-mobile-search {
+		display: none;
+	}
+}
+
+.sf-search-field {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	height: 40px;
+	padding: 0 14px;
+	background: var(--sf-surface-2);
+	border: 1px solid var(--sf-border-strong);
+	border-radius: var(--sf-radius-pill);
+	transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.sf-search-field:focus-within {
+	border-color: var(--sf-primary);
+	background: var(--sf-surface);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--sf-primary) 18%, transparent);
+}
+
+.sf-search-field input {
+	flex: 1;
+	border: none;
+	background: transparent;
+	font: inherit;
+	font-size: 0.875rem;
+	color: var(--sf-text);
+	outline: none;
+	width: 100%;
+}
+
+.sf-search-field input::placeholder {
+	color: var(--sf-text-3);
+}
+
+.sf-search-clear {
+	background: transparent;
+	border: none;
+	color: var(--sf-text-3);
+	cursor: pointer;
+	padding: 2px;
+	display: grid;
+	place-items: center;
+	border-radius: 999px;
+}
+
+.sf-search-clear:hover {
+	color: var(--sf-text);
+}
+
+/* Header Actions */
+.sf-header-actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.sf-header-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 0 12px;
+	height: 38px;
+	border-radius: var(--sf-radius-pill);
+	color: var(--sf-text);
+	text-decoration: none;
+	font-size: 0.875rem;
+	font-weight: 600;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sf-header-link:hover {
+	background: var(--sf-surface-2);
+	color: var(--sf-primary);
+}
+
+.sf-desktop-only {
+	display: none;
+}
+
+@media (min-width: 640px) {
+	.sf-desktop-only {
+		display: inline-flex;
+	}
+}
+
+.sf-user-btn {
+	width: 38px;
+	height: 38px;
+	border-radius: var(--sf-radius-pill);
+	border: 1px solid var(--sf-border);
+	background: var(--sf-surface);
+	color: var(--sf-text-2);
+	display: grid;
+	place-items: center;
+	text-decoration: none;
+	transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.sf-user-btn:hover {
+	border-color: var(--sf-border-strong);
+	color: var(--sf-text);
+}
+
+.sf-cart-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	height: 40px;
+	padding: 0 14px;
+	border-radius: var(--sf-radius-pill);
+	background: var(--sf-surface);
+	border: 1px solid var(--sf-border-strong);
+	color: var(--sf-text);
+	text-decoration: none;
+	font-size: 0.875rem;
+	font-weight: 650;
+	cursor: pointer;
+	box-shadow: var(--sf-shadow-xs);
+	transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sf-cart-btn:hover {
+	border-color: var(--sf-primary);
+	transform: translateY(-1px);
+	box-shadow: var(--sf-shadow-sm);
+}
+
+.sf-cart-btn[data-has-items='true'] {
+	background: var(--sf-primary);
+	border-color: var(--sf-primary);
+	color: var(--sf-primary-ink);
+}
+
+.sf-cart-icon-wrap {
+	position: relative;
+	display: grid;
+	place-items: center;
+}
+
+.sf-cart-badge {
+	position: absolute;
+	top: -6px;
+	right: -8px;
+	min-width: 17px;
+	height: 17px;
+	padding: 0 4px;
+	border-radius: 999px;
+	background: #ffffff;
+	color: var(--sf-primary);
+	font-size: 0.65rem;
+	font-weight: 800;
+	display: grid;
+	place-items: center;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* --- 2. Restaurant Showcase Hero & Profile Card --- */
+.sf-restaurant-hero {
+	position: relative;
+	width: 100%;
+	background: var(--sf-surface-2);
+}
+
+.sf-hero-cover {
+	position: relative;
+	height: 200px;
+	width: 100%;
+	background-size: cover;
+	background-position: center;
+	background-color: #1e1b4b;
+	background-image: var(--sf-hero-gradient, linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%));
+}
+
+@media (min-width: 768px) {
+	.sf-hero-cover {
+		height: 280px;
+	}
+}
+
+.sf-hero-cover-pattern {
+	position: absolute;
+	inset: 0;
+	background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+	background-size: 20px 20px;
+	pointer-events: none;
+}
+
+.sf-restaurant-card-wrap {
+	max-width: var(--sf-maxw, 1200px);
+	margin: -60px auto 0;
+	padding: 0 var(--sf-gutter);
+	position: relative;
+	z-index: 10;
+}
+
+@media (min-width: 768px) {
+	.sf-restaurant-card-wrap {
+		margin-top: -85px;
+	}
+}
+
+.sf-restaurant-card {
+	background: var(--sf-surface);
+	border: 1px solid var(--sf-border);
+	border-radius: var(--sf-radius-lg, 20px);
+	padding: 20px 22px;
+	box-shadow: var(--sf-shadow-md);
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	backdrop-filter: blur(16px);
+}
+
+@media (min-width: 768px) {
+	.sf-restaurant-card {
+		padding: 26px 30px;
+	}
+}
+
+.sf-restaurant-top {
+	display: flex;
+	align-items: flex-start;
+	gap: 18px;
+}
+
+.sf-restaurant-logo-box {
+	width: 74px;
+	height: 74px;
+	border-radius: var(--sf-radius, 16px);
+	background: var(--sf-surface);
+	border: 3px solid var(--sf-surface);
+	box-shadow: var(--sf-shadow-md);
+	overflow: hidden;
+	flex-shrink: 0;
+	display: grid;
+	place-items: center;
+}
+
+@media (min-width: 768px) {
+	.sf-restaurant-logo-box {
+		width: 90px;
+		height: 90px;
+	}
+}
+
+.sf-restaurant-logo {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.sf-restaurant-logo-placeholder {
+	width: 100%;
+	height: 100%;
+	background: var(--sf-primary);
+	color: var(--sf-primary-ink);
+	display: grid;
+	place-items: center;
+	font-size: 2rem;
+	font-weight: 800;
+}
+
+.sf-restaurant-headline {
+	flex: 1;
+	min-width: 0;
+}
+
+.sf-restaurant-title-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.sf-restaurant-title {
+	font-size: 1.5rem;
+	font-weight: 850;
+	line-height: 1.2;
+	color: var(--sf-text);
+	margin: 0;
+	letter-spacing: -0.02em;
+}
+
+@media (min-width: 768px) {
+	.sf-restaurant-title {
+		font-size: 2rem;
+	}
+}
+
+.sf-verified-badge {
+	color: #10b981;
+	display: inline-flex;
+	align-items: center;
+}
+
+.sf-restaurant-tagline {
+	margin: 6px 0 0;
+	font-size: 0.875rem;
+	color: var(--sf-text-2);
+	line-height: 1.45;
+}
+
+/* Key Operational Badges */
+.sf-restaurant-pills {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	padding-top: 4px;
+	border-top: 1px dashed var(--sf-border);
+}
+
+.sf-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 11px;
+	border-radius: var(--sf-radius-pill);
+	font-size: 0.8125rem;
+	font-weight: 600;
+	background: var(--sf-surface-2);
+	color: var(--sf-text-2);
+	border: 1px solid var(--sf-border);
+}
+
+.sf-pill-rating {
+	background: #fef3c7;
+	border-color: #fde68a;
+	color: #92400e;
+}
+
+.sf-star-icon {
+	color: #f59e0b;
+	fill: #f59e0b;
+}
+
+.sf-pill-bold {
+	font-weight: 750;
+}
+
+.sf-pill-sub {
+	font-size: 0.75rem;
+	opacity: 0.8;
+}
+
+.sf-pill-status {
+	background: var(--sf-surface);
+}
+
+.sf-pill-prep {
+	color: var(--sf-primary);
+	border-color: color-mix(in srgb, var(--sf-primary) 30%, transparent);
+	background: var(--sf-primary-soft);
+}
+
+.sf-truncate-text {
+	max-width: 240px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sf-restaurant-closed-alert {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 14px;
+	border-radius: var(--sf-radius-sm);
+	background: var(--sf-danger-soft);
+	color: var(--sf-danger);
+	font-size: 0.8125rem;
+	font-weight: 600;
+}
+
+.sf-alert-badge {
+	padding: 2px 7px;
+	border-radius: 4px;
+	background: var(--sf-danger);
+	color: #fff;
+	font-size: 0.6875rem;
+	font-weight: 800;
+	text-transform: uppercase;
+}
+
+/* --- 3. Sticky Category & Dietary Filter Bar --- */
+.sf-sticky-nav-bar {
+	position: sticky;
+	top: var(--sf-header-h, 60px);
+	z-index: 30;
+	background: color-mix(in srgb, var(--sf-surface) 92%, transparent);
+	backdrop-filter: blur(14px);
+	-webkit-backdrop-filter: blur(14px);
+	border-bottom: 1px solid var(--sf-border);
+	padding: 10px 0;
+	transition: box-shadow 0.2s ease;
+}
+
+.sf-sticky-nav-inner {
+	max-width: var(--sf-maxw, 1200px);
+	margin: 0 auto;
+	padding: 0 var(--sf-gutter);
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+
+.sf-sticky-nav-inner::-webkit-scrollbar {
+	display: none;
+}
+
+.sf-diet-filters {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+.sf-diet-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	height: 36px;
+	padding: 0 13px;
+	border-radius: var(--sf-radius-pill);
+	border: 1px solid var(--sf-border-strong);
+	background: var(--sf-surface);
+	color: var(--sf-text);
+	font-size: 0.8125rem;
+	font-weight: 650;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.sf-diet-toggle:hover {
+	border-color: var(--sf-text-3);
+}
+
+.sf-diet-toggle:active {
+	transform: scale(0.96);
+}
+
+.sf-active-veg {
+	border-color: #16a34a !important;
+	background: #f0fdf4 !important;
+	color: #15803d !important;
+	box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
+}
+
+.sf-active-popular {
+	border-color: #f59e0b !important;
+	background: #fffbeb !important;
+	color: #b45309 !important;
+	box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+.sf-flame-icon {
+	color: #f97316;
+}
+
+.sf-sticky-nav-divider {
+	width: 1px;
+	height: 24px;
+	background: var(--sf-border);
+	flex-shrink: 0;
+}
+
+.sf-nav-categories {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+.sf-nav-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	height: 36px;
+	padding: 0 15px;
+	border-radius: var(--sf-radius-pill);
+	border: 1px solid var(--sf-border);
+	background: var(--sf-surface);
+	color: var(--sf-text-2);
+	font-size: 0.8125rem;
+	font-weight: 600;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.sf-nav-chip:hover {
+	border-color: var(--sf-border-strong);
+	color: var(--sf-text);
+}
+
+.sf-nav-chip-count {
+	font-size: 0.6875rem;
+	font-weight: 700;
+	padding: 1px 6px;
+	border-radius: 999px;
+	background: var(--sf-surface-3);
+	color: var(--sf-text-3);
+}
+
+.sf-active-chip {
+	background: var(--sf-primary) !important;
+	border-color: var(--sf-primary) !important;
+	color: var(--sf-primary-ink) !important;
+}
+
+.sf-active-chip .sf-nav-chip-count {
+	background: rgba(255, 255, 255, 0.25);
+	color: #ffffff;
+}
+
+/* --- 4. Authentic Dietary Mark (Food Delivery Standard) --- */
+.sf-diet-mark {
+	display: inline-grid;
+	place-items: center;
+	width: 16px;
+	height: 16px;
+	border-radius: 4px;
+	flex-shrink: 0;
+}
+
+.sf-diet-veg {
+	border: 1.8px solid #16a34a;
+	background: #ffffff;
+}
+
+.sf-diet-circle {
+	width: 7px;
+	height: 7px;
+	border-radius: 999px;
+	background: #16a34a;
+}
+
+.sf-diet-nonveg {
+	border: 1.8px solid #dc2626;
+	background: #ffffff;
+}
+
+.sf-diet-triangle {
+	width: 0;
+	height: 0;
+	border-left: 4.5px solid transparent;
+	border-right: 4.5px solid transparent;
+	border-bottom: 7px solid #dc2626;
+}
+
+/* --- 5. Professional Product Card Layout --- */
+.sf-food-card {
+	display: flex;
+	justify-content: space-between;
+	align-items: stretch;
+	gap: 16px;
+	padding: 16px 18px;
+	background: var(--sf-surface);
+	border: 1px solid var(--sf-card-border, var(--sf-border));
+	border-radius: var(--sf-radius, 16px);
+	box-shadow: var(--sf-card-shadow, var(--sf-shadow-xs));
+	transition: transform 0.16s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+	position: relative;
+}
+
+.sf-food-card:hover {
+	transform: translateY(-2px);
+	box-shadow: var(--sf-shadow-md);
+	border-color: var(--sf-border-strong);
+}
+
+.sf-food-info {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+
+.sf-food-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.sf-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	height: 20px;
+	padding: 0 8px;
+	border-radius: 4px;
+	font-size: 0.6875rem;
+	font-weight: 750;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+}
+
+.sf-badge-popular {
+	background: #fef3c7;
+	color: #b45309;
+}
+
+.sf-badge-featured {
+	background: #ede9fe;
+	color: #6d28d9;
+}
+
+.sf-badge-soldout {
+	background: var(--sf-danger-soft);
+	color: var(--sf-danger);
+}
+
+.sf-food-title-link {
+	text-decoration: none;
+	color: inherit;
+}
+
+.sf-food-name {
+	font-size: 1.0625rem;
+	font-weight: 750;
+	color: var(--sf-text);
+	margin: 2px 0 0;
+	line-height: 1.3;
+	letter-spacing: -0.01em;
+}
+
+.sf-food-price-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 2px;
+}
+
+.sf-food-price {
+	font-size: 1rem;
+	font-weight: 800;
+	color: var(--sf-text);
+	font-variant-numeric: tabular-nums;
+}
+
+.sf-food-desc {
+	margin: 4px 0 0;
+	font-size: 0.8125rem;
+	color: var(--sf-text-2);
+	line-height: 1.45;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+/* Media & ADD action */
+.sf-food-media-wrap {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	flex-shrink: 0;
+	position: relative;
+	width: 120px;
+}
+
+@media (min-width: 640px) {
+	.sf-food-media-wrap {
+		width: 136px;
+	}
+}
+
+.sf-food-media {
+	width: 110px;
+	height: 110px;
+	border-radius: var(--sf-radius, 14px);
+	overflow: hidden;
+	background: var(--sf-surface-3);
+	display: block;
+	position: relative;
+	box-shadow: var(--sf-shadow-xs);
+	text-decoration: none;
+}
+
+@media (min-width: 640px) {
+	.sf-food-media {
+		width: 128px;
+		height: 128px;
+	}
+}
+
+.sf-food-img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+	transition: transform 0.3s ease;
+}
+
+.sf-food-card:hover .sf-food-img {
+	transform: scale(1.05);
+}
+
+.sf-food-placeholder {
+	width: 100%;
+	height: 100%;
+	display: grid;
+	place-items: center;
+	color: var(--sf-text-3);
+}
+
+.sf-food-action {
+	margin-top: -18px;
+	position: relative;
+	z-index: 5;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 100%;
+}
+
+.sf-food-add-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-width: 96px;
+	height: 38px;
+	padding: 0 16px;
+	border-radius: var(--sf-radius-sm, 10px);
+	border: 1.5px solid var(--sf-primary);
+	background: var(--sf-surface);
+	color: var(--sf-primary);
+	font-family: inherit;
+	font-size: 0.875rem;
+	font-weight: 800;
+	cursor: pointer;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+	text-decoration: none;
+	transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.sf-food-add-btn:hover {
+	background: var(--sf-primary);
+	color: var(--sf-primary-ink);
+	box-shadow: 0 4px 12px rgba(var(--sf-primary-rgb), 0.3);
+	transform: translateY(-1px);
+}
+
+.sf-food-add-btn:active {
+	transform: scale(0.96);
+}
+
+.sf-customisable-hint {
+	font-size: 0.6875rem;
+	color: var(--sf-text-3);
+	font-weight: 600;
+	margin-top: 3px;
+}
+
+/* Food Stepper */
+.sf-food-stepper {
+	min-width: 96px;
+	height: 38px;
+	border-radius: var(--sf-radius-sm, 10px);
+	background: var(--sf-primary);
+	border: none;
+	box-shadow: 0 2px 8px rgba(var(--sf-primary-rgb), 0.3);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 3px 6px;
+}
+
+.sf-food-stepper .sf-qty-btn {
+	background: transparent;
+	color: var(--sf-primary-ink);
+	width: 28px;
+	height: 28px;
+	border-radius: 6px;
+	display: grid;
+	place-items: center;
+}
+
+.sf-food-stepper .sf-qty-btn:hover {
+	background: rgba(255, 255, 255, 0.2);
+}
+
+.sf-food-stepper .sf-qty-value {
+	color: var(--sf-primary-ink);
+	font-size: 0.9375rem;
+	font-weight: 800;
+}
+
+/* Compact layout for Rails */
+.sf-product[data-layout='compact'] {
+	display: flex;
+	flex-direction: column;
+	width: 190px;
+	padding: 12px;
+	gap: 10px;
+}
+
+.sf-product[data-layout='compact'] .sf-food-media-wrap {
+	width: 100%;
+}
+
+.sf-product[data-layout='compact'] .sf-food-media {
+	width: 100%;
+	height: 120px;
+}
+
+.sf-product[data-layout='compact'] .sf-food-action {
+	margin-top: -16px;
+}
+
+.sf-product[data-layout='compact'] .sf-food-desc {
+	display: none;
+}
+
+/* Grid layout */
+.sf-product[data-layout='grid'] {
+	display: flex;
+	flex-direction: column;
+	padding: 14px;
+	gap: 12px;
+}
+
+.sf-product[data-layout='grid'] .sf-food-media-wrap {
+	width: 100%;
+}
+
+.sf-product[data-layout='grid'] .sf-food-media {
+	width: 100%;
+	height: 160px;
+}
+
+/* --- 6. Sections Container & Category Cards --- */
+.sf-sections-container {
+	max-width: var(--sf-maxw, 1200px);
+	margin: 0 auto;
+	padding: 24px var(--sf-gutter) 60px;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sf-section-space, 32px);
+}
+
+.sf-section-title-wrap {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.sf-section-badge-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.sf-icon-flame {
+	color: #f97316;
+}
+
+.sf-icon-sparkle {
+	color: #8b5cf6;
+}
+
+.sf-section-title {
+	font-size: 1.25rem;
+	font-weight: 800;
+	color: var(--sf-text);
+	margin: 0;
+	letter-spacing: -0.01em;
+}
+
+.sf-section-sub {
+	font-size: 0.8125rem;
+	color: var(--sf-text-2);
+}
+
+.sf-section-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 0.875rem;
+	font-weight: 700;
+	color: var(--sf-primary);
+	text-decoration: none;
+}
+
+.sf-section-link:hover {
+	text-decoration: underline;
+}
+
+.sf-categories-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 12px;
+}
+
+@media (min-width: 640px) {
+	.sf-categories-grid {
+		grid-template-columns: repeat(4, 1fr);
+		gap: 16px;
+	}
+}
+
+.sf-category-card {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 14px 16px;
+	border-radius: var(--sf-radius, 14px);
+	background: var(--sf-surface);
+	border: 1px solid var(--sf-border);
+	box-shadow: var(--sf-shadow-xs);
+	cursor: pointer;
+	text-align: left;
+	transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sf-category-card:hover {
+	transform: translateY(-2px);
+	border-color: var(--sf-primary);
+	box-shadow: var(--sf-shadow-sm);
+}
+
+.sf-category-icon-box {
+	width: 44px;
+	height: 44px;
+	border-radius: var(--sf-radius-sm, 10px);
+	background: var(--sf-primary-soft);
+	color: var(--sf-primary);
+	display: grid;
+	place-items: center;
+	flex-shrink: 0;
+}
+
+.sf-category-info {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.sf-category-title {
+	font-size: 0.9375rem;
+	font-weight: 750;
+	color: var(--sf-text);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.sf-category-subtitle {
+	font-size: 0.75rem;
+	color: var(--sf-text-3);
+}
+
+/* Category Block inside Full Menu */
+.sf-category-block {
+	margin-bottom: 28px;
+	scroll-margin-top: 130px;
+}
+
+.sf-category-header {
+	margin-bottom: 14px;
+	padding-bottom: 8px;
+	border-bottom: 1.5px solid var(--sf-border);
+}
+
+.sf-category-header-main {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.sf-category-heading {
+	font-size: 1.1875rem;
+	font-weight: 800;
+	color: var(--sf-text);
+	margin: 0;
+	letter-spacing: -0.01em;
+}
+
+.sf-category-badge {
+	font-size: 0.75rem;
+	font-weight: 700;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--sf-surface-3);
+	color: var(--sf-text-2);
+}
+
+.sf-category-desc {
+	margin: 4px 0 0;
+	font-size: 0.8125rem;
+	color: var(--sf-text-2);
+}
+
+/* Business Info Card */
+.sf-business-card,
+.sf-hours-card {
+	background: var(--sf-surface);
+	border: 1px solid var(--sf-border);
+	border-radius: var(--sf-radius, 14px);
+	padding: 20px;
+	box-shadow: var(--sf-shadow-xs);
+}
+
+.sf-business-info-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 16px;
+}
+
+@media (min-width: 640px) {
+	.sf-business-info-grid {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+
+.sf-business-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.sf-business-icon {
+	width: 38px;
+	height: 38px;
+	border-radius: var(--sf-radius-sm);
+	background: var(--sf-surface-2);
+	color: var(--sf-primary);
+	display: grid;
+	place-items: center;
+	flex-shrink: 0;
+}
+
+.sf-business-details {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.sf-business-label {
+	font-size: 0.75rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	color: var(--sf-text-3);
+	letter-spacing: 0.03em;
+}
+
+.sf-business-value {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--sf-text);
+}
+
+.sf-business-link {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--sf-primary);
+	text-decoration: none;
+}
+
+/* Opening hours table */
+.sf-hours-table {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.sf-hours-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 8px 12px;
+	border-radius: var(--sf-radius-sm);
+	font-size: 0.875rem;
+}
+
+.sf-today-row {
+	background: var(--sf-primary-soft);
+	font-weight: 700;
+	color: var(--sf-primary);
+}
+
+.sf-today-badge {
+	font-size: 0.6875rem;
+	padding: 1px 6px;
+	border-radius: 4px;
+	background: var(--sf-primary);
+	color: var(--sf-primary-ink);
+	margin-left: 6px;
+}
+
+.sf-closed-time {
+	color: var(--sf-danger);
+}
+
+/* --- 7. Floating Sticky Cart Bar --- */
+.sf-floating-cartbar {
+	position: fixed;
+	bottom: 20px;
+	left: 0;
+	right: 0;
+	z-index: 50;
+	display: flex;
+	justify-content: center;
+	padding: 0 var(--sf-gutter);
+	pointer-events: none;
+	animation: sf-cartbar-slideup 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes sf-cartbar-slideup {
+	from { transform: translateY(100%); opacity: 0; }
+	to { transform: translateY(0); opacity: 1; }
+}
+
+.sf-floating-cartbar .sf-cartbar-inner {
+	width: 100%;
+	max-width: 580px;
+	pointer-events: auto;
+}
+
+.sf-food-cartbar-btn {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: 56px;
+	padding: 0 18px;
+	border-radius: var(--sf-radius-pill);
+	background: var(--sf-primary);
+	color: var(--sf-primary-ink);
+	text-decoration: none;
+	box-shadow: 0 10px 30px rgba(var(--sf-primary-rgb), 0.45);
+	transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sf-food-cartbar-btn:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 14px 38px rgba(var(--sf-primary-rgb), 0.55);
+}
+
+.sf-food-cartbar-btn:active {
+	transform: scale(0.98);
+}
+
+.sf-cartbar-left {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.sf-cartbar-icon-pill {
+	position: relative;
+	display: grid;
+	place-items: center;
+}
+
+.sf-cartbar-count-badge {
+	position: absolute;
+	top: -6px;
+	right: -8px;
+	min-width: 18px;
+	height: 18px;
+	padding: 0 4px;
+	border-radius: 999px;
+	background: #ffffff;
+	color: var(--sf-primary);
+	font-size: 0.6875rem;
+	font-weight: 850;
+	display: grid;
+	place-items: center;
+}
+
+.sf-cartbar-pricing {
+	display: flex;
+	flex-direction: column;
+}
+
+.sf-cartbar-total {
+	font-size: 1.0625rem;
+	font-weight: 850;
+	font-variant-numeric: tabular-nums;
+	line-height: 1.2;
+}
+
+.sf-cartbar-sublabel {
+	font-size: 0.75rem;
+	opacity: 0.85;
+	font-weight: 500;
+}
+
+.sf-cartbar-cta {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.sf-cartbar-cta-text {
+	font-size: 0.9375rem;
+	font-weight: 800;
+	letter-spacing: -0.01em;
+}
+
+.sf-cartbar-arrow-circle {
+	width: 28px;
+	height: 28px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.22);
+	display: grid;
+	place-items: center;
+	transition: transform 0.2s ease;
+}
+
+.sf-food-cartbar-btn:hover .sf-cartbar-arrow-circle {
+	transform: translateX(3px);
+}
+

@@ -52,7 +52,10 @@ export function loadMenuSnapshot(force = false): Promise<MenuSnapshot> {
 	if (!force && cached) return Promise.resolve(cached);
 	if (!force && inflight) return inflight;
 
-	const p = (async () => {
+	const TIMEOUT_MS = 10_000;
+	let timer: ReturnType<typeof setTimeout> | undefined;
+
+	const request = (async () => {
 		const [c, pr] = await Promise.all([menuApi.listCategories(), menuApi.listProducts()]);
 		let currency = cached?.currency ?? 'INR';
 		try {
@@ -69,7 +72,16 @@ export function loadMenuSnapshot(force = false): Promise<MenuSnapshot> {
 		};
 		cached = next;
 		return next;
-	})().finally(() => {
+	})();
+
+	const timeout = new Promise<never>((_, reject) => {
+		timer = setTimeout(() => {
+			reject(new Error('Menu is taking too long to load. Check that the API is running and try again.'));
+		}, TIMEOUT_MS);
+	});
+
+	const p = Promise.race([request, timeout]).finally(() => {
+		if (timer) clearTimeout(timer);
 		if (inflight === p) inflight = null;
 	});
 

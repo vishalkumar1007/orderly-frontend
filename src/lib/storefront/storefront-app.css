@@ -1,0 +1,3 @@
+/* Public storefront entry — Tailwind utilities + the sf-* design system. */
+@import 'tailwindcss';
+@import './storefront.css';

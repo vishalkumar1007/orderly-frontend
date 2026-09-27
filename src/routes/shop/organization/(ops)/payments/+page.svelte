@@ -1,25 +1,29 @@
 <script lang="ts">
 	import { PAYMENT_METHODS, storefrontAdminApi, type AdminStorefront } from '$lib/storefront/admin';
-	import { seed, type StorefrontContext } from '$lib/storefront/admin-context';
+	import { seed, useStorefront, type StorefrontContext } from '$lib/storefront/admin-context';
 	import { toast } from '$lib/components/admin/toast';
 
-	/**
-	 * Payment methods.
-	 *
-	 * The only choice here is which methods a customer may pick. At least one must
-	 * stay on — a shop with no payment method could never take an order — so the
-	 * switch that would do it is refused by the server and explained here.
-	 *
-	 * Turning a method off does not cancel anything already paid, and does not
-	 * change a payment in flight: those belong to the order, not to this setting.
-	 */
-	let { config, save }: StorefrontContext = $props();
+	let props: Partial<StorefrontContext> = $props();
+	const ctx = useStorefront(() => props);
+	const config = $derived(ctx.config);
+	const save = (run: Parameters<StorefrontContext['save']>[0]) => ctx.save(run);
 
-	let online = $state(seed(() => config.payments.online_payment_enabled));
-	let cash = $state(seed(() => config.payments.cash_enabled));
-	let atPickup = $state(seed(() => config.payments.pay_at_pickup_enabled));
-	let preferred = $state(seed(() => config.payments.default_payment_method));
+	let online = $state(seed(() => ctx.config.payments.online_payment_enabled));
+	let cash = $state(seed(() => ctx.config.payments.cash_enabled));
+	let atPickup = $state(seed(() => ctx.config.payments.pay_at_pickup_enabled));
+	let preferred = $state(seed(() => ctx.config.payments.default_payment_method));
 	let saving = $state(false);
+
+	let dirty = false;
+	$effect(() => {
+		const p = ctx.config.payments;
+		if (!dirty && p) {
+			online = p.online_payment_enabled;
+			cash = p.cash_enabled;
+			atPickup = p.pay_at_pickup_enabled;
+			preferred = p.default_payment_method;
+		}
+	});
 
 	/** `offered` is what the storefront will actually show. */
 	const offered = $derived([online ? 'ONLINE' : '', cash ? 'CASH' : ''].filter(Boolean));
@@ -31,7 +35,11 @@
 			return;
 		}
 		// The default has to be one the customer can actually choose.
-		const nextDefault = online ? (preferred === 'ONLINE' ? 'ONLINE' : 'ONLINE') : 'CASH';
+		const nextDefault = online
+			? preferred === 'CASH' && cash
+				? 'CASH'
+				: 'ONLINE'
+			: 'CASH';
 		saving = true;
 		const ok = await save(() =>
 			storefrontAdminApi.savePayments({

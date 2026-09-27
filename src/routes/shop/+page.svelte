@@ -54,7 +54,7 @@
 
 	const CHECKLIST = [
 		{ key: 'menu' as const, label: 'Add products to your menu', href: '/shop/menu' },
-		{ key: 'payment' as const, label: 'Confirm payment methods', href: '/shop/storefront/payments' },
+		{ key: 'payment' as const, label: 'Confirm payment methods', href: '/shop/organization/payments' },
 		{ key: 'qr' as const, label: 'Get your QR code', href: '/shop/storefront/qr' },
 		{ key: 'launch' as const, label: 'Publish your store', href: '/shop/setup' }
 	];
@@ -297,7 +297,7 @@
 			<a class="dash-action" href="/shop/orders">
 				<span class="dash-action-icon"><ClipboardList size={18} strokeWidth={1.85} /></span>
 				<span class="dash-action-body">
-					<strong>Orders</strong>
+					<strong>Selling</strong>
 					<span
 						>{orderBoard.activeCount > 0
 							? `${orderBoard.activeCount} active`
@@ -318,7 +318,7 @@
 				<span class="dash-action-icon"><ChefHat size={18} strokeWidth={1.85} /></span>
 				<span class="dash-action-body">
 					<strong>Kitchen</strong>
-					<span>Prep board</span>
+					<span>Prep tickets</span>
 				</span>
 				<ArrowRight size={14} strokeWidth={2} />
 			</a>

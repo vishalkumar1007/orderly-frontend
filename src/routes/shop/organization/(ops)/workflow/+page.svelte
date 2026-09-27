@@ -1,25 +1,29 @@
 <script lang="ts">
 	import { ACCEPTANCE_MODES, PAYMENT_TIMINGS, storefrontAdminApi, type AdminStorefront } from '$lib/storefront/admin';
-	import { seed, type StorefrontContext } from '$lib/storefront/admin-context';
+	import { seed, useStorefront, type StorefrontContext } from '$lib/storefront/admin-context';
 	import { toast } from '$lib/components/admin/toast';
 
-	/**
-	 * Order workflow.
-	 *
-	 * The pipeline itself is fixed by the platform:
-	 * PENDING → ACCEPTED → PREPARING → READY → COMPLETED, with cancellation only
-	 * before PREPARING. These four switches change how it behaves, not what is
-	 * possible — there is no setting here that can skip a stage, reopen a
-	 * completed order, or move an order backwards, and the server rejects any
-	 * request that tries.
-	 */
-	let { config, save }: StorefrontContext = $props();
+	let props: Partial<StorefrontContext> = $props();
+	const ctx = useStorefront(() => props);
+	const config = $derived(ctx.config);
+	const save = (run: Parameters<StorefrontContext['save']>[0]) => ctx.save(run);
 
-	let acceptance = $state(seed(() => config.workflow.acceptance_mode));
-	let timing = $state(seed(() => config.workflow.payment_requirement));
-	let readyNotification = $state(seed(() => config.workflow.ready_notification));
-	let autoComplete = $state(seed(() => config.workflow.auto_complete));
+	let acceptance = $state(seed(() => ctx.config.workflow.acceptance_mode));
+	let timing = $state(seed(() => ctx.config.workflow.payment_requirement));
+	let readyNotification = $state(seed(() => ctx.config.workflow.ready_notification));
+	let autoComplete = $state(seed(() => ctx.config.workflow.auto_complete));
 	let saving = $state(false);
+
+	let dirty = false;
+	$effect(() => {
+		const w = ctx.config.workflow;
+		if (!dirty && w) {
+			acceptance = w.acceptance_mode;
+			timing = w.payment_requirement;
+			readyNotification = w.ready_notification;
+			autoComplete = w.auto_complete;
+		}
+	});
 
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();

@@ -3,21 +3,9 @@
 	import TextArea from '$lib/components/admin/TextArea.svelte';
 	import TextInput from '$lib/components/admin/TextInput.svelte';
 	import { seed, type StorefrontContext } from '$lib/storefront/admin-context';
-	import { storefrontAdminApi, type AdminStorefront } from '$lib/storefront/admin';
+	import { storefrontAdminApi } from '$lib/storefront/admin';
 	import { toast } from '$lib/components/admin/toast';
 
-	/**
-	 * Branding: the logo, favicon and the name customers see.
-	 *
-	 * These are the first things a customer notices, so they sit at the top of the
-	 * settings tree rather than buried under "Theme".
-	 *
-	 * Images are entered as URLs rather than uploaded. That is a deliberate scope
-	 * decision — the storage provider is configured elsewhere in this product — and
-	 * a URL field is honest about what it does. Nothing here accepts markup: a
-	 * value ends up in an `src` attribute, and the server only keeps absolute
-	 * http(s) URLs.
-	 */
 	let { config, save }: StorefrontContext = $props();
 
 	let name = $state(seed(() => config.store.name));
@@ -25,11 +13,18 @@
 	let description = $state(seed(() => config.store.description));
 	let logoUrl = $state(seed(() => config.store.logo_url));
 	let faviconUrl = $state(seed(() => config.store.favicon_url));
-	/** Set when the logo URL does not load, so a broken link is obvious here. */
 	let logoBroken = $state(false);
 	let saving = $state(false);
+	let lastLogoUrl = logoUrl;
 
-	/** `isHttpUrl` is a client-side nudge; the server does the real check. */
+	$effect(() => {
+		const url = logoUrl;
+		if (url !== lastLogoUrl) {
+			lastLogoUrl = url;
+			logoBroken = false;
+		}
+	});
+
 	function isHttpUrl(value: string): boolean {
 		return /^https?:\/\/[^\s]+$/i.test(value.trim());
 	}
@@ -64,7 +59,6 @@
 		else toast.error('Could not save your branding');
 	}
 
-	/** `initial` is the fallback a customer sees when there is no logo. */
 	const initial = $derived((name.trim().charAt(0) || 'S').toUpperCase());
 </script>
 

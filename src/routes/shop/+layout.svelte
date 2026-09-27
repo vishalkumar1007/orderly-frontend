@@ -2,14 +2,23 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+	import ChefHat from '@lucide/svelte/icons/chef-hat';
+	import ClipboardList from '@lucide/svelte/icons/clipboard-list';
 	import { getAccessToken } from '$lib/api/client';
 	import { api } from '$lib/api/client';
 	import { logout, me, type User } from '$lib/auth';
-	import { TENANT_NAV, tenantCrumbs, tenantTitle } from '$lib/tenant/nav';
+	import {
+		STAFF_OPS_HREFS,
+		TENANT_NAV,
+		isOpsFullscreenPath,
+		tenantCrumbs,
+		tenantTitle
+	} from '$lib/tenant/nav';
 	import { orderBoard } from '$lib/tenant/orders.svelte';
 	import { invalidateDashboardSnapshot } from '$lib/tenant/dashboardCache.svelte';
 	import { invalidateMenuSnapshot } from '$lib/tenant/menuCache.svelte';
 	import { invalidateStorefrontAdmin } from '$lib/storefront/adminCache.svelte';
+	import { clearBrandTheme, invalidateBrandThemeCache } from '$lib/brandTheme';
 	import { activateUpdate, onUpdateAvailable } from '$lib/pwa.svelte';
 	import AdminShellSkeleton from '$lib/components/admin/AdminShellSkeleton.svelte';
 	import Toaster from '$lib/components/admin/Toaster.svelte';
@@ -20,8 +29,9 @@
 
 	type StoreLink = {
 		slug: string;
-		public_host: string;
-		public_path: string;
+		public_url?: string;
+		public_host?: string;
+		public_path?: string;
 		is_published: boolean;
 		name: string;
 	};
@@ -59,19 +69,26 @@
 	const isAdmin = $derived(user?.role === 'TENANT_ADMIN');
 
 	/**
-	 * Configuration is an admin concern. Staff still get the shell — the kitchen is
-	 * their surface — but without the settings or storefront sections.
+	 * Tenant Admin sees the full IA. Staff only get RUNNING ops — Selling and
+	 * Kitchen — until fine-grained IAM exists.
 	 */
 	const navGroups = $derived(
 		TENANT_NAV.map((group) => ({
 			...group,
 			items: group.items.filter((item) => {
-				if (item.href.startsWith('/shop/settings')) return isAdmin;
-				if (item.href.startsWith('/shop/storefront')) return isAdmin;
-				if (item.href === '/shop/brand') return isAdmin;
-				return true;
+				if (isAdmin) return true;
+				return group.label === 'Running' && STAFF_OPS_HREFS.has(item.href);
 			})
 		})).filter((group) => group.items.length > 0)
+	);
+
+	const quickLinks = $derived([
+		{ href: '/shop/orders', label: 'Selling', icon: ClipboardList },
+		{ href: '/shop/kitchen', label: 'Kitchen', icon: ChefHat }
+	]);
+
+	const isFullscreen = $derived(
+		isOpsFullscreenPath($page.url.pathname) && $page.url.searchParams.get('fullscreen') === '1'
 	);
 
 	/** Resolve identity for the side of the login wall we are currently on. */
@@ -125,7 +142,9 @@
 				const link = await api<StoreLink>('/api/v1/tenant/store-link');
 				if (cancelled) return;
 				shopName = link.name || data.tenantSlug || 'Your shop';
-				storefrontUrl = `http://${link.public_host}${link.public_path}`;
+				storefrontUrl =
+					link.public_url ||
+					(link.public_host ? `http://${link.public_host}${link.public_path || ''}` : '');
 			} catch {
 				if (!cancelled) shopName = data.tenantSlug ?? 'Your shop';
 			}
@@ -141,6 +160,13 @@
 
 	/** Orders needing attention, surfaced in the topbar. */
 	const needsAttention = $derived(orderBoard.activeCount);
+
+	// Slow badge poll only — ops pages acquire('ops') for the fast cadence.
+	$effect(() => {
+		if (status !== 'ready' || !user || isPublicRoute) return;
+		orderBoard.acquire('badge');
+		return () => orderBoard.release('badge');
+	});
 
 	onMount(() => {
 		// A new build is ready — offer it instead of swapping mid-order.
@@ -168,6 +194,8 @@
 		invalidateDashboardSnapshot();
 		invalidateMenuSnapshot();
 		invalidateStorefrontAdmin();
+		invalidateBrandThemeCache();
+		clearBrandTheme();
 		// Force a fresh resolve when signing back in (public → protected).
 		resolvedSide = null;
 		goto('/shop/login', { replaceState: true });
@@ -178,36 +206,42 @@
 	{@render children()}
 	<Toaster />
 {:else if status === 'ready' && user}
-	<AppShell
-		brandName={railName}
-		userEmail={user.email}
-		userName={user.name}
-		role={user.role}
-		pathname={$page.url.pathname}
-		{crumbs}
-		{title}
-		navLabel="Organization"
-		groups={navGroups}
-		storageKey="orderly-shop-rail"
-		settingsHref="/shop/settings/smtp"
-		onSignOut={signOut}
-	>
-		{#snippet actions()}
-			{#if needsAttention > 0}
-				<a class="btn btn-ghost btn-sm" href="/shop/orders">
-					{needsAttention} open {needsAttention === 1 ? 'order' : 'orders'}
-				</a>
-			{/if}
-			{#if storefrontUrl}
-				<a class="btn btn-ghost btn-sm" href={storefrontUrl} target="_blank" rel="noreferrer">
-					View storefront
-				</a>
-			{/if}
-		{/snippet}
-
+	{#if isFullscreen}
 		{@render children()}
-	</AppShell>
-	<Toaster />
+		<Toaster />
+	{:else}
+		<AppShell
+			brandName={railName}
+			userEmail={user.email}
+			userName={user.name}
+			role={user.role}
+			pathname={$page.url.pathname}
+			{crumbs}
+			{title}
+			navLabel="Organization"
+			groups={navGroups}
+			{quickLinks}
+			storageKey="orderly-shop-rail"
+			settingsHref="/shop/settings"
+			onSignOut={signOut}
+		>
+			{#snippet actions()}
+				{#if needsAttention > 0}
+					<a class="btn btn-ghost btn-sm" href="/shop/orders">
+						{needsAttention} open {needsAttention === 1 ? 'order' : 'orders'}
+					</a>
+				{/if}
+				{#if storefrontUrl}
+					<a class="btn btn-ghost btn-sm" href={storefrontUrl} target="_blank" rel="noreferrer">
+						View storefront
+					</a>
+				{/if}
+			{/snippet}
+
+			{@render children()}
+		</AppShell>
+		<Toaster />
+	{/if}
 {:else if status === 'loading'}
 	<!-- Shell-shaped so the frame doesn't jump when identity resolves. -->
 	<AdminShellSkeleton />

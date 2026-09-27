@@ -1,10 +1,11 @@
 <script lang="ts">
+	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import Eye from '@lucide/svelte/icons/eye';
 	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import { api } from '$lib/api/client';
-	import { applyBrandTheme, type BrandTheme, type ThemePreset } from '$lib/brandTheme';
+	import { applyBrandTheme, setCachedBrandTheme, type BrandTheme, type ThemePreset } from '$lib/brandTheme';
 	import BrandPicker from '$lib/components/admin/BrandPicker.svelte';
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
@@ -20,6 +21,10 @@
 	let error = $state('');
 	let isPublished = $state(false);
 	let publishing = $state(false);
+
+	const themeCacheKey = $derived(
+		(($page.data as { tenantSlug?: string }).tenantSlug || 'tenant') as string
+	);
 
 	onMount(() => {
 		let cancelled = false;
@@ -48,6 +53,7 @@
 					accent2 = theme.tokens.accent2;
 				}
 				applyBrandTheme(theme);
+				setCachedBrandTheme(themeCacheKey, theme);
 			} catch (err) {
 				if (!cancelled) error = err instanceof Error ? err.message : 'Failed to load brand';
 			} finally {
@@ -90,7 +96,10 @@
 				})
 			});
 			// Repaint immediately so the change is visible without a reload.
-			if (updated.theme) applyBrandTheme(updated.theme);
+			if (updated.theme) {
+				applyBrandTheme(updated.theme);
+				setCachedBrandTheme(themeCacheKey, updated.theme);
+			}
 			toast.success('Console appearance saved');
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Could not save your appearance');

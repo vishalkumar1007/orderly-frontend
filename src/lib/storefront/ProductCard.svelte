@@ -1,16 +1,18 @@
 <script lang="ts">
 	import Minus from '@lucide/svelte/icons/minus';
 	import Plus from '@lucide/svelte/icons/plus';
+	import Sparkles from '@lucide/svelte/icons/sparkles';
+	import Flame from '@lucide/svelte/icons/flame';
 	import type { StoreProduct } from '$lib/storefront/api';
 	import { lineKey } from '$lib/storefront/cart.svelte';
 	import { money } from '$lib/storefront/format';
 
 	/**
-	 * One product card.
+	 * Professional Food Order App Product Card.
 	 *
-	 * The whole card links to detail (options / notes). Quick-add items get an
-	 * Add button that becomes a qty stepper once in the cart — another of the
-	 * same dish is one tap, no cart round-trip.
+	 * Supports list, grid, and compact rail layouts with authentic dietary marks
+	 * (Veg green circle in square / Non-veg red triangle in square), appetizing
+	 * imagery, instant add/stepper micro-interactions, and customisable indicator.
 	 */
 	let {
 		product,
@@ -18,6 +20,7 @@
 		layout = 'list',
 		inCart = 0,
 		orderable = true,
+		businessType,
 		onadd,
 		onstep
 	}: {
@@ -26,9 +29,20 @@
 		layout?: 'list' | 'grid' | 'compact';
 		inCart?: number;
 		orderable?: boolean;
+		businessType?: string;
 		onadd?: (product: StoreProduct) => void;
 		onstep?: (product: StoreProduct, delta: number) => void;
 	} = $props();
+
+	const isFoodBusiness = $derived(
+		!businessType ||
+		businessType === 'RESTAURANT' ||
+		businessType === 'CAFE' ||
+		businessType === 'BAKERY' ||
+		businessType === 'JUICE_BAR'
+	);
+	const showDietMark = $derived(isFoodBusiness && typeof product.is_vegetarian === 'boolean');
+	const featuredLabel = $derived(isFoodBusiness ? "Chef's Pick" : 'Featured');
 
 	const hasOptions = $derived(
 		(product.option_groups?.some((g) => g.is_active !== false && (g.options?.length ?? 0) > 0) ??
@@ -40,112 +54,144 @@
 </script>
 
 <article
-	class="sf-product"
+	class="sf-product sf-food-card"
 	data-layout={layout}
 	data-unavailable={String(!product.is_available)}
 >
-	<a
-		class="sf-product-link"
-		href={'/product/' + product.id}
-		aria-label="{product.name}, {money(product.price, currency)}"
-	>
-		<span class="sf-product-media">
+	<!-- Left Side: Item Details -->
+	<div class="sf-food-info">
+		<div class="sf-food-header">
+			{#if showDietMark}
+				<span
+					class="sf-diet-mark {product.is_vegetarian ? 'sf-diet-veg' : 'sf-diet-nonveg'}"
+					title={product.is_vegetarian ? 'Vegetarian' : 'Non-Vegetarian'}
+					aria-label={product.is_vegetarian ? 'Vegetarian' : 'Non-Vegetarian'}
+				>
+					{#if product.is_vegetarian}
+						<span class="sf-diet-circle"></span>
+					{:else}
+						<span class="sf-diet-triangle"></span>
+					{/if}
+				</span>
+			{/if}
+
+			{#if product.is_popular}
+				<span class="sf-badge sf-badge-popular">
+					<Flame size={12} strokeWidth={2.5} aria-hidden="true" />
+					Bestseller
+				</span>
+			{:else if product.is_featured}
+				<span class="sf-badge sf-badge-featured">
+					<Sparkles size={11} strokeWidth={2.4} aria-hidden="true" />
+					{featuredLabel}
+				</span>
+			{/if}
+
+			{#if !product.is_available}
+				<span class="sf-badge sf-badge-soldout">Unavailable</span>
+			{/if}
+		</div>
+
+		<a
+			class="sf-food-title-link"
+			href={'/product/' + product.id}
+			aria-label="{product.name}, {money(product.price, currency)}"
+		>
+			<h3 class="sf-food-name">{product.name}</h3>
+		</a>
+
+		<div class="sf-food-price-row">
+			<span class="sf-food-price">{money(product.price, currency)}</span>
+		</div>
+
+		{#if product.description && layout !== 'compact'}
+			<p class="sf-food-desc">{product.description}</p>
+		{/if}
+	</div>
+
+	<!-- Right Side: Dish Media & Action Stepper -->
+	<div class="sf-food-media-wrap">
+		<a
+			class="sf-food-media"
+			href={'/product/' + product.id}
+			tabindex="-1"
+			aria-hidden="true"
+		>
 			{#if product.image_url}
 				<img
 					src={product.image_url}
-					alt=""
-					width="96"
-					height="96"
+					alt={product.name}
+					width="128"
+					height="128"
 					loading="lazy"
 					decoding="async"
+					class="sf-food-img"
 				/>
 			{:else}
-				<svg
-					width="28"
-					height="28"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.5"
-					aria-hidden="true"
-				>
-					<path
-						d="M3 11h18M5 11v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-					/>
-				</svg>
+				<div class="sf-food-placeholder">
+					<svg
+						width="32"
+						height="32"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.4"
+						aria-hidden="true"
+					>
+						<path
+							d="M3 11h18M5 11v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+						/>
+					</svg>
+				</div>
 			{/if}
-		</span>
+		</a>
 
-		<span class="sf-product-body">
-			<span class="sf-product-name">
-				{product.name}
-				{#if product.is_vegetarian}
-					<span class="sf-veg-mark" title="Vegetarian" aria-label="Vegetarian">
-						<svg
-							width="9"
-							height="9"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="3.5"
-							aria-hidden="true"
+		<!-- Action: Quick Add / Stepper or Customise -->
+		{#if orderable && product.is_available}
+			<div class="sf-food-action">
+				{#if canQuickAdd}
+					{#if inCart > 0}
+						<div class="sf-qty-stepper sf-food-stepper" role="group" aria-label="Quantity of {product.name}">
+							<button
+								class="sf-qty-btn"
+								type="button"
+								aria-label="Remove one {product.name}"
+								onclick={() => onstep?.(product, -1)}
+							>
+								<Minus size={14} strokeWidth={2.6} aria-hidden="true" />
+							</button>
+							<span class="sf-qty-value" data-key={simpleKey}>{inCart}</span>
+							<button
+								class="sf-qty-btn"
+								type="button"
+								aria-label="Add one {product.name}"
+								onclick={() => onstep?.(product, 1)}
+							>
+								<Plus size={14} strokeWidth={2.6} aria-hidden="true" />
+							</button>
+						</div>
+					{:else}
+						<button
+							class="sf-add-btn sf-food-add-btn"
+							type="button"
+							onclick={() => onadd?.(product)}
 						>
-							<path d="M20 6 9 17l-5-5" />
-						</svg>
-					</span>
+							<span class="sf-add-text">ADD</span>
+							<Plus size={14} strokeWidth={2.8} aria-hidden="true" />
+							<span class="sf-sr-only">Add {product.name} to cart</span>
+						</button>
+					{/if}
+				{:else if hasOptions}
+					<a
+						class="sf-add-btn sf-food-add-btn sf-has-options"
+						href={'/product/' + product.id}
+					>
+						<span class="sf-add-text">ADD</span>
+						<Plus size={14} strokeWidth={2.8} aria-hidden="true" />
+					</a>
+					<span class="sf-customisable-hint">Customisable</span>
 				{/if}
-				{#if product.is_popular}
-					<span class="sf-tag" data-tone="popular">Popular</span>
-				{/if}
-				{#if !product.is_available}
-					<span class="sf-tag" data-tone="sold-out">Sold out</span>
-				{/if}
-			</span>
-
-			{#if product.description && layout !== 'compact'}
-				<span class="sf-product-desc">{product.description}</span>
-			{/if}
-
-			<span class="sf-product-foot">
-				<span class="sf-product-price">{money(product.price, currency)}</span>
-				{#if hasOptions}
-					<span class="sf-tag">Options</span>
-				{/if}
-			</span>
-		</span>
-	</a>
-
-	{#if canQuickAdd}
-		{#if inCart > 0}
-			<div class="sf-qty-stepper" role="group" aria-label="Quantity of {product.name}">
-				<button
-					class="sf-qty-btn"
-					type="button"
-					aria-label="Remove one {product.name}"
-					onclick={() => onstep?.(product, -1)}
-				>
-					<Minus size={14} strokeWidth={2.6} aria-hidden="true" />
-				</button>
-				<span class="sf-qty-value" data-key={simpleKey}>{inCart}</span>
-				<button
-					class="sf-qty-btn"
-					type="button"
-					aria-label="Add one {product.name}"
-					onclick={() => onstep?.(product, 1)}
-				>
-					<Plus size={14} strokeWidth={2.6} aria-hidden="true" />
-				</button>
 			</div>
-		{:else}
-			<button
-				class="sf-add-btn"
-				type="button"
-				onclick={() => onadd?.(product)}
-			>
-				<Plus size={15} strokeWidth={2.6} aria-hidden="true" />
-				Add
-				<span class="sf-sr-only">Add {product.name} to cart</span>
-			</button>
 		{/if}
-	{/if}
+	</div>
 </article>

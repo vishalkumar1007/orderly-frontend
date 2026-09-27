@@ -102,11 +102,19 @@ done
 # Admin storefront control. One entry per screen, so a screen that fails to
 # compile or throws during load is named rather than hidden behind a group.
 for path in /shop/login /shop /shop/storefront \
+            /shop/customize \
+            /shop/customize/branding /shop/customize/theme \
+            /shop/customize/homepage /shop/customize/login \
             /shop/storefront/branding /shop/storefront/theme \
             /shop/storefront/homepage /shop/storefront/store-info \
-            /shop/storefront/hours /shop/storefront/login \
-            /shop/storefront/payments /shop/storefront/workflow \
-            /shop/storefront/qr /shop/storefront/preview; do
+            /shop/storefront/login \
+            /shop/storefront/qr /shop/storefront/preview \
+            /shop/organization /shop/organization/hours \
+            /shop/organization/payments /shop/organization/workflow \
+            /shop/settings /shop/settings/integrations \
+            /shop/settings/integrations/smtp \
+            /shop/settings/integrations/storage \
+            /shop/settings/integrations/ai; do
   check "$path" "200" "no"
 done
 

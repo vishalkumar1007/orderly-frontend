@@ -6,13 +6,6 @@
 	} from '$lib/storefront/admin';
 	import { toast } from '$lib/components/admin/toast';
 
-	/**
-	 * Customer login.
-	 *
-	 * Three modes: off (no phone sign-in), optional (guest checkout + OTP),
-	 * and required (must sign in before placing an order). The server enforces
-	 * required mode on create-order, so the UI gate cannot be bypassed.
-	 */
 	let { config, save }: StorefrontContext = $props();
 
 	function initialMode(): 'off' | 'optional' | 'required' {

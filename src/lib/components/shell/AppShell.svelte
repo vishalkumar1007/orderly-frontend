@@ -18,7 +18,18 @@
 		/** Child paths that belong to a sibling entry. */
 		exclude?: string[];
 	};
-	export type ShellNavGroup = { label?: string; items: ShellNavItem[] };
+	export type ShellNavGroup = {
+		label?: string;
+		/** Visual weight — RUNNING is the daily-ops cluster. */
+		emphasis?: 'running';
+		items: ShellNavItem[];
+	};
+
+	export type ShellQuickLink = {
+		href: string;
+		label: string;
+		icon: Component;
+	};
 
 	/** At or below this the rail becomes an overlay drawer instead of a column. */
 	const DRAWER_BREAKPOINT = 900;
@@ -47,6 +58,8 @@
 		showProfile = true,
 		/** Settings link in the account menu — portal-specific. */
 		settingsHref = '/superadmin/settings',
+		/** Mobile bar shortcuts (e.g. Selling + Kitchen). */
+		quickLinks = [] as ShellQuickLink[],
 		onSignOut,
 		/** Buttons rendered at the right of the topbar. */
 		actions,
@@ -65,6 +78,7 @@
 		wideContent?: boolean;
 		showProfile?: boolean;
 		settingsHref?: string;
+		quickLinks?: ShellQuickLink[];
 		onSignOut?: () => void;
 		actions?: Snippet;
 		children: Snippet;
@@ -124,6 +138,10 @@
 	function closeDrawer() {
 		mobileOpen = false;
 	}
+
+	function quickActive(href: string): boolean {
+		return pathname === href || pathname.startsWith(href + '/');
+	}
 </script>
 
 <div class={['shell', railCompact ? 'rail-collapsed' : ''].join(' ')}>
@@ -147,7 +165,15 @@
 
 		<nav class="rail-nav" aria-label={navLabel}>
 			{#each groups as group, gi (group.label ?? gi)}
-				<div class="rail-group">
+				<div
+					class={[
+						'rail-group',
+						group.emphasis === 'running' ? 'rail-group-running' : '',
+						group.emphasis ? '' : group.label ? 'rail-group-quiet' : ''
+					]
+						.filter(Boolean)
+						.join(' ')}
+				>
 					{#if group.label && !railCompact}
 						<div class="rail-group-label">{group.label}</div>
 					{/if}
@@ -195,6 +221,24 @@
 					<Menu size={18} strokeWidth={1.75} />
 				</button>
 				<span class="rail-mobile-name">{brandName}</span>
+				{#if quickLinks.length > 0}
+					<div class="rail-mobile-quick" role="navigation" aria-label="Quick operations">
+						{#each quickLinks as link (link.href)}
+							{@const Icon = link.icon}
+							<a
+								href={link.href}
+								class={['rail-mobile-quick-link', quickActive(link.href) ? 'active' : ''].join(
+									' '
+								)}
+								aria-current={quickActive(link.href) ? 'page' : undefined}
+								title={link.label}
+							>
+								<Icon size={15} strokeWidth={2} />
+								<span>{link.label}</span>
+							</a>
+						{/each}
+					</div>
+				{/if}
 			</div>
 		{/if}
 

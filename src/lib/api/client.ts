@@ -90,7 +90,52 @@ export type ApiOptions = RequestInit & {
 	 * the current hostname instead.
 	 */
 	hostSlug?: string | null;
+	/**
+	 * Abort the request after this many milliseconds. Defaults to 8000 in the
+	 * browser so hung APIs never leave the UI on an infinite skeleton. Pass 0
+	 * to disable. Server loads inherit AbortSignal when provided via `signal`.
+	 */
+	timeoutMs?: number;
 };
+
+const DEFAULT_TIMEOUT_MS = 8_000;
+
+function mergeAbortSignal(
+	userSignal: AbortSignal | null | undefined,
+	timeoutMs: number
+): { signal: AbortSignal | undefined; cancelTimer: () => void } {
+	if (timeoutMs <= 0 && !userSignal) {
+		return { signal: undefined, cancelTimer: () => {} };
+	}
+	if (timeoutMs <= 0) {
+		return { signal: userSignal ?? undefined, cancelTimer: () => {} };
+	}
+
+	const controller = new AbortController();
+	const timer = setTimeout(() => {
+		controller.abort(new DOMException('Request timed out', 'TimeoutError'));
+	}, timeoutMs);
+
+	const cancelTimer = () => clearTimeout(timer);
+
+	if (userSignal) {
+		if (userSignal.aborted) {
+			cancelTimer();
+			controller.abort(userSignal.reason);
+		} else {
+			userSignal.addEventListener(
+				'abort',
+				() => {
+					cancelTimer();
+					controller.abort(userSignal.reason);
+				},
+				{ once: true }
+			);
+		}
+	}
+
+	return { signal: controller.signal, cancelTimer };
+}
 
 export class ApiClientError extends Error {
 	code: string;
@@ -154,9 +199,8 @@ export async function api<T>(
 	options: ApiOptions = {},
 	auth = true
 ): Promise<T> {
-	// `hostSlug` is a client-side option, not a fetch option, so it is stripped
-	// before the request is built.
-	const { authToken, hostSlug, ...init } = options;
+	// `hostSlug` / `timeoutMs` are client-side options, not fetch options.
+	const { authToken, hostSlug, timeoutMs, ...init } = options;
 	const base = apiBaseURL(hostSlug);
 	const headers = new Headers(init.headers || {});
 	// FormData must keep the browser-generated multipart boundary; forcing
@@ -178,10 +222,29 @@ export async function api<T>(
 		if (token) headers.set('Authorization', `Bearer ${token}`);
 	}
 
+	const effectiveTimeout =
+		timeoutMs !== undefined
+			? timeoutMs
+			: typeof window !== 'undefined'
+				? DEFAULT_TIMEOUT_MS
+				: 0;
+	const { signal, cancelTimer } = mergeAbortSignal(init.signal, effectiveTimeout);
+
 	let res: Response;
 	try {
-		res = await fetch(`${base}${path}`, { ...init, headers });
+		res = await fetch(`${base}${path}`, { ...init, headers, signal });
 	} catch (err) {
+		cancelTimer();
+		const aborted =
+			(err instanceof DOMException && err.name === 'TimeoutError') ||
+			(err instanceof Error && err.name === 'AbortError');
+		if (aborted) {
+			throw new ApiClientError(
+				0,
+				'timeout',
+				'This request took too long. Check that the API is running and try again.'
+			);
+		}
 		const hint =
 			import.meta.env.DEV && !base
 				? ' Start the API from orderly-backend: make run'
@@ -192,6 +255,7 @@ export async function api<T>(
 			`${err instanceof Error ? err.message : 'Network request failed'}.${hint}`
 		);
 	}
+	cancelTimer();
 
 	// A refresh only makes sense for the stored staff session. A request that
 	// carried an explicit token must never be retried with a different identity.
@@ -200,15 +264,28 @@ export async function api<T>(
 		const ok = await refreshAccess();
 		if (ok) {
 			headers.set('Authorization', `Bearer ${getAccessToken()}`);
+			const retry = mergeAbortSignal(undefined, effectiveTimeout);
 			try {
-				res = await fetch(`${base}${path}`, { ...init, headers });
+				res = await fetch(`${base}${path}`, { ...init, headers, signal: retry.signal });
 			} catch (err) {
+				retry.cancelTimer();
+				const aborted =
+					(err instanceof DOMException && err.name === 'TimeoutError') ||
+					(err instanceof Error && err.name === 'AbortError');
+				if (aborted) {
+					throw new ApiClientError(
+						0,
+						'timeout',
+						'This request took too long. Check that the API is running and try again.'
+					);
+				}
 				throw new ApiClientError(
 					0,
 					'network_error',
 					err instanceof Error ? err.message : 'Network request failed'
 				);
 			}
+			retry.cancelTimer();
 		}
 	}
 

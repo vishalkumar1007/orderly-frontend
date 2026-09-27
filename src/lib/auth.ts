@@ -58,7 +58,7 @@ export async function setupPassword(token: string, password: string) {
 }
 
 export async function me() {
-	const data = await api<User | { user: User }>('/api/v1/auth/me');
+	const data = await api<User | { user: User }>('/api/v1/auth/me', { timeoutMs: 5_000 });
 	if (data && typeof data === 'object' && 'user' in data && data.user) {
 		return data.user;
 	}

@@ -99,6 +99,21 @@ export function applyBrandTheme(theme: BrandTheme) {
 	root.dataset.theme = mode;
 }
 
+/** Session cache so root layout does not re-hit /tenant/theme on every nav. */
+let brandThemeCache: { key: string; theme: BrandTheme } | null = null;
+
+export function invalidateBrandThemeCache() {
+	brandThemeCache = null;
+}
+
+export function getCachedBrandTheme(key: string): BrandTheme | null {
+	return brandThemeCache?.key === key ? brandThemeCache.theme : null;
+}
+
+export function setCachedBrandTheme(key: string, theme: BrandTheme) {
+	brandThemeCache = { key, theme };
+}
+
 /**
  * Drop any tenant brand override so the platform portal renders with its own
  * tokens. Without this a tenant's accent/radius/font leaks across client-side

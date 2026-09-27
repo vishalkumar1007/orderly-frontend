@@ -3,39 +3,98 @@
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import Monitor from '@lucide/svelte/icons/monitor';
 	import Smartphone from '@lucide/svelte/icons/smartphone';
-	import { storefrontApi, type StoreMenu } from '$lib/storefront/api';
+	import type { StoreCategory, StoreProduct } from '$lib/storefront/api';
 	import { themeVars, type StoreTheme } from '$lib/storefront/theme';
-	import type { AdminStorefront } from '$lib/storefront/admin';
+	import { storefrontAdminApi, type AdminStorefront } from '$lib/storefront/admin';
+	import { useStorefront } from '$lib/storefront/admin-context';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
+	import '$lib/storefront/storefront.css';
 
 	/**
 	 * Store preview.
 	 *
-	 * This is not a mockup. It fetches the same public endpoints a customer's
-	 * browser fetches, on this shop's own host, and renders them with the same
-	 * stylesheet and the same tokens. If something looks wrong here, it looks
-	 * wrong out there.
-	 *
-	 * The device frame switches the *rendered* width, so the owner can see the
-	 * phone layout and the desktop layout from the same screen.
+	 * Uses the authenticated admin preview endpoint so unpublished shops still
+	 * see their menu. Renders with the real storefront stylesheet and tokens.
 	 */
-	let { config }: { config: AdminStorefront } = $props();
+	let props: { config?: AdminStorefront } = $props();
+	const ctx = useStorefront(() => props);
+	const config = $derived(ctx.config);
 
 	type View = 'phone' | 'desktop';
 	let view = $state<View>('phone');
-	let menu = $state<StoreMenu | null>(null);
+	let products = $state<StoreProduct[]>([]);
+	let categories = $state<StoreCategory[]>([]);
 	let loading = $state(true);
 	let error = $state('');
 
-	onMount(async () => {
+	const sampleCategories: StoreCategory[] = [
+		{ id: '1', name: 'Popular', description: 'Popular items', sort_order: 1, products: [] },
+		{ id: '2', name: 'Mains', description: 'Main dishes', sort_order: 2, products: [] },
+		{ id: '3', name: 'Drinks', description: 'Beverages', sort_order: 3, products: [] }
+	];
+	const sampleProducts: StoreProduct[] = [
+		{
+			id: '1',
+			category_id: '1',
+			name: 'House Special Veg Momo',
+			description: 'Hand-folded steamed dumplings served with house dipping sauce',
+			price: 120,
+			is_available: true,
+			is_vegetarian: true,
+			is_featured: true,
+			is_popular: true,
+			allow_special_instructions: true,
+			addons: [],
+			sort_order: 1
+		},
+		{
+			id: '2',
+			category_id: '1',
+			name: 'Crispy Fried Chicken Momo',
+			description: 'Crispy outer shell filled with spiced minced chicken',
+			price: 180,
+			is_available: true,
+			is_vegetarian: false,
+			is_featured: false,
+			is_popular: true,
+			allow_special_instructions: true,
+			addons: [],
+			sort_order: 2
+		},
+		{
+			id: '3',
+			category_id: '2',
+			name: 'Hakka Chili Garlic Noodles',
+			description: 'Wok-tossed noodles with bell peppers and garlic chili oil',
+			price: 150,
+			is_available: true,
+			is_vegetarian: true,
+			is_featured: false,
+			is_popular: false,
+			allow_special_instructions: true,
+			addons: [],
+			sort_order: 3
+		}
+	];
+
+	async function loadPreview() {
+		loading = true;
 		try {
-			menu = await storefrontApi.menu();
+			const data = await storefrontAdminApi.preview();
+			categories = (data.categories ?? []) as StoreCategory[];
+			products = ((data.products ?? []) as StoreProduct[]).filter((p) => p.is_available).slice(0, 6);
+			error = '';
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Could not load your menu';
+			error = err instanceof Error ? err.message : 'Could not load your live menu';
 		} finally {
 			loading = false;
 		}
-	});
+	}
+
+	onMount(loadPreview);
+
+	const displayCategories = $derived(categories.length > 0 ? categories : (error ? sampleCategories : []));
+	const displayProducts = $derived(products.length > 0 ? products : (error ? sampleProducts : []));
 
 	const theme = $derived<StoreTheme>({
 		...config.theme,
@@ -45,11 +104,6 @@
 
 	/** The frame width. Fixed pixels inside a scaled container. */
 	const frameWidth = $derived(view === 'phone' ? 390 : 1100);
-
-	const products = $derived(
-		(menu?.products ?? []).filter((p) => p.is_available).slice(0, 6)
-	);
-	const categories = $derived(menu?.categories ?? []);
 </script>
 
 <div class="panel">
@@ -57,7 +111,7 @@
 		<div>
 			<h2 style="margin:0;">Preview</h2>
 			<p class="panel-note" style="margin:0.2rem 0 0;">
-				Live data from your published menu, rendered exactly as a customer sees it.
+				Your live menu and theme, as a customer would see them — including when the store is unpublished.
 			</p>
 		</div>
 		<div style="display:flex;align-items:center;gap:0.35rem;">
@@ -85,26 +139,33 @@
 		</div>
 	</div>
 
-	{#if loading}
+	{#if error}
+		<div class="alert alert-danger" style="margin-top:1rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+			<div>
+				<strong>Menu notice:</strong> {error} — showing preview layout with sample dishes.
+			</div>
+			<button class="btn btn-primary btn-sm" type="button" disabled={loading} onclick={loadPreview}>
+				{loading ? 'Retrying…' : 'Try again'}
+			</button>
+		</div>
+	{/if}
+
+	{#if loading && categories.length === 0 && products.length === 0 && !error}
 		<div style="margin-top:1rem;"><Skeleton height="420px" /></div>
-	{:else if error}
-		<div class="alert alert-error" style="margin-top:1rem;">{error}</div>
 	{:else}
 		<div class="sfpreview" style="margin-top:1.1rem;">
 			<div class="sfpreview-bar">
 				<span class="sfpreview-dot"></span>
 				<span class="sfpreview-dot"></span>
 				<span class="sfpreview-dot"></span>
-				<span class="sfpreview-url">{config.public_url}</span>
+				<span class="sfpreview-url">{config.public_url || 'https://your-shop.orderly.local'}</span>
 			</div>
 			<div
 				class="sfpreview-body sf-root"
 				data-sf-theme={config.theme.mode === 'system' ? 'light' : config.theme.mode}
 				style={vars}
 			>
-				<div
-					style={`width:${frameWidth}px;max-width:100%;margin:0 auto;`}
-				>
+				<div style={`width:${frameWidth}px;max-width:100%;margin:0 auto;`}>
 					<header class="sf-header">
 						<div class="sf-header-row">
 							<a class="sf-brand" href="#preview" onclick={(e) => e.preventDefault()}>
@@ -156,15 +217,15 @@
 					{/if}
 
 					<div style="padding-bottom:16px;">
-						{#if categories.length > 1}
+						{#if displayCategories.length > 1}
 							<div class="sf-categories" style="padding-top:12px;">
-								{#each categories as category (category.id)}
+								{#each displayCategories as category (category.id)}
 									<span class="sf-chip active">{category.name}</span>
 								{/each}
 							</div>
 						{/if}
 
-						{#if products.length === 0}
+						{#if displayProducts.length === 0}
 							<div class="sf-empty">
 								<span class="sf-empty-icon" aria-hidden="true">
 									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
@@ -183,7 +244,7 @@
 								</div>
 								<div class="sf-wrap">
 									<div class="sf-products" data-columns="true">
-										{#each products as product (product.id)}
+										{#each displayProducts as product (product.id)}
 											<article class="sf-product">
 												<span class="sf-product-media">
 													{#if product.image_url}
@@ -206,7 +267,7 @@
 													{/if}
 													<span class="sf-product-foot">
 														<span class="sf-product-price">₹{product.price}</span>
-														{#if product.addons.length > 0}
+														{#if product.addons?.length > 0}
 															<span class="sf-tag">Options</span>
 														{/if}
 													</span>
@@ -251,8 +312,7 @@
 		</div>
 
 		<p class="field-hint" style="margin-top:0.8rem;">
-			This preview reads your live menu. It will look empty until you publish at least one
-			available product.
+			This preview uses your admin menu. It looks empty until you add at least one available product.
 		</p>
 	{/if}
 </div>

@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import ChefHat from '@lucide/svelte/icons/chef-hat';
 	import { orderBoard, STAGES } from '$lib/tenant/orders.svelte';
 	import { toast } from '$lib/components/admin/toast';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
+	import OpsFullscreenToggle from '$lib/components/admin/OpsFullscreenToggle.svelte';
 	import { isOnline } from '$lib/pwa.svelte';
 
 	/**
@@ -17,18 +19,27 @@
 
 	let active = $state('PREPARING');
 
+	const fullscreen = $derived($page.url.searchParams.get('fullscreen') === '1');
+
 	onMount(() => {
-		orderBoard.acquire();
-		return () => orderBoard.release();
+		orderBoard.acquire('ops');
+		return () => orderBoard.release('ops');
 	});
 
+	// Only jump when a stage newly gets work (0→N), not on every poll.
+	let lastStageCounts: Record<string, number> = {};
+	let stageCountsSeeded = false;
+
 	$effect(() => {
+		let jumpTo: string | null = null;
 		for (const s of KITCHEN_STAGES) {
-			if (orderBoard.countFor(s.key) > 0) {
-				active = s.key;
-				return;
-			}
+			const n = orderBoard.countFor(s.key);
+			const prev = lastStageCounts[s.key] ?? 0;
+			lastStageCounts[s.key] = n;
+			if (stageCountsSeeded && prev === 0 && n > 0 && !jumpTo) jumpTo = s.key;
 		}
+		stageCountsSeeded = true;
+		if (jumpTo) active = jumpTo;
 	});
 
 	const stage = $derived(KITCHEN_STAGES.find((s) => s.key === active) ?? KITCHEN_STAGES[0]);
@@ -45,39 +56,55 @@
 	}
 </script>
 
-<p class="osh-kitchen-lead">
-	Ticket board for prep — the same orders as <a href="/shop/orders">Orders</a>, without money or
-	customer details up front.
-</p>
+<div class={['osh-kitchen', fullscreen ? 'osh-kitchen-fs' : ''].join(' ')}>
+	{#if fullscreen}
+		<div class="osh-kitchen-fs-bar">
+			<span class="osh-kitchen-count">
+				<ChefHat size={14} strokeWidth={2} />
+				{totalLive} {totalLive === 1 ? 'order' : 'orders'} live
+			</span>
+			<OpsFullscreenToggle label="Fullscreen" />
+		</div>
+	{:else}
+		<div class="osh-kitchen-toolbar">
+			<p class="osh-kitchen-lead">
+				Ticket board for prep — the same orders as <a href="/shop/orders">Selling</a>, without money or
+				customer details up front.
+			</p>
+			<OpsFullscreenToggle label="Fullscreen" />
+		</div>
+	{/if}
 
-{#if !isOnline()}
-	<div class="osh-banner offline">You're offline — the board may be out of date.</div>
-{/if}
+	{#if !isOnline()}
+		<div class="osh-banner offline">You're offline — the board may be out of date.</div>
+	{/if}
 
-{#if orderBoard.error}
-	<div class="osh-banner offline">
-		<span>{orderBoard.error}</span>
-		<span class="osh-banner-spacer"></span>
-		<button class="btn btn-quiet btn-sm" onclick={() => void orderBoard.refresh()}>Retry</button>
-	</div>
-{/if}
+	{#if orderBoard.error}
+		<div class="osh-banner offline">
+			<span>{orderBoard.error}</span>
+			<span class="osh-banner-spacer"></span>
+			<button class="btn btn-quiet btn-sm" onclick={() => void orderBoard.refresh()}>Retry</button>
+		</div>
+	{/if}
 
-<div class="osh-kitchen-top">
-	<span class="osh-kitchen-count">
-		<ChefHat size={13} strokeWidth={2} />
-		{totalLive} {totalLive === 1 ? 'order' : 'orders'} live
-	</span>
-</div>
+	{#if !fullscreen}
+		<div class="osh-kitchen-top">
+			<span class="osh-kitchen-count">
+				<ChefHat size={13} strokeWidth={2} />
+				{totalLive} {totalLive === 1 ? 'order' : 'orders'} live
+			</span>
+		</div>
+	{/if}
 
-<div class="os-tabs" role="tablist" aria-label="Kitchen stage">
-	{#each KITCHEN_STAGES as s (s.key)}
-		{@const count = orderBoard.countFor(s.key)}
-		<button
-			class={['os-tab', active === s.key ? 'active' : ''].join(' ')}
-			role="tab"
-			aria-selected={active === s.key}
-			onclick={() => (active = s.key)}
-		>
+	<div class="os-tabs" role="tablist" aria-label="Kitchen stage">
+		{#each KITCHEN_STAGES as s (s.key)}
+			{@const count = orderBoard.countFor(s.key)}
+			<button
+				class={['os-tab', active === s.key ? 'active' : ''].join(' ')}
+				role="tab"
+				aria-selected={active === s.key}
+				onclick={() => (active = s.key)}
+			>
 			{s.short}
 			<span class="os-tab-count">{count}</span>
 		</button>
@@ -132,18 +159,42 @@
 		{/each}
 	</div>
 {/if}
+</div>
 
 <style>
+	.osh-kitchen-toolbar {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 0.75rem;
+		margin-bottom: 0.85rem;
+	}
+
 	.osh-kitchen-lead {
-		margin: 0 0 0.85rem;
+		margin: 0;
 		font-size: 0.85rem;
 		color: var(--text-3);
 		line-height: 1.45;
+		flex: 1;
 	}
 
 	.osh-kitchen-lead a {
 		color: var(--accent-dark);
 		font-weight: 600;
+	}
+
+	.osh-kitchen-fs {
+		min-height: 100dvh;
+		padding: 1rem 1.25rem 2rem;
+		background: var(--bg);
+	}
+
+	.osh-kitchen-fs-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		margin-bottom: 0.85rem;
 	}
 
 	.osh-kitchen-top {

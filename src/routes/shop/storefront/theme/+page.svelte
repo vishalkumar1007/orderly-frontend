@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { themeVars, type FilterStyleId, type ProductLayoutId, type StoreTheme } from '$lib/storefront/theme';
-	import type { StoreConfig } from '$lib/storefront/api';
 	import {
 		BUTTON_OPTIONS,
 		CARD_OPTIONS,
@@ -13,24 +12,12 @@
 		RADIUS_OPTIONS,
 		THEME_PRESETS,
 		storefrontAdminApi,
-		type AdminStorefront,
 		type ThemePreset
 	} from '$lib/storefront/admin';
 	import { seed, type StorefrontContext } from '$lib/storefront/admin-context';
 	import { toast } from '$lib/components/admin/toast';
+	import '$lib/storefront/storefront.css';
 
-	/**
-	 * Theme.
-	 *
-	 * A tenant picks a preset, optionally overrides three colours, and chooses
-	 * from fixed component styles. There is no free-form CSS anywhere on this
-	 * screen, and the server rejects any value outside these lists — which is
-	 * what makes "no arbitrary CSS" a property of the system rather than a
-	 * promise.
-	 *
-	 * The preview is the real storefront stylesheet with the real tokens, so what
-	 * an owner approves is what a customer gets. It is not a mockup.
-	 */
 	let { config, save }: StorefrontContext = $props();
 
 	let preset = $state<ThemePreset['id']>(seed(() => config.theme.preset));
@@ -48,25 +35,14 @@
 	let accent = $state(seed(() => config.theme.accent));
 	let saving = $state(false);
 
-	type ColourKey = 'primary' | 'secondary' | 'accent';
-
-	/** The preset's own colours, used to show which values are overrides. */
 	const basePreset = $derived<ThemePreset>(
 		THEME_PRESETS.find((option) => option.id === preset) ?? THEME_PRESETS[1]
 	);
 
-	/** `isOverridden` marks a colour the tenant has changed away from the preset. */
 	function isOverridden(value: string, fallback: string): boolean {
 		return value.toLowerCase() !== fallback.toLowerCase();
 	}
 
-	/**
-	 * The live preview theme. Tokens the server would compute for these choices
-	 * are taken from the last saved response for fields this screen has not
-	 * changed, and the three colours are recomputed here for the ones it has.
-	 * The preview is therefore indicative of the exact change being made, and the
-	 * server is still the authority once saved.
-	 */
 	const previewTheme = $derived<StoreTheme>({
 		...config.theme,
 		preset: preset as StoreTheme['preset'],
@@ -93,35 +69,11 @@
 	});
 
 	const previewVars = $derived(themeVars(previewTheme));
-	const previewConfig = $derived<StoreConfig>({
-		...({} as StoreConfig),
-		store: { ...config.store, name: config.store.name, tagline: config.store.tagline },
-		theme: previewTheme,
-		ordering: {
-			enabled: true,
-			closed_reason: '',
-			prep_time_minutes: 20,
-			customer_login: true,
-			customer_login_mode: 'optional',
-			payment_requirement: '',
-			auto_accept: false,
-			store_status: 'OPEN',
-			status_message: '',
-			store_status_label: 'Open',
-			status_message_display: ''
-		},
-		hours: { always_open: true, is_open: true, label: 'Open', detail: '', timezone: '', schedule: {}, today_closes: '' },
-		payments: { online_payment_enabled: true, cash_enabled: true, pay_at_pickup_enabled: true, default_payment_method: 'ONLINE', methods: ['ONLINE', 'CASH'] },
-		homepage: { sections: [] },
-		preview: true
-	});
 
 	function selectPreset(id: ThemePreset['id']) {
 		const found = THEME_PRESETS.find((p) => p.id === id);
 		if (!found) return;
 		preset = id;
-		// Choosing a preset applies its whole look. Colours that were customised
-		// before would otherwise linger and make the new preset look wrong.
 		primary = found.primary;
 		secondary = found.secondary;
 		accent = found.accent;
@@ -164,13 +116,13 @@
 
 <form onsubmit={submit}>
 	<div class="sfctl-grid" style="grid-template-columns:minmax(0,1fr);gap:1rem;">
-		<!-- Preview -->
+		<!-- Live Preview -->
 		<div class="sfpreview">
 			<div class="sfpreview-bar">
 				<span class="sfpreview-dot"></span>
 				<span class="sfpreview-dot"></span>
 				<span class="sfpreview-dot"></span>
-				<span class="sfpreview-url">{config.public_url}</span>
+				<span class="sfpreview-url">{config.public_url || 'https://your-shop.orderly.local'}</span>
 			</div>
 			<div class="sfpreview-body sf-root" data-sf-theme={mode === 'system' ? 'light' : mode} style={previewVars}>
 				<div class="sf-preview-inner">
@@ -293,37 +245,81 @@
 				readable on any colour you pick.
 			</p>
 			<div class="sfctl-grid" data-cols="3">
-				{#each [
-					{ key: 'primary' as ColourKey, label: 'Primary', value: primary },
-					{ key: 'secondary' as ColourKey, label: 'Secondary', value: secondary },
-					{ key: 'accent' as ColourKey, label: 'Accent', value: accent }
-				] as colour (colour.key)}
-					<div class="field">
-						<label class="field-label" for={'colour-' + colour.key}>
-							{colour.label}
-							{#if isOverridden(colour.value, basePreset[colour.key])}
-								<span class="badge badge-accent" style="margin-left:0.35rem;">Custom</span>
-							{/if}
-						</label>
-						<div class="sfcolor">
-							<span class="sfcolor-swatch" style="background:{colour.value};">
-								<input
-									id={'colour-' + colour.key}
-									type="color"
-									bind:value={colour.value}
-									aria-label={colour.label + ' colour'}
-								/>
-							</span>
+				<div class="field">
+					<label class="field-label" for="colour-primary">
+						Primary
+						{#if isOverridden(primary, basePreset.primary)}
+							<span class="badge badge-accent" style="margin-left:0.35rem;">Custom</span>
+						{/if}
+					</label>
+					<div class="sfcolor">
+						<span class="sfcolor-swatch" style="background:{primary};">
 							<input
-								class="input"
-								style="font-family:var(--font-mono);font-size:0.75rem;text-transform:lowercase;"
-								bind:value={colour.value}
-								maxlength={7}
-								spellcheck="false"
+								id="colour-primary"
+								type="color"
+								bind:value={primary}
+								aria-label="Primary colour"
 							/>
-						</div>
+						</span>
+						<input
+							class="input"
+							style="font-family:var(--font-mono);font-size:0.75rem;text-transform:lowercase;"
+							bind:value={primary}
+							maxlength={7}
+							spellcheck="false"
+						/>
 					</div>
-				{/each}
+				</div>
+				<div class="field">
+					<label class="field-label" for="colour-secondary">
+						Secondary
+						{#if isOverridden(secondary, basePreset.secondary)}
+							<span class="badge badge-accent" style="margin-left:0.35rem;">Custom</span>
+						{/if}
+					</label>
+					<div class="sfcolor">
+						<span class="sfcolor-swatch" style="background:{secondary};">
+							<input
+								id="colour-secondary"
+								type="color"
+								bind:value={secondary}
+								aria-label="Secondary colour"
+							/>
+						</span>
+						<input
+							class="input"
+							style="font-family:var(--font-mono);font-size:0.75rem;text-transform:lowercase;"
+							bind:value={secondary}
+							maxlength={7}
+							spellcheck="false"
+						/>
+					</div>
+				</div>
+				<div class="field">
+					<label class="field-label" for="colour-accent">
+						Accent
+						{#if isOverridden(accent, basePreset.accent)}
+							<span class="badge badge-accent" style="margin-left:0.35rem;">Custom</span>
+						{/if}
+					</label>
+					<div class="sfcolor">
+						<span class="sfcolor-swatch" style="background:{accent};">
+							<input
+								id="colour-accent"
+								type="color"
+								bind:value={accent}
+								aria-label="Accent colour"
+							/>
+						</span>
+						<input
+							class="input"
+							style="font-family:var(--font-mono);font-size:0.75rem;text-transform:lowercase;"
+							bind:value={accent}
+							maxlength={7}
+							spellcheck="false"
+						/>
+					</div>
+				</div>
 			</div>
 			<div style="display:flex;gap:0.4rem;margin-top:0.8rem;">
 				<button

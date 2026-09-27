@@ -1,14 +1,21 @@
 import type { Component } from 'svelte';
+import Activity from '@lucide/svelte/icons/activity';
 import ChefHat from '@lucide/svelte/icons/chef-hat';
 import ClipboardList from '@lucide/svelte/icons/clipboard-list';
-import HardDrive from '@lucide/svelte/icons/hard-drive';
+import Clock from '@lucide/svelte/icons/clock';
+import CreditCard from '@lucide/svelte/icons/credit-card';
+import Eye from '@lucide/svelte/icons/eye';
+import History from '@lucide/svelte/icons/history';
 import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
-import Mail from '@lucide/svelte/icons/mail';
-import Sparkles from '@lucide/svelte/icons/sparkles';
-import ListChecks from '@lucide/svelte/icons/list-checks';
 import LayoutTemplate from '@lucide/svelte/icons/layout-template';
-import Palette from '@lucide/svelte/icons/palette';
+import ListOrdered from '@lucide/svelte/icons/list-ordered';
+import MonitorPlay from '@lucide/svelte/icons/monitor-play';
+import QrCode from '@lucide/svelte/icons/qr-code';
+import Settings from '@lucide/svelte/icons/settings';
+import Shield from '@lucide/svelte/icons/shield';
 import Store from '@lucide/svelte/icons/store';
+import Users from '@lucide/svelte/icons/users';
+import UserCog from '@lucide/svelte/icons/user-cog';
 import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
 import { storefrontSegmentLabel } from '$lib/storefront/admin-nav';
 
@@ -18,7 +25,7 @@ export type ShopNavItem = {
 	icon: Component;
 	/** Show a live count badge sourced from this counter in the order store. */
 	badge?: 'active' | 'new';
-	/** Only show to these roles. */
+	/** Only show to these roles. Reserved for future IAM; layout still filters coarsely. */
 	roles?: string[];
 	/** Match nested paths too (e.g. /shop/tenants/[id]). */
 	nested?: boolean;
@@ -28,7 +35,24 @@ export type ShopNavItem = {
 	exclude?: string[];
 };
 
-export type ShopNavGroup = { label?: string; items: ShopNavItem[] };
+export type ShopNavGroup = {
+	label?: string;
+	/** Visual weight — RUNNING is the daily-ops cluster. */
+	emphasis?: 'running';
+	items: ShopNavItem[];
+};
+
+/** Staff default ops destinations (no management / org / storefront). */
+export const STAFF_OPS_HREFS = new Set(['/shop/orders', '/shop/kitchen']);
+
+/**
+ * Storefront paths that are NOT part of Customize.
+ * Preview and QR stay under /shop/storefront; they have their own rail entries.
+ */
+const STOREFRONT_SIBLING_EXCLUDES = [
+	'/shop/storefront/preview',
+	'/shop/storefront/qr'
+];
 
 /**
  * Legacy staff shell nav. Kept for check_nav and any leftover ShopShell usage;
@@ -39,17 +63,17 @@ export const SHOP_NAV: ShopNavGroup[] = [
 		items: [{ href: '/shop', label: 'Dashboard', icon: LayoutDashboard }]
 	},
 	{
-		label: 'Selling',
+		label: 'Running',
 		items: [
-			{ href: '/shop/orders', label: 'Orders', icon: ClipboardList, badge: 'active' },
-			{ href: '/shop/kitchen', label: 'Prep board', icon: ChefHat, badge: 'active' },
+			{ href: '/shop/orders', label: 'Selling', icon: ClipboardList, badge: 'active' },
+			{ href: '/shop/kitchen', label: 'Kitchen', icon: ChefHat, badge: 'active' },
 			{ href: '/shop/menu', label: 'Menu', icon: UtensilsCrossed }
 		]
 	},
 	{
 		label: 'Storefront',
 		items: [
-			{ href: '/shop/setup', label: 'Launch checklist', icon: ListChecks, nested: true },
+			{ href: '/shop/setup', label: 'Launch checklist', icon: LayoutTemplate, nested: true },
 			{ href: '/', label: 'View live site', icon: Store }
 		]
 	}
@@ -62,7 +86,7 @@ export const SHOP_NAV: ShopNavGroup[] = [
  */
 export const SHOP_TABS: ShopNavItem[] = [
 	{ href: '/shop', label: 'Home', icon: LayoutDashboard },
-	{ href: '/shop/orders', label: 'Orders', icon: ClipboardList, badge: 'active' },
+	{ href: '/shop/orders', label: 'Selling', icon: ClipboardList, badge: 'active' },
 	{ href: '/shop/menu', label: 'Menu', icon: UtensilsCrossed },
 	{ href: '/shop/kitchen', label: 'Kitchen', icon: ChefHat, badge: 'active' }
 ];
@@ -81,8 +105,8 @@ export function isActive(pathname: string, item: ShopNavItem): boolean {
  * of truth, which also keeps the browser tab and the app bar in agreement.
  */
 const TITLES: Array<[string, string]> = [
-	['/shop/kitchen', 'Prep board'],
-	['/shop/orders', 'Orders'],
+	['/shop/kitchen', 'Kitchen'],
+	['/shop/orders', 'Selling'],
 	['/shop/menu', 'Menu'],
 	['/shop/setup', 'Launch checklist'],
 	['/shop/brand', 'Console appearance'],
@@ -109,61 +133,190 @@ export function titleFor(pathname: string, shopName: string): string {
 /** Sidebar for the organization admin portal. */
 export const TENANT_NAV: ShopNavGroup[] = [
 	{
+		label: 'Overview',
 		items: [
-			// Exact, so the dashboard does not stay lit while browsing orders.
-			{ href: '/shop', label: 'Dashboard', icon: LayoutDashboard, exact: true }
+			{
+				href: '/shop',
+				label: 'Dashboard',
+				icon: LayoutDashboard,
+				exact: true,
+				roles: ['TENANT_ADMIN']
+			}
 		]
 	},
 	{
-		label: 'Selling',
+		label: 'Running',
+		emphasis: 'running',
 		items: [
-			{ href: '/shop/orders', label: 'Orders', icon: ClipboardList, nested: true },
-			{ href: '/shop/menu', label: 'Menu', icon: UtensilsCrossed, nested: true }
+			{
+				href: '/shop/orders',
+				label: 'Selling',
+				icon: ClipboardList,
+				nested: true,
+				badge: 'active',
+				roles: ['TENANT_ADMIN', 'STAFF']
+			},
+			{
+				href: '/shop/kitchen',
+				label: 'Kitchen',
+				icon: ChefHat,
+				exact: true,
+				badge: 'active',
+				roles: ['TENANT_ADMIN', 'STAFF']
+			},
+			{
+				href: '/shop/live',
+				label: 'Live Activity',
+				icon: MonitorPlay,
+				exact: true,
+				roles: ['TENANT_ADMIN']
+			}
 		]
 	},
 	{
-		label: 'Kitchen',
-		items: [{ href: '/shop/kitchen', label: 'Prep board', icon: ChefHat, exact: true, badge: 'active' }]
+		label: 'Management',
+		items: [
+			{
+				href: '/shop/menu',
+				label: 'Menu',
+				icon: UtensilsCrossed,
+				nested: true,
+				roles: ['TENANT_ADMIN']
+			},
+			{
+				href: '/shop/customers',
+				label: 'Customers',
+				icon: Users,
+				nested: true,
+				roles: ['TENANT_ADMIN']
+			},
+			{
+				href: '/shop/staff',
+				label: 'Staff',
+				icon: UserCog,
+				nested: true,
+				roles: ['TENANT_ADMIN']
+			}
+		]
 	},
 	{
 		label: 'Storefront',
 		items: [
-			{ href: '/shop/setup', label: 'Launch checklist', icon: ListChecks, nested: true },
-			{ href: '/shop/storefront', label: 'Customer site', icon: LayoutTemplate, nested: true },
-			{ href: '/', label: 'View live site', icon: Store }
+			{
+				href: '/shop/customize',
+				label: 'Customize',
+				icon: LayoutTemplate,
+				nested: true,
+				roles: ['TENANT_ADMIN']
+			},
+			{
+				href: '/shop/storefront/preview',
+				label: 'Preview',
+				icon: Eye,
+				exact: true,
+				roles: ['TENANT_ADMIN']
+			},
+			{
+				href: '/shop/storefront/qr',
+				label: 'QR & Share',
+				icon: QrCode,
+				exact: true,
+				roles: ['TENANT_ADMIN']
+			}
 		]
 	},
 	{
 		label: 'Organization',
 		items: [
-			{ href: '/shop/brand', label: 'Console appearance', icon: Palette, nested: true },
-			{ href: '/shop/settings/smtp', label: 'Email / SMTP', icon: Mail, nested: true },
-			{ href: '/shop/settings/storage', label: 'Storage', icon: HardDrive, nested: true },
-			{ href: '/shop/settings/ai', label: 'AI', icon: Sparkles, nested: true }
+			{
+				href: '/shop/organization/hours',
+				label: 'Operating Hours',
+				icon: Clock,
+				exact: true,
+				roles: ['TENANT_ADMIN']
+			},
+			{
+				href: '/shop/organization/payments',
+				label: 'Payments',
+				icon: CreditCard,
+				exact: true,
+				roles: ['TENANT_ADMIN']
+			},
+			{
+				href: '/shop/organization/workflow',
+				label: 'Order Workflow',
+				icon: ListOrdered,
+				exact: true,
+				roles: ['TENANT_ADMIN']
+			},
+			{
+				href: '/shop/iam',
+				label: 'IAM',
+				icon: Shield,
+				nested: true,
+				roles: ['TENANT_ADMIN']
+			},
+			{
+				href: '/shop/settings',
+				label: 'Settings',
+				icon: Settings,
+				nested: true,
+				roles: ['TENANT_ADMIN']
+			}
+		]
+	},
+	{
+		label: 'Activity',
+		items: [
+			{
+				href: '/shop/order-history',
+				label: 'Order History',
+				icon: History,
+				nested: true,
+				roles: ['TENANT_ADMIN']
+			},
+			{
+				href: '/shop/activity',
+				label: 'Activity Logs',
+				icon: Activity,
+				nested: true,
+				roles: ['TENANT_ADMIN']
+			}
 		]
 	}
 ];
 
 /** Human labels for trail segments under /shop. */
 const TENANT_SEGMENT_LABELS: Record<string, string> = {
-	orders: 'Orders',
+	orders: 'Selling',
 	menu: 'Menu',
-	kitchen: 'Prep board',
+	kitchen: 'Kitchen',
+	live: 'Live Activity',
+	customers: 'Customers',
+	staff: 'Staff',
 	setup: 'Launch checklist',
 	brand: 'Console appearance',
-	storefront: 'Customer site',
+	customize: 'Customize',
+	storefront: 'Storefront',
+	organization: 'Organization',
+	notifications: 'Notifications',
+	integrations: 'Integrations',
+	iam: 'IAM',
 	settings: 'Settings',
 	smtp: 'Email / SMTP',
 	storage: 'Storage',
 	ai: 'AI',
+	hours: 'Operating Hours',
+	payments: 'Payments',
+	workflow: 'Order Workflow',
+	'business-profile': 'Business Profile',
+	'order-history': 'Order History',
+	activity: 'Activity Logs',
 	products: 'Products',
 	categories: 'Categories',
 	new: 'New',
 	edit: 'Edit'
 };
-
-/** Segments that group a section but have no page of their own. */
-const SECTION_SEGMENTS = new Set(['settings']);
 
 /** The first crumb stands in for the shop root. */
 const TENANT_ROOT_LABEL = 'Overview';
@@ -186,19 +339,20 @@ export type TenantCrumb = { label: string; href: string | null };
  */
 function segmentLabel(segments: string[], index: number): string {
 	const seg = segments[index];
-	if (segments[1] === 'storefront' && index >= 2) {
+	if ((segments[1] === 'storefront' || segments[1] === 'customize') && index >= 2) {
 		return storefrontSegmentLabel(seg) ?? humanise(seg);
+	}
+	if (segments[1] === 'organization' && index >= 2) {
+		return TENANT_SEGMENT_LABELS[seg] ?? humanise(seg);
 	}
 	return TENANT_SEGMENT_LABELS[seg] ?? humanise(seg);
 }
 
 /**
  * Build a navigable trail for a tenant route, e.g.
- * Overview / Customer site / Theme.
+ * Overview / Customize / Theme.
  *
- * Every crumb except the last links somewhere real. `settings` is a grouping
- * segment with no page, so it inherits the previous crumb's target rather than
- * offering a dead link.
+ * Every crumb except the last links somewhere real.
  */
 export function tenantCrumbs(pathname: string): TenantCrumb[] {
 	const segments = pathname.split('/').filter(Boolean);
@@ -211,13 +365,6 @@ export function tenantCrumbs(pathname: string): TenantCrumb[] {
 		const isLast = i === rest.length - 1;
 		const href = '/' + ['shop', ...rest.slice(0, i + 1)].join('/');
 		const label = segmentLabel(segments, i + 1);
-
-		if (SECTION_SEGMENTS.has(seg)) {
-			// No page lives here; point at wherever the trail already points so
-			// the crumb is still a way back.
-			crumbs.push({ label, href: crumbs[crumbs.length - 1].href });
-			return;
-		}
 		crumbs.push({ label, href: isLast ? null : href });
 	});
 
@@ -230,6 +377,12 @@ export function tenantTitle(pathname: string): string {
 	if (segments[0] !== 'shop') return 'Dashboard';
 	if (segments.length <= 1) return 'Dashboard';
 	return segmentLabel(segments, segments.length - 1);
+}
+
+/** Kitchen and Live Activity can drop the admin chrome for TV / prep displays. */
+export function isOpsFullscreenPath(pathname: string): boolean {
+	const path = pathname.replace(/\/+$/, '') || '/';
+	return path === '/shop/kitchen' || path === '/shop/live';
 }
 
 function humanise(v: string): string {

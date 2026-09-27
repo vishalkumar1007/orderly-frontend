@@ -2,87 +2,119 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
-	import { isStorefrontActive, STOREFRONT_NAV } from '$lib/storefront/admin-nav';
 	import {
-		getStorefrontAdmin,
+		isCustomizeShellPath,
+		isStorefrontActive,
+		STOREFRONT_NAV
+	} from '$lib/storefront/admin-nav';
+	import {
+		ensureLiveStorefrontAdmin,
+		getStorefrontAdminOrDefault,
 		loadStorefrontAdmin,
 		setStorefrontAdmin,
 		type AdminStorefront
 	} from '$lib/storefront/adminCache.svelte';
-	import type { StorefrontContext } from '$lib/storefront/admin-context';
-	import ErrorState from '$lib/components/admin/ErrorState.svelte';
-	import Skeleton from '$lib/components/admin/Skeleton.svelte';
+	import { setStorefrontContext, type StorefrontContext } from '$lib/storefront/admin-context';
 	import type { Snippet } from 'svelte';
 
 	/**
-	 * The storefront control shell.
+	 * Storefront control shell.
 	 *
-	 * Loads the whole configuration document once and shares it with the child
-	 * screen. Every screen here edits one part of that document, so loading it per
-	 * screen would mean a round trip per tab and a risk of two screens showing
-	 * different values.
+	 * Navigation always paints immediately. Config defaults are available
+	 * instantly so a slow or failing API cannot blank the route.
 	 */
-	let { children }: { children: Snippet<[StorefrontContext]> } = $props();
+	let {
+		data,
+		children
+	}: {
+		data: { storefront: AdminStorefront | null; storefrontError: string | null };
+		children: Snippet<[StorefrontContext]>;
+	} = $props();
 
-	let config = $state<AdminStorefront | null>(getStorefrontAdmin());
-	let loading = $state(!getStorefrontAdmin());
-	let error = $state('');
+	let config = $state<AdminStorefront>(data.storefront ?? getStorefrontAdminOrDefault());
+	let error = $state(data.storefrontError ?? '');
+	let loading = $state(false);
+	let retrying = $state(false);
 
-	async function load(opts: { force?: boolean; background?: boolean } = {}) {
-		const { force = false, background = false } = opts;
-		if (!background && !config) loading = true;
+	setStorefrontContext({
+		get config() {
+			return config;
+		},
+		save,
+		refresh
+	});
+
+	async function bootstrap(force = false) {
+		loading = true;
 		try {
-			config = await loadStorefrontAdmin(force);
+			const fetched = await loadStorefrontAdmin(force);
+			config = fetched;
+			setStorefrontAdmin(fetched);
 			error = '';
 		} catch (err) {
-			if (!config) {
-				error = err instanceof Error ? err.message : 'Could not load your storefront';
-			}
+			error = err instanceof Error ? err.message : 'Could not load your storefront';
 		} finally {
 			loading = false;
+			retrying = false;
 		}
 	}
 
 	onMount(() => {
-		const hadCache = Boolean(config);
-		void load({ force: hadCache, background: hadCache });
+		void bootstrap(false);
 	});
 
 	async function save(run: () => Promise<AdminStorefront>): Promise<boolean> {
 		try {
-			config = await run();
-			setStorefrontAdmin(config);
+			await ensureLiveStorefrontAdmin();
+			const updated = await run();
+			config = updated;
+			setStorefrontAdmin(updated);
 			error = '';
 			return true;
 		} catch (err) {
-			// A rejected write leaves the previous configuration in place, so the
-			// form still shows what the server holds rather than what was refused.
 			error = err instanceof Error ? err.message : 'Could not save';
 			return false;
 		}
 	}
 
 	async function refresh() {
-		await load({ force: true });
+		await bootstrap(true);
+	}
+
+	async function retry() {
+		retrying = true;
+		await bootstrap(true);
 	}
 
 	const pathname = $derived($page.url.pathname);
+	const showCustomizeShell = $derived(isCustomizeShellPath(pathname));
 </script>
 
-{#if loading}
-	<div class="panel">
-		<Skeleton height="1.2rem" width="12rem" />
-		<div style="margin-top:1rem;display:grid;gap:0.7rem;grid-template-columns:repeat(auto-fill,minmax(11rem,1fr));">
-			{#each [1, 2, 3, 4, 5, 6] as i (i)}
-				<Skeleton height="4.5rem" />
-			{/each}
+{#snippet statusPane()}
+	{#if error}
+		<div
+			class="alert alert-danger"
+			style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;"
+		>
+			<div>
+				<strong>API notice:</strong> {error}
+			</div>
+			<button
+				class="btn btn-primary btn-sm"
+				type="button"
+				disabled={retrying}
+				onclick={() => void retry()}
+			>
+				{retrying ? 'Retrying…' : 'Try again'}
+			</button>
 		</div>
-	</div>
-{:else if error && !config}
-	<ErrorState message={error} />
-{:else if config}
+	{/if}
+	{@render children({ config, save, refresh })}
+{/snippet}
+
+{#if showCustomizeShell}
 	<div class="sfctl">
-		<nav class="sfctl-nav" aria-label="Storefront settings">
+		<nav class="sfctl-nav" aria-label="Storefront customize">
 			{#each STOREFRONT_NAV as item (item.href)}
 				{@const active = isStorefrontActive(pathname, item)}
 				<a
@@ -108,16 +140,32 @@
 					<ArrowLeft size={15} strokeWidth={2} /> Back to shop
 				</a>
 				<div class="sfctl-status">
-					<span class="badge" class:badge-ok={config.behaviour.published} class:badge-warn={!config.behaviour.published}>
-						{config.behaviour.published ? 'Live' : 'Not published'}
-					</span>
-					<span class="badge" class:badge-ok={config.ordering_available_now} class:badge-warn={!config.ordering_available_now}>
-						{config.ordering_available_now ? 'Accepting orders' : 'Closed'}
-					</span>
+					{#if config}
+						<span
+							class="badge"
+							class:badge-ok={config.behaviour.published}
+							class:badge-warn={!config.behaviour.published}
+						>
+							{config.behaviour.published ? 'Live' : 'Not published'}
+						</span>
+						<span
+							class="badge"
+							class:badge-ok={config.ordering_available_now}
+							class:badge-warn={!config.ordering_available_now}
+						>
+							{config.ordering_available_now ? 'Accepting orders' : 'Closed'}
+						</span>
+					{:else if loading}
+						<span class="badge">Loading…</span>
+					{:else}
+						<span class="badge badge-warn">Unavailable</span>
+					{/if}
 				</div>
 			</div>
 
-			{@render children({ config, save, refresh })}
+			{@render statusPane()}
 		</div>
 	</div>
+{:else}
+	{@render statusPane()}
 {/if}

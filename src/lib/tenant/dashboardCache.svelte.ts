@@ -62,7 +62,10 @@ export function loadDashboardSnapshot(force = false): Promise<DashboardSnapshot>
 	if (!force && cached) return Promise.resolve(cached);
 	if (!force && inflight) return inflight;
 
-	const p = (async () => {
+	const TIMEOUT_MS = 10_000;
+	let timer: ReturnType<typeof setTimeout> | undefined;
+
+	const request = (async () => {
 		const [stats, store, setup] = await Promise.all([
 			api<DashboardStats>('/api/v1/tenant/dashboard'),
 			api<DashboardStoreLink>('/api/v1/tenant/store-link'),
@@ -78,7 +81,18 @@ export function loadDashboardSnapshot(force = false): Promise<DashboardSnapshot>
 		const next: DashboardSnapshot = { stats, store, setup, currency };
 		cached = next;
 		return next;
-	})().finally(() => {
+	})();
+
+	const timeout = new Promise<never>((_, reject) => {
+		timer = setTimeout(() => {
+			reject(
+				new Error('Dashboard is taking too long to load. Check that the API is running and try again.')
+			);
+		}, TIMEOUT_MS);
+	});
+
+	const p = Promise.race([request, timeout]).finally(() => {
+		if (timer) clearTimeout(timer);
 		if (inflight === p) inflight = null;
 	});
 

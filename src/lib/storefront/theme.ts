@@ -147,3 +147,121 @@ export function resolveThemeMode(mode: ThemeMode): 'light' | 'dark' {
 	if (typeof window === 'undefined') return 'light';
 	return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+	let clean = hex.replace('#', '').trim();
+	if (clean.length === 3) {
+		clean = clean.split('').map((c) => c + c).join('');
+	}
+	const num = parseInt(clean, 16);
+	if (isNaN(num) || clean.length !== 6) {
+		return { r: 91, g: 75, b: 219 };
+	}
+	return {
+		r: (num >> 16) & 255,
+		g: (num >> 8) & 255,
+		b: num & 255
+	};
+}
+
+function contrastInk(hex: string): string {
+	const { r, g, b } = hexToRgb(hex);
+	const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+	return yiq >= 150 ? '#0f172a' : '#ffffff';
+}
+
+function soften(hex: string, alpha: number): string {
+	const { r, g, b } = hexToRgb(hex);
+	return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+const RADIUS_SCALES: Record<RadiusId, [string, string, string, string]> = {
+	none: ['0px', '0px', '0px', '0px'],
+	sm: ['2px', '4px', '6px', '8px'],
+	md: ['4px', '8px', '12px', '16px'],
+	lg: ['6px', '12px', '18px', '24px'],
+	pill: ['8px', '16px', '24px', '32px']
+};
+
+const BUTTON_RADII: Record<ButtonStyleId, string> = {
+	rounded: 'var(--sf-radius)',
+	pill: '999px',
+	square: '0px',
+	soft: 'var(--sf-radius-lg)'
+};
+
+const FONT_STACKS: Record<FontId, string> = {
+	inter: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+	sora: "'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+	poppins: "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+	system: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+};
+
+/** Compute full CSS custom properties on client for instant reactive preview. */
+export function computeClientThemeVars(theme: StoreTheme): Record<string, string> {
+	const primary = theme.primary || '#5b4bdb';
+	const secondary = theme.secondary || '#8b5cf6';
+	const accent = theme.accent || '#06b6d4';
+	const radiusId = (theme.radius in RADIUS_SCALES ? theme.radius : 'md') as RadiusId;
+	const buttonId = (theme.button in BUTTON_RADII ? theme.button : 'rounded') as ButtonStyleId;
+	const fontId = (theme.font in FONT_STACKS ? theme.font : 'inter') as FontId;
+
+	const pRgb = hexToRgb(primary);
+	const sRgb = hexToRgb(secondary);
+	const aRgb = hexToRgb(accent);
+	const scale = RADIUS_SCALES[radiusId];
+
+	return {
+		'--sf-primary': primary,
+		'--sf-primary-rgb': `${pRgb.r}, ${pRgb.g}, ${pRgb.b}`,
+		'--sf-primary-ink': contrastInk(primary),
+		'--sf-primary-soft': soften(primary, 0.12),
+		'--sf-primary-softer': soften(primary, 0.05),
+		'--sf-secondary': secondary,
+		'--sf-secondary-rgb': `${sRgb.r}, ${sRgb.g}, ${sRgb.b}`,
+		'--sf-secondary-ink': contrastInk(secondary),
+		'--sf-accent': accent,
+		'--sf-accent-rgb': `${aRgb.r}, ${aRgb.g}, ${aRgb.b}`,
+		'--sf-accent-ink': contrastInk(accent),
+		'--sf-accent-soft': soften(accent, 0.14),
+		'--sf-radius-xs': scale[0],
+		'--sf-radius-sm': scale[1],
+		'--sf-radius': scale[2],
+		'--sf-radius-lg': scale[3],
+		'--sf-radius-pill': '999px',
+		'--sf-btn-radius': BUTTON_RADII[buttonId],
+		'--sf-font': FONT_STACKS[fontId],
+		'--sf-font-display': FONT_STACKS[fontId],
+		'--sf-font-weight': fontId === 'sora' ? '700' : '600',
+		'--sf-btn-transform': buttonId === 'square' ? 'none' : 'scale(0.97)',
+		'--sf-card-shadow':
+			theme.card === 'elevated'
+				? 'var(--sf-shadow-md)'
+				: theme.card === 'outlined'
+					? 'var(--sf-shadow-xs)'
+					: 'none',
+		'--sf-card-border':
+			theme.card === 'outlined' ? 'var(--sf-border-strong)' : 'transparent',
+		'--sf-card-bg': 'var(--sf-surface)',
+		'--sf-header-position': theme.header === 'sticky' ? 'sticky' : 'relative',
+		'--sf-header-bg': theme.header === 'transparent' ? 'transparent' : 'var(--sf-surface)',
+		'--sf-header-ink': 'var(--sf-text)',
+		'--sf-hero-min-height':
+			theme.hero === 'image'
+				? '230px'
+				: theme.hero === 'gradient'
+					? '185px'
+					: theme.hero === 'compact'
+						? 'auto'
+						: '0px',
+		'--sf-hero-radius': theme.hero === 'compact' ? 'var(--sf-radius-lg)' : '0px',
+		'--sf-hero-gradient': `linear-gradient(135deg, ${soften(primary, 0.85)} 0%, ${soften(secondary, 0.88)} 55%, ${soften(accent, 0.85)} 100%)`,
+		'--sf-hero-align': theme.hero === 'image' ? 'flex-end' : 'center',
+		'--sf-section-space': theme.hero === 'compact' ? '20px' : '26px',
+		'--sf-image-fit': 'cover',
+		'--sf-product-layout': theme.product_layout || 'list',
+		'--sf-filter-style': theme.filter_style || 'chips',
+		'--sf-focus-ring': `color-mix(in srgb, ${primary} 35%, transparent)`
+	};
+}
+

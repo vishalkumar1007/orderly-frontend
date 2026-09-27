@@ -1,4 +1,5 @@
 import { redirect } from '@sveltejs/kit';
+import { ApiClientError } from '$lib/api/client';
 import type { StoreConfig } from '$lib/storefront/api';
 import { serverApi } from '$lib/storefront/server';
 import type { LayoutServerLoad } from './$types';
@@ -18,7 +19,8 @@ import type { LayoutServerLoad } from './$types';
  *
  * A failure here is not fatal. Browsing degrades to the default theme and an
  * error banner rather than a dead page, because a menu in the wrong accent
- * colour is much better than a shop that will not open.
+ * colour is much better than a shop that will not open. Unpublished shops
+ * (404 not_found) stay on the unpublished screen — that is intentional.
  */
 export const load: LayoutServerLoad = async ({ locals }) => {
 	if (locals.hostKind !== 'tenant' || !locals.tenantSlug) {
@@ -26,17 +28,39 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		// the layout renders the Super Admin entry point for it, so the platform
 		// root keeps behaving exactly as it did before the storefront existed.
 		if (locals.hostKind === 'unknown') {
-			return { hostKind: locals.hostKind, tenantSlug: null, config: null, configError: '' };
+			return {
+				hostKind: locals.hostKind,
+				tenantSlug: null,
+				config: null,
+				configError: '',
+				configErrorCode: ''
+			};
 		}
 		throw redirect(302, '/shop/login');
 	}
 
 	try {
 		const config = await serverApi<StoreConfig>('/api/v1/public/store', locals);
-		return { hostKind: locals.hostKind, tenantSlug: locals.tenantSlug, config, configError: '' };
+		return {
+			hostKind: locals.hostKind,
+			tenantSlug: locals.tenantSlug,
+			config,
+			configError: '',
+			configErrorCode: ''
+		};
 	} catch (error) {
 		const message =
 			error instanceof Error && error.message ? error.message : 'Store unavailable';
-		return { hostKind: locals.hostKind, tenantSlug: locals.tenantSlug, config: null, configError: message };
+		const code =
+			error instanceof ApiClientError
+				? error.code || (error.status === 404 ? 'not_found' : 'error')
+				: 'network_error';
+		return {
+			hostKind: locals.hostKind,
+			tenantSlug: locals.tenantSlug,
+			config: null,
+			configError: message,
+			configErrorCode: code
+		};
 	}
 };

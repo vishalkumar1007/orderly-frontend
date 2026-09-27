@@ -13,20 +13,13 @@
 		storefrontAdminApi,
 		type AdminStorefront
 	} from '$lib/storefront/admin';
-	import { seed, type StorefrontContext } from '$lib/storefront/admin-context';
+	import { seed, useStorefront, type StorefrontContext } from '$lib/storefront/admin-context';
 	import { toast } from '$lib/components/admin/toast';
 
-	/**
-	 * Opening hours.
-	 *
-	 * The server decides whether the store is open, in the tenant's own timezone.
-	 * This screen only edits the schedule, so the header badge, the home page and
-	 * the footer can never disagree about whether ordering is possible.
-	 *
-	 * A day with no shifts is closed. A week with no shifts at all falls back to
-	 * "always open" rather than silently making the shop unorderable.
-	 */
-	let { config, save }: StorefrontContext = $props();
+	let props: Partial<StorefrontContext> = $props();
+	const ctx = useStorefront(() => props);
+	const config = $derived(ctx.config);
+	const save = (run: Parameters<StorefrontContext['save']>[0]) => ctx.save(run);
 
 	const TIMEZONES = [
 		{ value: 'Asia/Kolkata', label: 'India (Kolkata)' },
@@ -37,12 +30,12 @@
 		{ value: 'UTC', label: 'UTC' }
 	];
 
-	let alwaysOpen = $state(seed(() => config.hours.always_open));
-	let timezone = $state(seed(() => config.hours.timezone || 'Asia/Kolkata'));
+	let alwaysOpen = $state(seed(() => ctx.config.hours.always_open));
+	let timezone = $state(seed(() => ctx.config.hours.timezone || 'Asia/Kolkata'));
 	let schedule = $state<Record<string, string[]>>(
 		seed(() =>
 			Object.fromEntries(
-				Object.entries(config.hours.schedule ?? {}).map(([day, shifts]) => [
+				Object.entries(ctx.config.hours.schedule ?? {}).map(([day, shifts]) => [
 					day,
 					[...(shifts as string[])]
 				])

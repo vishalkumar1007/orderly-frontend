@@ -3,15 +3,25 @@
 	import { page } from '$app/stores';
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
-	import { api } from '$lib/api/client';
-	import { applyBrandTheme, clearBrandTheme, type BrandTheme } from '$lib/brandTheme';
+	import { api, getAccessToken } from '$lib/api/client';
+	import {
+		applyBrandTheme,
+		clearBrandTheme,
+		getCachedBrandTheme,
+		invalidateBrandThemeCache,
+		setCachedBrandTheme,
+		type BrandTheme
+	} from '$lib/brandTheme';
 	import { initConnectivity, initInstallPrompt, registerServiceWorker } from '$lib/pwa.svelte';
 	import { initTheme } from '$lib/theme';
 
 	let { children } = $props();
 
 	/** Only shop hosts get the installable app shell; the platform console does not. */
-	const isTenantHost = $derived($page.data.hostKind === 'tenant');
+	const hostKind = $derived($page.data.hostKind as string | undefined);
+	const tenantSlug = $derived(($page.data as { tenantSlug?: string }).tenantSlug ?? '');
+	const pathname = $derived($page.url.pathname);
+	const isTenantHost = $derived(hostKind === 'tenant');
 
 	/**
 	 * Head tags live here, not in the route layouts.
@@ -44,38 +54,56 @@
 	});
 
 	/**
-	 * Boolean, not the full pathname: navigating /shop → /shop/menu must not
-	 * re-fetch theme. An earlier effect tracked `$page.url.pathname` and hit
-	 * `/api/v1/tenant/theme` on every console navigation, which felt like the
-	 * whole shell was "loading" again even though Go answered quickly.
+	 * Depend only on derived primitives — reading `$page` inside the effect
+	 * re-runs on every client navigation and re-hit `/tenant/theme`.
 	 */
-	const onShopConsole = $derived($page.url.pathname.startsWith('/shop'));
+	const onShopConsole = $derived(pathname.startsWith('/shop'));
+	const onShopPublic = $derived(
+		pathname === '/shop/login' || pathname.startsWith('/setup-password')
+	);
 
 	$effect(() => {
-		const kind = $page.data.hostKind;
+		const kind = hostKind;
+		const slug = tenantSlug;
 		const shopConsole = onShopConsole;
+		const isPublic = onShopPublic;
 
 		// Platform + admin hosts own their own theme. Strip any tenant override
 		// so the Super Admin console never inherits a shop's brand.
 		if (kind !== 'tenant') {
 			clearBrandTheme();
+			invalidateBrandThemeCache();
 			return;
 		}
+
+		// Console appearance only applies on authenticated /shop/* routes.
+		// The public storefront uses --sf-* tokens from StoreRoot.
+		if (!shopConsole) {
+			clearBrandTheme();
+			return;
+		}
+
+		if (isPublic) return;
+
+		const cacheKey = slug || 'tenant';
+		const cached = getCachedBrandTheme(cacheKey);
+		if (cached) {
+			applyBrandTheme(cached);
+			return;
+		}
+
+		// No staff session → skip authenticated theme (avoids 401 → clearTokens).
+		if (typeof localStorage !== 'undefined' && !getAccessToken()) return;
 
 		let cancelled = false;
 		(async () => {
 			try {
-				// Console appearance (admin brand) only applies on /shop/* routes.
-				// The public storefront uses --sf-* tokens from StoreRoot — never
-				// run applyBrandTheme on a storefront theme payload.
-				if (shopConsole) {
-					const theme = await api<BrandTheme>('/api/v1/tenant/theme');
-					if (!cancelled) applyBrandTheme(theme);
-					return;
-				}
-				clearBrandTheme();
+				const theme = await api<BrandTheme>('/api/v1/tenant/theme');
+				if (cancelled) return;
+				applyBrandTheme(theme);
+				setCachedBrandTheme(cacheKey, theme);
 			} catch {
-				/* unpublished store or signed-out shop */
+				/* unpublished store or signed-out shop — do not auto-retry */
 			}
 		})();
 		return () => {

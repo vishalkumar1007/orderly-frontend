@@ -6,37 +6,20 @@
 	import TextInput from '$lib/components/admin/TextInput.svelte';
 	import type { StorefrontContext } from '$lib/storefront/admin-context';
 	import { seed } from '$lib/storefront/admin-context';
-	import { storefrontAdminApi, type AdminSection, type AdminStorefront } from '$lib/storefront/admin';
+	import { storefrontAdminApi, type AdminSection } from '$lib/storefront/admin';
 	import { toast } from '$lib/components/admin/toast';
 
-	/**
-	 * Homepage builder.
-	 *
-	 * A tenant enables, disables, reorders and edits a fixed set of sections. The
-	 * set itself is a platform catalogue: a section the storefront cannot render
-	 * is never offered, and anything unrecognised is dropped server-side, so a
-	 * layout saved by a newer build cannot break an older one.
-	 *
-	 * Reordering works three ways, because dragging is not always available: drag
-	 * with a pointer, drag with the keyboard, and the up/down buttons. All three
-	 * move the same list.
-	 */
 	let { config, save }: StorefrontContext = $props();
 
-	// Seeded once, and copied section by section, because the builder edits this
-	// list in place: each section is bound to its fields, so the draft has to be a
-	// different object from the configuration `config` currently points at.
 	let sections = $state<AdminSection[]>(
-		seed(() => config.homepage.sections.map((s) => ({ ...s, content: { ...s.content } })))
+		seed(() => (config.homepage?.sections ?? []).map((s) => ({ ...s, content: { ...s.content } })))
 	);
 	let expanded = $state<string | null>(null);
 	let saving = $state(false);
 
-	const catalogue = $derived(config.catalogues.section_types);
+	const catalogue = $derived(config.catalogues?.section_types ?? []);
 	const defFor = (type: string) => catalogue.find((d) => d.type === type);
 
-	// Sections not yet in the layout are offered as "add" so a tenant who deleted
-	// one can bring it back without support.
 	const missing = $derived(
 		catalogue.filter((def) => !sections.some((s) => s.type === def.type))
 	);
@@ -85,8 +68,6 @@
 
 	function onDragOver(index: number, event: DragEvent) {
 		if (dragging === null) return;
-		// Only the placement hint is handled here; the move happens on drop, so a
-		// cancelled drag leaves the order untouched.
 		event.preventDefault();
 		over = index;
 	}
@@ -108,12 +89,10 @@
 		over = null;
 	}
 
-	/** Keyboard reordering, so the builder is usable without a pointer. */
 	function onGripKey(index: number, event: KeyboardEvent) {
 		if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
 			event.preventDefault();
 			move(index, event.key === 'ArrowUp' ? -1 : 1);
-			// Keep focus on the row that moved, or the keyboard user loses their place.
 			queueMicrotask(() => {
 				const grips = document.querySelectorAll<HTMLButtonElement>('.sfsection-grip');
 				grips[event.key === 'ArrowUp' ? index - 1 : index + 1]?.focus();
