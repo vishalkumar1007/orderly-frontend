@@ -17,30 +17,13 @@
 
 	let { data, children } = $props();
 
-	/**
-	 * The storefront shell.
-	 *
-	 * Header, main, sticky cart bar, bottom navigation and footer, with the cart
-	 * held once in context so every screen reads the same live value. The
-	 * storefront stylesheet is imported here and nowhere else, which is what keeps
-	 * the admin console's own tokens untouched.
-	 *
-	 * The tenant is resolved from the hostname. No request made from here carries
-	 * a tenant id.
-	 */
-	// The tenant cannot change while this layout is mounted — a storefront URL is
-	// the tenant's own subdomain — so the slug is read once and the cart is built
-	// against it once. `untrack` makes that intent explicit rather than relying on
-	// the reader knowing why the value is safe to capture.
 	const slug = untrack(() => data.tenantSlug ?? '');
 	const config = $derived(data.config);
 	const cart = provideCart(createCart(slug, loadInitialCart(slug)));
 
 	const isTenant = $derived(data.hostKind === 'tenant');
+	const isPublished = $derived(isTenant && config !== null);
 
-	// The signed-in state lives in localStorage, so it is client-only. The server
-	// renders the signed-out header and the client swaps it after mount, which
-	// keeps hydration clean without implying a diner has to sign in.
 	let signedIn = $state(false);
 	let online = $state(true);
 
@@ -60,25 +43,23 @@
 	const theme = $derived(hasCompleteTokens(config?.theme) ? config!.theme : FALLBACK_THEME);
 	const fontImport = $derived(fontImportFor(theme.font));
 	const currency = $derived(config?.store?.currency ?? 'INR');
-	const loginEnabled = $derived(config?.ordering?.customer_login ?? true);
+	const loginEnabled = $derived(
+		(config?.ordering?.customer_login_mode ?? (config?.ordering?.customer_login ? 'optional' : 'off')) !==
+			'off'
+	);
 	const pathname = $derived($page.url.pathname);
 
-	/** Search only appears where it can actually filter something. */
+	const storeStatus = $derived(config?.ordering?.store_status ?? 'OPEN');
+	const statusMessage = $derived(config?.ordering?.status_message_display ?? '');
+	const showStatusBanner = $derived(storeStatus === 'BUSY' || storeStatus === 'AWAY');
+
 	const showSearch = $derived(pathname === '/' || pathname.startsWith('/menu'));
 
-	/**
-	 * The search term lives in the URL so a search is shareable, survives a
-	 * reload, and is the same on the home and menu pages.
-	 */
 	let searchTerm = $state('');
 	$effect(() => {
 		searchTerm = $page.url.searchParams.get('q') ?? '';
 	});
 
-	/**
-	 * Pages that own the bottom of the screen hide the cart bar. A sticky "View
-	 * cart" bar sitting under a "Place order" button is a trap on a small screen.
-	 */
 	const hidesCartBar = $derived(
 		pathname.startsWith('/cart') ||
 			pathname.startsWith('/checkout') ||
@@ -88,14 +69,12 @@
 			pathname.startsWith('/verify-otp')
 	);
 
-	const showsCartBar = $derived(isTenant && !hidesCartBar && cart.count > 0);
+	const showsCartBar = $derived(isPublished && !hidesCartBar && cart.count > 0);
 
-	/** The footer only prints opening hours when the home page is not showing them. */
 	const footerShowsHours = $derived(
 		!config?.homepage?.sections?.some((section) => section.enabled && section.type === 'OPENING_HOURS')
 	);
 
-	// Clear the transient add notice so it never lingers between pages.
 	$effect(() => {
 		if (!cart.notice) return;
 		const timer = setTimeout(() => (cart.notice = ''), 2600);
@@ -115,11 +94,29 @@
 	{#if config?.store?.favicon_url}
 		<link rel="icon" href={config.store.favicon_url} />
 	{/if}
+	{#if fontImport}
+		<link rel="stylesheet" href={fontImport} />
+	{/if}
 	<meta name="theme-color" content={theme.primary} />
 	<meta name="apple-mobile-web-app-title" content={config?.store?.name ?? 'Order'} />
 </svelte:head>
 
-{#if isTenant}
+{#if !isTenant}
+	<SuperAdminLogin />
+{:else if !isPublished}
+	<div class="sf-unpublished">
+		<div class="sf-unpublished-inner">
+			<div class="sf-unpublished-icon" aria-hidden="true">
+				<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+					<circle cx="12" cy="12" r="10" />
+					<path d="M8 12h8" />
+				</svg>
+			</div>
+			<h1>Shopfront not yet published</h1>
+			<p>This store hasn't been set up yet. Please check back later.</p>
+		</div>
+	</div>
+{:else}
 	<StoreRoot {config} tenantSlug={slug}>
 		<div class="sf-shell">
 			<StoreHeader {config} lines={cart.lines} search={showSearch} signedIn={signedIn} loginEnabled={loginEnabled} bind:searchTerm />
@@ -137,15 +134,66 @@
 						</div>
 					</div>
 				{/if}
+				{#if showStatusBanner && statusMessage}
+					<div class="sf-wrap sf-notice">
+						<div class="sf-alert" data-tone="info" role="status">
+							<span>{statusMessage}</span>
+						</div>
+					</div>
+				{/if}
 				{@render children()}
 			</main>
 			<StoreFooter {config} showHours={!footerShowsHours} />
 			<StoreCartBar lines={cart.lines} {config} totals={cart.totals} visible={showsCartBar} />
-			<StoreTabBar lines={cart.lines} />
+			<StoreTabBar
+				{loginEnabled}
+				{signedIn}
+				cartBarVisible={showsCartBar}
+			/>
 			<StoreToast message={cart.notice} />
 		</div>
 	</StoreRoot>
-{:else}
-	<!-- The platform host keeps its Super Admin entry point. -->
-	<SuperAdminLogin />
 {/if}
+
+<style>
+	.sf-unpublished {
+		min-height: 100dvh;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 1.5rem;
+		background: var(--bg);
+	}
+
+	.sf-unpublished-inner {
+		text-align: center;
+		max-width: 400px;
+	}
+
+	.sf-unpublished-icon {
+		display: grid;
+		place-items: center;
+		width: 64px;
+		height: 64px;
+		margin: 0 auto 1.25rem;
+		border-radius: 50%;
+		background: var(--surface-2);
+		color: var(--text-3);
+	}
+
+	.sf-unpublished h1 {
+		margin: 0 0 0.5rem;
+		font-family: var(--font-display);
+		font-size: 1.25rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		color: var(--text);
+	}
+
+	.sf-unpublished p {
+		margin: 0;
+		font-size: 0.875rem;
+		color: var(--text-2);
+		line-height: 1.5;
+	}
+</style>

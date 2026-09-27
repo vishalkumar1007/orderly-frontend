@@ -189,6 +189,7 @@
 		groups={navGroups}
 		wideContent={contentWide}
 		storageKey="orderly-sidebar"
+		settingsHref="/superadmin/settings"
 		onSignOut={signOut}
 	>
 		{#snippet actions()}

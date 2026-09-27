@@ -1,23 +1,14 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import Minus from '@lucide/svelte/icons/minus';
 	import Plus from '@lucide/svelte/icons/plus';
 	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
 	import { useCart } from '$lib/storefront/cart-state.svelte';
-	import { normaliseAddons, unitTotal, type CartLine } from '$lib/storefront/cart.svelte';
+	import { normaliseAddons, unitTotal } from '$lib/storefront/cart.svelte';
 	import { money } from '$lib/storefront/format';
-	import type { StoreProduct } from '$lib/storefront/api';
+	import type { StoreOptionGroup, StoreProduct } from '$lib/storefront/api';
 
-	/**
-	 * Product detail.
-	 *
-	 * This is the only screen where a customer chooses options, so it carries the
-	 * quantity stepper, the add-on list and the special-instruction field. The
-	 * sticky bar always shows the running total, because a customer changing four
-	 * add-ons needs to see what it costs without scrolling back up.
-	 */
 	let { data } = $props();
 
 	const cart = useCart();
@@ -31,23 +22,45 @@
 	let notes = $state('');
 	let justAdded = $state(false);
 
-	const addons = $derived(product?.addons ?? []);
-	const hasOptions = $derived(addons.length > 0);
+	const optionGroups = $derived.by((): StoreOptionGroup[] => {
+		if (!product) return [];
+		if (product.option_groups && product.option_groups.length > 0) {
+			return product.option_groups.filter((g) => g.is_active !== false && g.options?.length);
+		}
+		if (product.addons?.length) {
+			return [
+				{
+					id: 'addons',
+					name: 'Add-ons',
+					selection: 'multiple',
+					required: false,
+					is_active: true,
+					sort_order: 0,
+					options: product.addons
+				}
+			];
+		}
+		return [];
+	});
+
+	const flatAddons = $derived(product?.addons ?? []);
+	const hasOptions = $derived(optionGroups.length > 0);
 	const allowsNotes = $derived(product?.allow_special_instructions ?? false);
 
-	/**
-	 * `picks` is what the customer chose, as ids and counts. `resolvedAddons` is
-	 * that resolved against the product's catalogue, so the name and price shown
-	 * always come from the product rather than from anything the page holds.
-	 */
 	const picks = $derived(
 		Object.entries(chosen)
 			.filter(([, qty]) => qty > 0)
 			.map(([id, qty]) => ({ id, quantity: qty }))
 	);
-	const resolvedAddons = $derived(normaliseAddons(addons, picks));
+	const resolvedAddons = $derived(normaliseAddons(flatAddons, picks));
 
-	/** The unit total is the product price plus its chosen extras. */
+	const requiredSatisfied = $derived(
+		optionGroups.every((g) => {
+			if (!g.required) return true;
+			return g.options.some((o) => (chosen[o.id] ?? 0) > 0);
+		})
+	);
+
 	const unit = $derived(
 		unitTotal({
 			key: '',
@@ -62,10 +75,17 @@
 		})
 	);
 	const lineTotal = $derived(unit * quantity);
-
 	const inCart = $derived(cart.quantityOf(product?.id ?? ''));
 
-	function toggleAddon(id: string, max: number) {
+	function selectSingle(group: StoreOptionGroup, optionId: string) {
+		const next = { ...chosen };
+		for (const o of group.options) {
+			next[o.id] = o.id === optionId ? 1 : 0;
+		}
+		chosen = next;
+	}
+
+	function toggleMulti(id: string, max: number) {
 		chosen = { ...chosen, [id]: chosen[id] ? 0 : Math.min(1, max) };
 	}
 
@@ -75,7 +95,7 @@
 	}
 
 	function addToCart() {
-		if (!product) return;
+		if (!product || !requiredSatisfied) return;
 		const result = cart.add(product, quantity, resolvedAddons, notes);
 		if (result.ok) {
 			justAdded = true;
@@ -138,66 +158,90 @@
 		{/if}
 
 		{#if hasOptions}
-			<h2 class="sf-group-title">Add extras</h2>
-			<div style="display:grid;gap:8px;">
-				{#each addons as addon (addon.id)}
-					{@const qty = chosen[addon.id] ?? 0}
-					<!--
-						A row, not a nested button: the toggle and the quantity stepper
-						are separate controls, and buttons cannot legally contain
-						buttons. Both are siblings inside one row.
-					-->
-					<div class="sf-check" style="cursor:default;">
-						<button
-							class="sf-check-box"
-							type="button"
-							aria-pressed={qty > 0}
-							aria-label={(qty > 0 ? 'Remove ' : 'Add ') + addon.name}
-							disabled={!product.is_available || !orderable}
-							onclick={() => toggleAddon(addon.id, addon.max_qty)}
-							style="border:none;cursor:pointer;padding:0;"
-						>
-							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" aria-hidden="true">
-								<path d="M20 6 9 17l-5-5" />
-							</svg>
-						</button>
-						<button
-							type="button"
-							class="sf-check-body"
-							style="border:none;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer;padding:0;"
-							disabled={!product.is_available || !orderable}
-							onclick={() => toggleAddon(addon.id, addon.max_qty)}
-						>
-							<span class="sf-check-name">{addon.name}</span>
-							<span class="sf-check-price" style="font-weight:500;color:var(--sf-text-2);">
-								+{money(addon.price, currency)}
-							</span>
-						</button>
-						{#if qty > 0 && addon.max_qty > 1}
-							<span class="sf-stepper" style="height:34px;">
+			{#each optionGroups as group (group.id)}
+				<h2 class="sf-group-title">
+					{group.name}
+					{#if group.required}
+						<span style="color:var(--sf-danger, #c44);font-weight:500;"> *</span>
+					{:else}
+						<span class="sf-optional" style="font-weight:500;"> (optional)</span>
+					{/if}
+				</h2>
+				<div style="display:grid;gap:8px;">
+					{#each group.options as opt (opt.id)}
+						{@const qty = chosen[opt.id] ?? 0}
+						{@const maxQty = opt.max_qty || 1}
+						{#if group.selection === 'single'}
+							<label class="sf-check" style="cursor:pointer;">
+								<input
+									type="radio"
+									name={`group-${group.id}`}
+									checked={qty > 0}
+									disabled={!product.is_available || !orderable}
+									onchange={() => selectSingle(group, opt.id)}
+									style="accent-color:var(--sf-accent);"
+								/>
+								<span class="sf-check-body" style="flex:1;">
+									<span class="sf-check-name">{opt.name}</span>
+									<span class="sf-check-price" style="font-weight:500;color:var(--sf-text-2);">
+										{opt.price > 0 ? `+${money(opt.price, currency)}` : 'Included'}
+									</span>
+								</span>
+							</label>
+						{:else}
+							<div class="sf-check" style="cursor:default;">
+								<button
+									class="sf-check-box"
+									type="button"
+									aria-pressed={qty > 0}
+									aria-label={(qty > 0 ? 'Remove ' : 'Add ') + opt.name}
+									disabled={!product.is_available || !orderable}
+									onclick={() => toggleMulti(opt.id, maxQty)}
+									style="border:none;cursor:pointer;padding:0;"
+								>
+									<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" aria-hidden="true">
+										<path d="M20 6 9 17l-5-5" />
+									</svg>
+								</button>
 								<button
 									type="button"
-									style="width:32px;height:32px;"
-									aria-label={'Fewer ' + addon.name}
-									onclick={() => stepAddon(addon.id, -1, addon.max_qty)}
+									class="sf-check-body"
+									style="border:none;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer;padding:0;"
+									disabled={!product.is_available || !orderable}
+									onclick={() => toggleMulti(opt.id, maxQty)}
 								>
-									<Minus size={13} strokeWidth={2.6} aria-hidden="true" />
+									<span class="sf-check-name">{opt.name}</span>
+									<span class="sf-check-price" style="font-weight:500;color:var(--sf-text-2);">
+										+{money(opt.price, currency)}
+									</span>
 								</button>
-								<output style="min-width:22px;font-size:0.8125rem;">{qty}</output>
-								<button
-									type="button"
-									style="width:32px;height:32px;"
-									aria-label={'More ' + addon.name}
-									disabled={qty >= addon.max_qty}
-									onclick={() => stepAddon(addon.id, 1, addon.max_qty)}
-								>
-									<Plus size={13} strokeWidth={2.6} aria-hidden="true" />
-								</button>
-							</span>
+								{#if qty > 0 && maxQty > 1}
+									<span class="sf-stepper" style="height:34px;">
+										<button
+											type="button"
+											style="width:32px;height:32px;"
+											aria-label={'Fewer ' + opt.name}
+											onclick={() => stepAddon(opt.id, -1, maxQty)}
+										>
+											<Minus size={13} strokeWidth={2.6} aria-hidden="true" />
+										</button>
+										<output style="min-width:22px;font-size:0.8125rem;">{qty}</output>
+										<button
+											type="button"
+											style="width:32px;height:32px;"
+											aria-label={'More ' + opt.name}
+											disabled={qty >= maxQty}
+											onclick={() => stepAddon(opt.id, 1, maxQty)}
+										>
+											<Plus size={13} strokeWidth={2.6} aria-hidden="true" />
+										</button>
+									</span>
+								{/if}
+							</div>
 						{/if}
-					</div>
-				{/each}
-			</div>
+					{/each}
+				</div>
+			{/each}
 		{/if}
 
 		<h2 class="sf-group-title">Quantity</h2>
@@ -228,7 +272,7 @@
 					class="sf-textarea"
 					bind:value={notes}
 					maxlength="140"
-					placeholder="Less spicy, extra chutney…"
+					placeholder="Any special requests…"
 				></textarea>
 			</label>
 		{/if}
@@ -249,11 +293,13 @@
 			class="sf-btn sf-btn-primary sf-btn-lg"
 			type="button"
 			style="min-width:150px;"
-			disabled={!product.is_available || !orderable}
+			disabled={!product.is_available || !orderable || !requiredSatisfied}
 			onclick={addToCart}
 		>
 			{#if justAdded}
 				Added
+			{:else if hasOptions && !requiredSatisfied}
+				Choose options
 			{:else}
 				<ShoppingBag size={18} strokeWidth={2.1} aria-hidden="true" />
 				Add to cart

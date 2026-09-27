@@ -109,9 +109,7 @@
 			</p>
 		</div>
 		<div style="display:flex;gap:0.4rem;align-items:center;">
-			<button class="btn btn-secondary btn-sm" type="button" disabled={busy} onclick={togglePublished}>
-				{config.behaviour.published ? 'Unpublish' : 'Publish'}
-			</button>
+			<a class="btn btn-secondary btn-sm" href="/shop/brand">Publish settings</a>
 			<a class="btn btn-primary btn-sm" href="/shop/storefront/qr">Share it</a>
 		</div>
 	</div>
@@ -155,14 +153,12 @@
 		browsing, the menu and your existing orders all keep working.
 	</p>
 	<div style="display:grid;gap:0.6rem;">
-		<button
+		<a
 			class="sfopt"
-			type="button"
-			aria-pressed={config.behaviour.published}
-			disabled={busy}
-			onclick={togglePublished}
+			href="/shop/brand"
+			style="text-decoration:none;color:inherit;"
 		>
-			<span class="sfopt-mark" aria-hidden="true"></span>
+			<span class="sfopt-mark" aria-hidden="true" style="background:var(--success);border-color:var(--success);"></span>
 			<span class="sfopt-body">
 				<span class="sfopt-label">Storefront published</span>
 				<span class="sfopt-hint">
@@ -171,7 +167,7 @@
 						: 'Hidden. Only you can see it.'}
 				</span>
 			</span>
-		</button>
+		</a>
 		<button
 			class="sfopt"
 			type="button"

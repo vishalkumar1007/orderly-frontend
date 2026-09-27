@@ -41,23 +41,56 @@ const BRAND_VARS = [
 	'--font-display'
 ] as const;
 
+/**
+ * The brand properties a theme resolves to, as `[property, value]` pairs.
+ *
+ * One function, two consumers: `applyBrandTheme` writes these onto `<html>` in
+ * the browser, and `brandVars` renders the same list as an inline style during
+ * SSR. A signed-out sign-in page can only use the second — it has no token to
+ * fetch with — so if the two were written separately the page would quietly end
+ * up with a subset of the console's brand, which is the bug this avoids.
+ */
+function brandPairs(theme: BrandTheme): Array<[string, string]> {
+	const t = theme.tokens;
+	const pairs: Array<[string, string]> = [
+		['--accent', t.accent],
+		['--accent-2', t.accent2],
+		// Hover/pressed states darken the same hue, so they track one colour.
+		['--accent-dark', t.accent]
+	];
+	const rgb = hexToRgb(t.accent);
+	if (rgb) pairs.push(['--accent-rgb', rgb]);
+	pairs.push(
+		['--radius-sm', t.radius_sm],
+		['--radius', t.radius],
+		['--radius-lg', t.radius_lg]
+	);
+	if (t.font_body) pairs.push(['--font', `'${t.font_body}', system-ui, sans-serif`]);
+	if (t.font_display) pairs.push(['--font-display', `'${t.font_display}', system-ui, sans-serif`]);
+	return pairs;
+}
+
+/**
+ * The same brand overrides as a CSS inline declaration, for server rendering.
+ *
+ * Pure, so it is safe to call during SSR. Every value is checked for emptiness
+ * first: a blank custom property in an inline style still overrides the
+ * stylesheet, which would blank out the accent rather than leaving it alone.
+ */
+export function brandVars(theme: BrandTheme | null | undefined): string {
+	if (!theme?.tokens) return '';
+	return brandPairs(theme)
+		.filter(([, value]) => value !== '' && value !== undefined && value !== null)
+		.map(([prop, value]) => `${prop}:${value}`)
+		.join(';');
+}
+
 export function applyBrandTheme(theme: BrandTheme) {
 	if (typeof document === 'undefined') return;
 	const root = document.documentElement;
-	const tokens = theme.tokens;
-	root.style.setProperty('--accent', tokens.accent);
-	root.style.setProperty('--accent-2', tokens.accent2);
-	root.style.setProperty('--accent-dark', tokens.accent);
-	const rgb = hexToRgb(tokens.accent);
-	if (rgb) root.style.setProperty('--accent-rgb', rgb);
-	root.style.setProperty('--radius-sm', tokens.radius_sm);
-	root.style.setProperty('--radius', tokens.radius);
-	root.style.setProperty('--radius-lg', tokens.radius_lg);
-	if (tokens.font_body) {
-		root.style.setProperty('--font', `'${tokens.font_body}', system-ui, sans-serif`);
-	}
-	if (tokens.font_display) {
-		root.style.setProperty('--font-display', `'${tokens.font_display}', system-ui, sans-serif`);
+	for (const [prop, value] of brandPairs(theme)) {
+		if (value === '' || value === undefined || value === null) continue;
+		root.style.setProperty(prop, value);
 	}
 	let mode: 'light' | 'dark' = theme.color_mode === 'dark' ? 'dark' : 'light';
 	if (theme.color_mode === 'system') {

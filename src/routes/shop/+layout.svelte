@@ -7,6 +7,9 @@
 	import { logout, me, type User } from '$lib/auth';
 	import { TENANT_NAV, tenantCrumbs, tenantTitle } from '$lib/tenant/nav';
 	import { orderBoard } from '$lib/tenant/orders.svelte';
+	import { invalidateDashboardSnapshot } from '$lib/tenant/dashboardCache.svelte';
+	import { invalidateMenuSnapshot } from '$lib/tenant/menuCache.svelte';
+	import { invalidateStorefrontAdmin } from '$lib/storefront/adminCache.svelte';
 	import { activateUpdate, onUpdateAvailable } from '$lib/pwa.svelte';
 	import AdminShellSkeleton from '$lib/components/admin/AdminShellSkeleton.svelte';
 	import Toaster from '$lib/components/admin/Toaster.svelte';
@@ -34,6 +37,24 @@
 	let user = $state<User | null>(null);
 	let shopName = $state('');
 	let storefrontUrl = $state('');
+	/** Bumps on each auth attempt so stale me() results cannot flip shell status. */
+	let authGen = 0;
+
+	/**
+	 * `/shop/login` is a child of this layout. It must always render its own UI —
+	 * never the shell skeleton and never the empty "anon" frame. Super Admin does
+	 * the same for `/superadmin/login`; an earlier shop-only "decide once" gate
+	 * left `status === 'anon'` painting a blank 100dvh div forever (black page
+	 * after logout) and blocked the login form from mounting.
+	 */
+	const isPublicRoute = $derived($page.url.pathname === '/shop/login');
+
+	/**
+	 * Which side of the login wall the current `status` describes. Crossing
+	 * public ↔ protected must re-resolve identity; staying on one side must not
+	 * re-run `me()` on every navigation (that was the permanent loading loop).
+	 */
+	let resolvedSide = $state<'public' | 'protected' | null>(null);
 
 	const isAdmin = $derived(user?.role === 'TENANT_ADMIN');
 
@@ -47,42 +68,57 @@
 			items: group.items.filter((item) => {
 				if (item.href.startsWith('/shop/settings')) return isAdmin;
 				if (item.href.startsWith('/shop/storefront')) return isAdmin;
+				if (item.href === '/shop/brand') return isAdmin;
 				return true;
 			})
 		})).filter((group) => group.items.length > 0)
 	);
 
-	$effect(() => {
-		// Re-run whenever the route changes: this layout survives client-side
-		// navigation, so a one-shot resolve would leave `user` null.
-		void $page.url.pathname;
+	/** Resolve identity for the side of the login wall we are currently on. */
+	async function resolve(side: 'public' | 'protected') {
+		if (side === 'public') {
+			// Login renders its own screen — no shell, no identity fetch.
+			status = 'ready';
+			return;
+		}
 
-		if (status === 'ready') return;
+		status = 'loading';
+		const gen = ++authGen;
+
 		if (!getAccessToken()) {
+			if (gen !== authGen) return;
 			status = 'anon';
 			goto('/shop/login', { replaceState: true });
 			return;
 		}
-		(async () => {
-			try {
-				const me_ = await me();
-				if (me_.role !== 'TENANT_ADMIN' && me_.role !== 'STAFF') {
-					status = 'anon';
-					goto('/shop/login', { replaceState: true });
-					return;
-				}
-				user = me_;
-				status = 'ready';
-			} catch {
+
+		try {
+			const me_ = await me();
+			if (gen !== authGen) return;
+			if (me_.role !== 'TENANT_ADMIN' && me_.role !== 'STAFF') {
 				status = 'anon';
 				goto('/shop/login', { replaceState: true });
+				return;
 			}
-		})();
+			user = me_;
+			status = 'ready';
+		} catch {
+			if (gen !== authGen) return;
+			status = 'anon';
+			goto('/shop/login', { replaceState: true });
+		}
+	}
+
+	$effect(() => {
+		const side = isPublicRoute ? 'public' : 'protected';
+		if (resolvedSide === side) return;
+		resolvedSide = side;
+		void resolve(side);
 	});
 
 	// Shop identity drives the rail header and the storefront link.
 	$effect(() => {
-		if (status !== 'ready') return;
+		if (status !== 'ready' || !user || isPublicRoute) return;
 		let cancelled = false;
 		(async () => {
 			try {
@@ -119,15 +155,28 @@
 
 	async function signOut() {
 		await logout();
+		// Discard an in-flight identity check. Without this a `me()` that was
+		// already on the wire resolves after sign-out and sets the shell back to
+		// 'ready', putting a signed-out user back in the console.
+		authGen++;
 		user = null;
 		status = 'anon';
+		shopName = '';
+		storefrontUrl = '';
+		// Drop session-scoped caches so the next sign-in never paints another
+		// tenant's dashboard/menu for a frame.
+		invalidateDashboardSnapshot();
+		invalidateMenuSnapshot();
+		invalidateStorefrontAdmin();
+		// Force a fresh resolve when signing back in (public → protected).
+		resolvedSide = null;
 		goto('/shop/login', { replaceState: true });
 	}
 </script>
 
-{#if status === 'anon'}
-	<!-- Signed out: hold a blank frame while the redirect lands. -->
-	<div style="min-height:100dvh;"></div>
+{#if isPublicRoute}
+	{@render children()}
+	<Toaster />
 {:else if status === 'ready' && user}
 	<AppShell
 		brandName={railName}
@@ -140,6 +189,7 @@
 		navLabel="Organization"
 		groups={navGroups}
 		storageKey="orderly-shop-rail"
+		settingsHref="/shop/settings/smtp"
 		onSignOut={signOut}
 	>
 		{#snippet actions()}
@@ -158,7 +208,10 @@
 		{@render children()}
 	</AppShell>
 	<Toaster />
-{:else}
+{:else if status === 'loading'}
 	<!-- Shell-shaped so the frame doesn't jump when identity resolves. -->
 	<AdminShellSkeleton />
+{:else}
+	<!-- Unauthenticated on a protected route: hold while redirect to login lands. -->
+	<div style="min-height:100dvh;"></div>
 {/if}

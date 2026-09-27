@@ -45,6 +45,8 @@
 		wideContent = false,
 		/** Hide the account menu, for embedded or kiosk surfaces. */
 		showProfile = true,
+		/** Settings link in the account menu — portal-specific. */
+		settingsHref = '/superadmin/settings',
 		onSignOut,
 		/** Buttons rendered at the right of the topbar. */
 		actions,
@@ -62,6 +64,7 @@
 		storageKey?: string;
 		wideContent?: boolean;
 		showProfile?: boolean;
+		settingsHref?: string;
 		onSignOut?: () => void;
 		actions?: Snippet;
 		children: Snippet;
@@ -171,6 +174,7 @@
 					displayName={userName || userEmail}
 					{role}
 					collapsed={railCompact}
+					{settingsHref}
 					onNavigate={closeDrawer}
 					{onSignOut}
 				/>

@@ -9,6 +9,7 @@
 	} from '$lib/admin/configApi';
 	import type { ConfigService, ConfigView } from '$lib/admin/configTypes';
 	import { CONFIG_SERVICE_LABEL } from '$lib/admin/configTypes';
+	import { getConfig, loadConfig, setConfig } from '$lib/admin/configCache.svelte';
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import Send from '@lucide/svelte/icons/send';
 	import Upload from '@lucide/svelte/icons/upload';
@@ -23,7 +24,14 @@
 	import TextInput from '$lib/components/admin/TextInput.svelte';
 	import { toast } from '$lib/components/admin/toast';
 
-	let { service = 'SMTP' }: { service?: ConfigService } = $props();
+	let {
+		service = 'SMTP',
+		initialView = null
+	}: {
+		service?: ConfigService;
+		/** Pre-fetched config from the cache. When null, the panel fetches itself. */
+		initialView?: ConfigView | null;
+	} = $props();
 
 	let view = $state<ConfigView | null>(null);
 	let loading = $state(true);
@@ -38,20 +46,26 @@
 	let testTo = $state('');
 	let outcome = $state<{ ok: boolean; message: string; detail?: string } | null>(null);
 
-	/**
-	 * The old settings screen owned an smtp block. It is superseded by this
-	 * page, so the legacy Mail tab is redirected here rather than left showing
-	 * a field that no longer drives anything.
-	 */
-	onMount(async () => {
-		try {
-			view = await fetchPlatformConfig(service);
-			applyView(view);
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Could not load configuration';
-		} finally {
+	onMount(() => {
+		// If we already have cached data, use it immediately.
+		if (initialView) {
+			view = initialView;
+			applyView(initialView);
 			loading = false;
+			return;
 		}
+		// Otherwise fetch (with cache dedup).
+		loadConfig(service)
+			.then((v) => {
+				view = v;
+				if (v) applyView(v);
+			})
+			.catch((err) => {
+				error = err instanceof Error ? err.message : 'Could not load configuration';
+			})
+			.finally(() => {
+				loading = false;
+			});
 	});
 
 	function applyView(v: ConfigView) {
@@ -82,6 +96,8 @@
 				...payload(),
 				allow_tenants: allowTenants
 			});
+			// Keep the cache in sync so other tabs see the update.
+			setConfig(service, view);
 			toast.success(`${CONFIG_SERVICE_LABEL[service]} configuration saved`);
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Could not save');
@@ -94,6 +110,7 @@
 		allowTenants = next;
 		try {
 			view = await setPlatformSharing(service, next);
+			setConfig(service, view);
 			toast.success(next ? 'Tenants may now use this' : 'Tenant access revoked');
 		} catch (err) {
 			allowTenants = !next;
@@ -108,6 +125,7 @@
 			outcome = await testPlatformConfig(service, payload());
 			// The test writes a status the page should show immediately.
 			view = await fetchPlatformConfig(service);
+			setConfig(service, view);
 		} catch (err) {
 			outcome = {
 				ok: false,
@@ -133,6 +151,7 @@
 				to: testTo.trim()
 			});
 			view = await fetchPlatformConfig(service);
+			setConfig(service, view);
 		} catch (err) {
 			outcome = {
 				ok: false,

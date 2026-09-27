@@ -63,7 +63,7 @@
 	.panel {
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
-		background: var(--surface-1);
+		background: var(--surface);
 		min-width: 0;
 	}
 
@@ -137,7 +137,7 @@
 
 	.name {
 		font-size: 0.82rem;
-		color: var(--text-1);
+		color: var(--text);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -147,7 +147,7 @@
 		flex-shrink: 0;
 		font-size: 0.78rem;
 		font-weight: 600;
-		color: var(--text-1);
+		color: var(--text);
 		font-variant-numeric: tabular-nums;
 	}
 

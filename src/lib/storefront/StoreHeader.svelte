@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import Search from '@lucide/svelte/icons/search';
 	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
 	import User from '@lucide/svelte/icons/user';
 	import type { StoreConfig } from '$lib/storefront/api';
 	import { cartCount, type CartLine } from '$lib/storefront/cart.svelte';
-	import { money } from '$lib/storefront/format';
 
 	/**
 	 * The storefront header.
@@ -34,15 +34,40 @@
 
 	const store = $derived(config?.store ?? null);
 	const hours = $derived(config?.hours ?? null);
+	const ordering = $derived(config?.ordering ?? null);
 	const count = $derived(cartCount(lines));
 	const pathname = $derived($page.url.pathname);
 
-	/** The search form is a real GET so a search is shareable and bookmarkable. */
+	const storeStatus = $derived(ordering?.store_status ?? 'OPEN');
+	const statusMessage = $derived(ordering?.status_message_display ?? '');
+	const statusLabel = $derived(ordering?.store_status_label ?? 'Open');
+
+	const statusDotClass = $derived.by(() => {
+		switch (storeStatus) {
+			case 'BUSY': return 'busy';
+			case 'AWAY': return 'away';
+			case 'CLOSED': return 'closed';
+			default: return 'open';
+		}
+	});
+
+	/** The search form writes `?q=` so home/menu can filter from the URL. */
 	function submitSearch(event: SubmitEvent) {
 		event.preventDefault();
 		const target = event.currentTarget as HTMLFormElement;
 		const value = new FormData(target).get('q')?.toString().trim() ?? '';
 		searchTerm = value;
+		const url = new URL($page.url);
+		if (value) url.searchParams.set('q', value);
+		else url.searchParams.delete('q');
+		void goto(`${url.pathname}${url.search}`, { keepFocus: true, noScroll: true, replaceState: true });
+	}
+
+	function clearSearch() {
+		searchTerm = '';
+		const url = new URL($page.url);
+		url.searchParams.delete('q');
+		void goto(`${url.pathname}${url.search}`, { keepFocus: true, noScroll: true, replaceState: true });
 	}
 </script>
 
@@ -60,8 +85,8 @@
 				<span class="sf-brand-name">{store?.name ?? 'Orderly'}</span>
 				{#if hours}
 					<span class="sf-brand-meta">
-						<span class="sf-open-dot" data-open={String(hours.is_open)} aria-hidden="true"></span>
-						{hours.is_open ? 'Open' : 'Closed'}
+						<span class="sf-open-dot" data-open={String(hours.is_open)} data-status={statusDotClass} aria-hidden="true"></span>
+						{statusLabel}
 					</span>
 				{/if}
 			</span>
@@ -106,7 +131,7 @@
 					autocomplete="off"
 				/>
 				{#if searchTerm}
-					<button class="sf-search-clear" type="button" onclick={() => (searchTerm = '')}>
+					<button class="sf-search-clear" type="button" onclick={clearSearch}>
 						<span class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">
 							Clear search
 						</span>

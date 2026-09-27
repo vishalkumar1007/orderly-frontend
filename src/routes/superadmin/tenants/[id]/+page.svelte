@@ -83,6 +83,16 @@
 		address: '',
 		business_type: 'MOMO'
 	});
+	let storeStatus = $state('OPEN');
+	let statusMessage = $state('');
+	let storeStatusSaving = $state(false);
+
+	const STORE_STATUSES = [
+		{ value: 'OPEN', label: 'Open', color: '#16a34a' },
+		{ value: 'BUSY', label: 'Busy', color: '#ea580c' },
+		{ value: 'AWAY', label: 'Away', color: '#ca8a04' },
+		{ value: 'CLOSED', label: 'Closed', color: '#dc2626' }
+	];
 
 	const id = $derived($page.params.id ?? '');
 
@@ -256,6 +266,25 @@
 			confirmLoading = false;
 		}
 	}
+
+	async function saveStoreStatus() {
+		if (!tenant) return;
+		storeStatusSaving = true;
+		try {
+			tenant = {
+				...tenant,
+				...(await updateTenantLocal(tenant.id, {
+					store_status: storeStatus,
+					status_message: statusMessage
+				}))
+			};
+			toast.success('Store status updated');
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Failed to update store status');
+		} finally {
+			storeStatusSaving = false;
+		}
+	}
 </script>
 
 {#if loading}
@@ -393,6 +422,51 @@
 			/>
 			<StatusBreakdown rows={metrics?.status_breakdown ?? []} {loading} />
 		</div>
+
+		<section class="panel" style="margin-top:0.85rem;">
+			<h3 class="panel-h">Store status</h3>
+			<p class="panel-note" style="margin:0 0 0.85rem;">
+				Control how customers see this store. Changes apply immediately to the storefront.
+			</p>
+			<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.85rem;">
+				{#each STORE_STATUSES as s (s.value)}
+					<button
+						type="button"
+						class="btn btn-sm"
+						style="
+							padding:0.4rem 0.8rem;
+							border-radius:999px;
+							border:1.5px solid {storeStatus === s.value ? s.color : 'var(--border)'};
+							background: {storeStatus === s.value ? s.color : 'var(--surface)'};
+							color: {storeStatus === s.value ? '#fff' : 'var(--text-2)'};
+							font-weight:550;
+							font-size:0.82rem;
+							cursor:pointer;
+						"
+						onclick={() => {
+							storeStatus = s.value;
+						}}
+					>
+						{s.label}
+					</button>
+				{/each}
+			</div>
+			<div style="margin-bottom:0.85rem;">
+				<TextInput
+					bind:value={statusMessage}
+					placeholder="Custom status message (optional, e.g. Back in 30 minutes)"
+					maxlength={200}
+				/>
+			</div>
+			<button
+				type="button"
+				class="btn btn-primary btn-sm"
+				disabled={storeStatusSaving}
+				onclick={saveStoreStatus}
+			>
+				{storeStatusSaving ? 'Saving…' : 'Save store status'}
+			</button>
+		</section>
 	{:else if tab === 'performance'}
 		<div class="grid-2" style="margin-bottom:0.85rem;">
 			<StatCard label="Lifetime orders" value={metrics?.orders ?? '—'} />

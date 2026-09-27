@@ -6,6 +6,7 @@
 	import { useCart } from '$lib/storefront/cart-state.svelte';
 	import { lineTotal, quoteRequest } from '$lib/storefront/cart.svelte';
 	import { friendlyError, storefrontApi, type OrderDetail } from '$lib/storefront/api';
+	import { ApiClientError } from '$lib/api/client';
 	import { customerSession, customerToken, isSignedIn } from '$lib/storefront/session.svelte';
 	import { formatPhone, money } from '$lib/storefront/format';
 
@@ -43,6 +44,14 @@
 	onMount(() => {
 		const session = customerSession.load(data.tenantSlug ?? '');
 		signedIn = Boolean(session);
+		const loginMode =
+			config?.ordering?.customer_login_mode ??
+			(config?.ordering?.customer_login ? 'optional' : 'off');
+		if (loginMode === 'required' && !session) {
+			const next = encodeURIComponent('/checkout');
+			void goto(`/login?next=${next}`);
+			return;
+		}
 		if (session?.customer) {
 			if (session.customer.name && session.customer.name !== 'Guest customer') {
 				name = session.customer.name;
@@ -131,6 +140,11 @@
 			}
 		} catch (err) {
 			error = friendlyError(err, 'We could not place your order. Please try again.');
+			if (err instanceof ApiClientError && err.code === 'login_required') {
+				const next = encodeURIComponent('/checkout');
+				await goto(`/login?next=${next}`);
+				return;
+			}
 			placing = false;
 		}
 	}
@@ -309,12 +323,7 @@
 				<textarea class="sf-textarea" bind:value={notes} maxlength="140" placeholder="Anything else?"></textarea>
 			</label>
 
-			{#if !signedIn && (config?.ordering?.customer_login ?? true)}
-				<!--
-					Offered, never required. Signing in saves retyping next time and
-					keeps order history, but a customer who ignores this link orders
-					exactly the same way.
-				-->
+			{#if !signedIn && (config?.ordering?.customer_login_mode ?? 'optional') === 'optional'}
 				<div class="sf-panel" style="margin-top:18px;background:var(--sf-surface-2);">
 					<p style="margin:0 0 4px;font-size:0.875rem;font-weight:650;color:var(--sf-text);">
 						Save your details for next time
@@ -329,7 +338,6 @@
 						>
 							Sign in
 						</a>
-						<a class="sf-btn sf-btn-ghost" href="/checkout">Continue as guest</a>
 					</div>
 				</div>
 			{/if}

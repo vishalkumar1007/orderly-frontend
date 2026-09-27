@@ -1,13 +1,14 @@
 <script lang="ts">
-	import { applyBrandTheme } from '$lib/brandTheme';
-	import { themeVars, type StoreTheme } from '$lib/storefront/theme';
+	import { themeVars, type FilterStyleId, type ProductLayoutId, type StoreTheme } from '$lib/storefront/theme';
 	import type { StoreConfig } from '$lib/storefront/api';
 	import {
 		BUTTON_OPTIONS,
 		CARD_OPTIONS,
+		FILTER_OPTIONS,
 		FONT_OPTIONS,
 		HEADER_OPTIONS,
 		HERO_OPTIONS,
+		LAYOUT_OPTIONS,
 		MODE_OPTIONS,
 		RADIUS_OPTIONS,
 		THEME_PRESETS,
@@ -40,6 +41,8 @@
 	let card = $state(seed(() => config.theme.card));
 	let header = $state(seed(() => config.theme.header));
 	let hero = $state(seed(() => config.theme.hero));
+	let layout = $state<ProductLayoutId>(seed(() => (config.theme.product_layout ?? 'list') as ProductLayoutId));
+	let filterStyle = $state<FilterStyleId>(seed(() => (config.theme.filter_style ?? 'chips') as FilterStyleId));
 	let primary = $state(seed(() => config.theme.primary));
 	let secondary = $state(seed(() => config.theme.secondary));
 	let accent = $state(seed(() => config.theme.accent));
@@ -74,10 +77,19 @@
 		card: card as StoreTheme['card'],
 		header: header as StoreTheme['header'],
 		hero: hero as StoreTheme['hero'],
+		product_layout: layout as StoreTheme['product_layout'],
+		filter_style: filterStyle as StoreTheme['filter_style'],
 		primary,
 		secondary,
 		accent,
-		vars: { ...config.theme.vars, '--sf-primary': primary, '--sf-secondary': secondary, '--sf-accent': accent }
+		vars: {
+			...config.theme.vars,
+			'--sf-primary': primary,
+			'--sf-secondary': secondary,
+			'--sf-accent': accent,
+			'--sf-product-layout': layout,
+			'--sf-filter-style': filterStyle
+		}
 	});
 
 	const previewVars = $derived(themeVars(previewTheme));
@@ -85,7 +97,19 @@
 		...({} as StoreConfig),
 		store: { ...config.store, name: config.store.name, tagline: config.store.tagline },
 		theme: previewTheme,
-		ordering: { enabled: true, closed_reason: '', prep_time_minutes: 20, customer_login: true, payment_requirement: '', auto_accept: false },
+		ordering: {
+			enabled: true,
+			closed_reason: '',
+			prep_time_minutes: 20,
+			customer_login: true,
+			customer_login_mode: 'optional',
+			payment_requirement: '',
+			auto_accept: false,
+			store_status: 'OPEN',
+			status_message: '',
+			store_status_label: 'Open',
+			status_message_display: ''
+		},
 		hours: { always_open: true, is_open: true, label: 'Open', detail: '', timezone: '', schedule: {}, today_closes: '' },
 		payments: { online_payment_enabled: true, cash_enabled: true, pay_at_pickup_enabled: true, default_payment_method: 'ONLINE', methods: ['ONLINE', 'CASH'] },
 		homepage: { sections: [] },
@@ -122,6 +146,8 @@
 				card,
 				header,
 				hero,
+				product_layout: layout,
+				filter_style: filterStyle,
 				primary,
 				secondary,
 				accent
@@ -130,21 +156,6 @@
 		saving = false;
 		if (ok) {
 			toast.success('Theme saved');
-			// Repaint the admin console too, so the owner sees their brand on the
-			// screen they are standing on.
-			applyBrandTheme({
-				preset_id: preset,
-				color_mode: mode as 'light' | 'dark' | 'system',
-				tokens: {
-					accent: primary,
-					accent2: secondary,
-					radius_sm: '6px',
-					radius: '10px',
-					radius_lg: '20px',
-					font_display: font,
-					font_body: font
-				}
-			});
 		} else {
 			toast.error('Could not save your theme');
 		}
@@ -210,24 +221,23 @@
 						<div class="sf-section-head" style="padding:0;margin-bottom:8px;">
 							<h2 style="font-size:0.875rem;">Popular right now</h2>
 						</div>
-						<div style="display:grid;gap:8px;">
+						<nav class="sf-filter-bar" data-style={filterStyle} aria-label="Filters preview">
+							<span class="sf-filter-chip" data-active="true">All</span>
+							<span class="sf-filter-chip">Veg</span>
+							<span class="sf-filter-chip">Popular</span>
+						</nav>
+						<div class="sf-products" data-layout={layout}>
 							{#each [0, 1] as i (i)}
-								<article class="sf-product">
-									<span class="sf-product-media" style="width:56px;height:56px;"></span>
+								<article class="sf-product" data-layout={layout}>
+									<span class="sf-product-media"></span>
 									<span class="sf-product-body">
-										<span class="sf-product-name" style="font-size:0.8125rem;">
+										<span class="sf-product-name">
 											{i === 0 ? 'Steamed Veg Momo' : 'Chowmein'}
 										</span>
-										<span class="sf-product-desc" style="font-size:0.6875rem;">
-											Hand-folded, steamed to order
-										</span>
+										<span class="sf-product-desc">Hand-folded, steamed to order</span>
 										<span class="sf-product-foot">
-											<span class="sf-product-price" style="font-size:0.8125rem;">
-												₹{i === 0 ? '120' : '170'}
-											</span>
-											<span class="sf-add-btn" style="min-width:58px;height:30px;font-size:0.6875rem;">
-												Add
-											</span>
+											<span class="sf-product-price">₹{i === 0 ? '120' : '170'}</span>
+											<span class="sf-add-btn">Add</span>
 										</span>
 									</span>
 								</article>
@@ -345,6 +355,43 @@
 						<span class="sfopt-mark" aria-hidden="true"></span>
 						<span class="sfopt-body"><span class="sfopt-label">{option.label}</span></span>
 					</button>
+				{/each}
+			</div>
+		</div>
+
+		<!-- Layout -->
+		<div class="sfctl-section">
+			<h2>Menu layout</h2>
+			<p class="sfctl-note">
+				How product cards are arranged and how filters look on the customer menu. These are
+				closed styles from the platform catalogue — no free-form CSS.
+			</p>
+			<div class="sfctl-grid" data-cols="2">
+				{#each [
+					{ label: 'Product cards', value: layout, options: LAYOUT_OPTIONS, set: (v: string) => (layout = v as ProductLayoutId) },
+					{ label: 'Filters', value: filterStyle, options: FILTER_OPTIONS, set: (v: string) => (filterStyle = v as FilterStyleId) }
+				] as group (group.label)}
+					<div class="field">
+						<span class="field-label">{group.label}</span>
+						<div style="display:grid;gap:0.3rem;">
+							{#each group.options as option (option.value)}
+								<button
+									class="sfopt"
+									type="button"
+									aria-pressed={group.value === option.value}
+									onclick={() => group.set(option.value)}
+								>
+									<span class="sfopt-mark" aria-hidden="true"></span>
+									<span class="sfopt-body">
+										<span class="sfopt-label">{option.label}</span>
+										{#if 'hint' in option && option.hint}
+											<span class="sfopt-hint">{option.hint}</span>
+										{/if}
+									</span>
+								</button>
+							{/each}
+						</div>
+					</div>
 				{/each}
 			</div>
 		</div>

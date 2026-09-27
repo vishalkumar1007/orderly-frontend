@@ -4,6 +4,7 @@
 	import MapPin from '@lucide/svelte/icons/map-pin';
 	import Phone from '@lucide/svelte/icons/phone';
 	import Utensils from '@lucide/svelte/icons/utensils';
+	import Clock from '@lucide/svelte/icons/clock';
 	import type { StoreConfig, StoreMenu, StoreProduct } from '$lib/storefront/api';
 	import { hoursRows } from '$lib/storefront/hours';
 	import { formatPhone, money } from '$lib/storefront/format';
@@ -22,16 +23,19 @@
 		config,
 		menu,
 		lines = [],
-		onadd
+		onadd,
+		onstep
 	}: {
 		config: StoreConfig;
 		menu: StoreMenu;
 		lines?: CartLine[];
 		onadd?: (product: StoreProduct) => void;
+		onstep?: (product: StoreProduct, delta: number) => void;
 	} = $props();
 
 	const store = $derived(config.store);
 	const currency = $derived(store.currency ?? 'INR');
+	const layout = $derived(config.theme?.product_layout ?? 'list');
 	const sections = $derived(config.homepage?.sections ?? []);
 	const visible = $derived(sections.filter((s) => s.enabled));
 	const orderable = $derived(config.ordering.enabled);
@@ -85,11 +89,14 @@
 	<section
 		class="sf-hero"
 		data-style={config.theme.hero}
-		style={config.theme.hero === 'image' && store.logo_url
-			? `background-image: linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45)), url('${store.logo_url}')`
+		style={config.theme.hero === 'image' && (config.theme.hero_image_url || store.logo_url)
+			? `background-image: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(0,0,0,0.55)), url('${config.theme.hero_image_url || store.logo_url}')`
 			: undefined}
 	>
 		<div class="sf-hero-inner">
+			{#if store.logo_url && config.theme.hero !== 'image'}
+				<img class="sf-hero-logo" src={store.logo_url} alt="" width="56" height="56" />
+			{/if}
 			<h1>{read(hero, 'title', store.name)}</h1>
 			{#if read(hero, 'subtitle', store.tagline || store.description)}
 				<p>{read(hero, 'subtitle', store.tagline || store.description)}</p>
@@ -97,7 +104,7 @@
 			{#if read(hero, 'cta_label')}
 				<a class="sf-hero-cta" href={read(hero, 'cta_href', '/menu')}>{read(hero, 'cta_label')}</a>
 			{:else if !orderable}
-				<p style="margin-top:10px;font-weight:650;">Currently Closed</p>
+				<p class="sf-hero-closed">Currently Closed</p>
 			{/if}
 		</div>
 	</section>
@@ -150,10 +157,12 @@
 					{#each products as product (product.id)}
 						<ProductCard
 							{product}
+							layout="compact"
 							{currency}
 							inCart={quantityOf(lines, product.id)}
 							{orderable}
 							{onadd}
+							{onstep}
 						/>
 					{/each}
 				</div>
@@ -176,14 +185,16 @@
 							</h3>
 						{/if}
 						<div class="sf-wrap" style="padding-inline:var(--sf-gutter);">
-							<div class="sf-products" data-columns="true">
+							<div class="sf-products" data-layout={layout}>
 								{#each category.products as product (product.id)}
 									<ProductCard
 										{product}
+										{layout}
 										{currency}
 										inCart={quantityOf(lines, product.id)}
 										{orderable}
 										{onadd}
+										{onstep}
 									/>
 								{/each}
 							</div>

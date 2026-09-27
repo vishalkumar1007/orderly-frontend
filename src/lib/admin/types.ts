@@ -37,7 +37,9 @@ export type Tenant = {
 	currency?: string;
 	timezone?: string;
 	language?: string;
-	store_status?: 'OPEN' | 'CLOSED' | string;
+	store_status?: 'OPEN' | 'BUSY' | 'AWAY' | 'CLOSED' | string;
+	status_message?: string;
+	shop_type?: string;
 };
 
 export type TenantAdmin = {
@@ -82,7 +84,8 @@ export type CreateTenantPayload = {
 	currency?: string;
 	timezone?: string;
 	language?: string;
-	store_status?: 'OPEN' | 'CLOSED';
+	store_status?: 'OPEN' | 'BUSY' | 'AWAY' | 'CLOSED';
+	status_message?: string;
 	store_name?: string;
 };
 

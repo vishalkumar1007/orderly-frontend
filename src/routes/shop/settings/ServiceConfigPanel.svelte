@@ -15,6 +15,11 @@
 		type EffectiveConfig,
 		type TenantServiceDetail
 	} from '$lib/admin/configTypes';
+	import {
+		getTenantConfig,
+		loadTenantConfig,
+		setTenantConfig
+	} from '$lib/admin/tenantConfigCache.svelte';
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import CircleSlash from '@lucide/svelte/icons/circle-slash';
 	import Info from '@lucide/svelte/icons/info';
@@ -49,19 +54,49 @@
 	let outcome = $state<{ ok: boolean; message: string; detail?: string } | null>(null);
 	let deleteOpen = $state(false);
 
-	onMount(load);
+	onMount(() => {
+		const cached = getTenantConfig(service);
+		if (cached) {
+			applyEntry(cached.detail, cached.effective);
+			loading = false;
+			return;
+		}
+		void loadFromCache();
+	});
 
+	function applyEntry(d: TenantServiceDetail, e: EffectiveConfig) {
+		detail = d;
+		effective = e;
+		provider = d.own_config.provider ?? '';
+		enabled = d.own_config.enabled ?? false;
+		testTo = String(d.own_config.config?.from_email ?? '');
+	}
+
+	/** First load / cache miss — shares inflight with other panels. */
+	async function loadFromCache() {
+		loading = true;
+		error = '';
+		try {
+			const entry = await loadTenantConfig(service);
+			applyEntry(entry.detail, entry.effective);
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Could not load configuration';
+		} finally {
+			loading = false;
+		}
+	}
+
+	/** Force-refresh after save/test/delete mutations. */
 	async function load() {
 		loading = true;
 		error = '';
 		try {
-			[detail, effective] = await Promise.all([
+			const [d, e] = await Promise.all([
 				fetchTenantConfig(service),
 				fetchEffectiveConfig(service)
 			]);
-			provider = detail?.own_config.provider ?? '';
-			enabled = detail?.own_config.enabled ?? false;
-			testTo = String(detail?.own_config.config?.from_email ?? '');
+			setTenantConfig(service, d, e);
+			applyEntry(d, e);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Could not load configuration';
 		} finally {
@@ -96,6 +131,7 @@
 		try {
 			await saveTenantConfig(service, { provider, config: draft, enabled });
 			await load();
+			if (detail && effective) setTenantConfig(service, detail, effective);
 			toast.success('Saved');
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Could not save');

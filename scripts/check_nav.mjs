@@ -141,8 +141,10 @@ try {
 	eq('/shop', nav.tenantTitle('/shop'), 'Dashboard');
 	eq('/shop/orders', nav.tenantTitle('/shop/orders'), 'Orders');
 	eq('/shop/settings/smtp', nav.tenantTitle('/shop/settings/smtp'), 'Email / SMTP');
-	eq('/kitchen', nav.tenantTitle('/kitchen'), 'Kitchen board');
-	eq('/shop/storefront', nav.tenantTitle('/shop/storefront'), 'Storefront');
+	eq('/shop/kitchen', nav.tenantTitle('/shop/kitchen'), 'Prep board');
+	eq('/shop/brand', nav.tenantTitle('/shop/brand'), 'Console appearance');
+	eq('/shop/storefront', nav.tenantTitle('/shop/storefront'), 'Customer site');
+	eq('/shop/setup', nav.tenantTitle('/shop/setup'), 'Launch checklist');
 
 	// The ambiguity that motivated the storefront owning its own labels: the same
 	// segment means two different things depending on its parent.
@@ -161,7 +163,7 @@ try {
 		nav.tenantCrumbs('/shop/storefront/theme'),
 		[
 			{ label: 'Overview', href: '/shop' },
-			{ label: 'Storefront', href: '/shop/storefront' },
+			{ label: 'Customer site', href: '/shop/storefront' },
 			{ label: 'Theme', href: null }
 		]
 	);
@@ -180,11 +182,20 @@ try {
 		]
 	);
 
+	eq(
+		'kitchen trail under the org shell',
+		nav.tenantCrumbs('/shop/kitchen'),
+		[
+			{ label: 'Overview', href: '/shop' },
+			{ label: 'Prep board', href: null }
+		]
+	);
+
 	for (const item of sf.STOREFRONT_NAV) {
 		const crumbs = nav.tenantCrumbs(item.href);
 		const last = crumbs[crumbs.length - 1];
 		eq(`trail for ${item.href} ends on the screen`, last, {
-			label: item.href === '/shop/storefront' ? 'Storefront' : item.label,
+			label: item.href === '/shop/storefront' ? 'Customer site' : item.label,
 			href: null
 		});
 	}
@@ -193,7 +204,7 @@ try {
 	group('Storefront nav: every screen titles and lights itself, and only itself');
 
 	for (const item of sf.STOREFRONT_NAV) {
-		eq(`title ${item.href}`, nav.tenantTitle(item.href), item.href === '/shop/storefront' ? 'Storefront' : item.label);
+		eq(`title ${item.href}`, nav.tenantTitle(item.href), item.href === '/shop/storefront' ? 'Customer site' : item.label);
 
 		const lit = sf.STOREFRONT_NAV.filter((o) => sf.isStorefrontActive(item.href, o));
 		if (lit.length === 1 && lit[0] === item) {
@@ -218,13 +229,27 @@ try {
 	/* ---------------------------------------------------------------- */
 	group('Staff-facing nav is unaffected');
 
-	// ShopShell (the kitchen) uses SHOP_NAV. The storefront control is owner-only,
-	// so it must not have leaked into the staff rail.
+	// SHOP_NAV is the legacy staff list. The storefront control is owner-only,
+	// so it must not have leaked into that rail.
 	if (itemsOf(nav.SHOP_NAV).some((i) => i.href.startsWith('/shop/storefront'))) {
 		failures++;
 		console.log('  FAIL the staff rail offers the owner-only storefront control');
 	} else {
 		ok('the staff rail does not offer the storefront control');
+	}
+
+	if (!itemsOf(nav.TENANT_NAV).some((i) => i.href === '/shop/kitchen')) {
+		failures++;
+		console.log('  FAIL prep board is missing from the org rail');
+	} else {
+		ok('org rail links the prep board under /shop/kitchen');
+	}
+
+	if (!nav.TENANT_NAV.some((g) => g.label === 'Organization')) {
+		failures++;
+		console.log('  FAIL Organization group is missing from the org rail');
+	} else {
+		ok('org rail has a distinct Organization group');
 	}
 } finally {
 	await vite.close();

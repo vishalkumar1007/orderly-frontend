@@ -74,7 +74,7 @@
 		padding: 0.9rem 1rem;
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
-		background: var(--surface-1);
+		background: var(--surface);
 		min-width: 0;
 	}
 
@@ -124,7 +124,7 @@
 		font-size: 1.5rem;
 		font-weight: 600;
 		line-height: 1.1;
-		color: var(--text-1);
+		color: var(--text);
 		letter-spacing: -0.02em;
 		font-variant-numeric: tabular-nums;
 	}

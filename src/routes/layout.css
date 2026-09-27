@@ -3161,7 +3161,7 @@ select.input {
 }
 
 /* ============================================================
-   ORG ADMIN APP SHELL (/shop, /kitchen)
+   ORG ADMIN APP SHELL (/shop, /shop/kitchen)
    Mobile-first. On a phone this is a bottom-tab app; at >=900px
    the tab bar is replaced by a left rail. All colours come from
    the tokens above, so the tenant's brand theme applies for free.

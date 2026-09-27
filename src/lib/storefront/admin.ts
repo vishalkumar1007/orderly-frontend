@@ -69,6 +69,7 @@ export type AdminStorefront = {
 		ordering_enabled: boolean;
 		closed_message: string;
 		customer_login_enabled: boolean;
+		customer_login_mode: 'off' | 'optional' | 'required';
 		prep_time_minutes: number;
 		tax_percent: number;
 		packaging_fee: number;
@@ -135,6 +136,7 @@ export const storefrontAdminApi = {
 		ordering_enabled?: boolean;
 		closed_message?: string;
 		customer_login_enabled?: boolean;
+		customer_login_mode?: 'off' | 'optional' | 'required';
 		prep_time_minutes?: number;
 		tax_percent?: number | string;
 		packaging_fee?: number | string;
@@ -150,6 +152,8 @@ export const storefrontAdminApi = {
 		card?: string;
 		header?: string;
 		hero?: string;
+		product_layout?: string;
+		filter_style?: string;
 		primary?: string;
 		secondary?: string;
 		accent?: string;
@@ -200,8 +204,9 @@ export const storefrontAdminApi = {
 
 	qr: () => api<AdminQr>('/api/v1/tenant/storefront/qr'),
 
-	/** The storefront as the customer will see it right now. */
-	preview: () => api<{ config: StoreConfig; menu: import('./api').StoreMenu | null }>('/api/v1/tenant/storefront/preview-view')
+	/** Live menu categories/products as the storefront will render them. */
+	preview: () =>
+		api<{ categories: unknown[]; products: unknown[] }>('/api/v1/tenant/storefront/preview')
 };
 
 /** Option lists for the pickers, mirroring the server's enums. */
@@ -338,6 +343,36 @@ export const HERO_OPTIONS = [
 	{ value: 'gradient', label: 'Gradient' },
 	{ value: 'compact', label: 'Compact' },
 	{ value: 'none', label: 'None' }
+];
+
+export const LAYOUT_OPTIONS = [
+	{ value: 'list', label: 'List', hint: 'Horizontal rows — good for long menus' },
+	{ value: 'grid', label: 'Grid', hint: 'Photo-forward tiles — good on desktop' },
+	{ value: 'compact', label: 'Compact', hint: 'Dense rows for quick scanning' }
+];
+
+export const FILTER_OPTIONS = [
+	{ value: 'chips', label: 'Chips', hint: 'Rounded pills in a scroll row' },
+	{ value: 'pills', label: 'Pills', hint: 'Filled selections with stronger contrast' },
+	{ value: 'rail', label: 'Rail', hint: 'Sidebar on desktop, chips on phone' }
+];
+
+export const LOGIN_MODE_OPTIONS = [
+	{
+		value: 'off' as const,
+		label: 'Off',
+		hint: 'Hide sign-in. Anyone can order as a guest.'
+	},
+	{
+		value: 'optional' as const,
+		label: 'Optional',
+		hint: 'Customers can sign in for faster checkout and order history.'
+	},
+	{
+		value: 'required' as const,
+		label: 'Required',
+		hint: 'Customers must sign in with their phone before placing an order.'
+	}
 ];
 
 export const MODE_OPTIONS = [

@@ -92,7 +92,7 @@ export async function logout() {
 export function homeForRole(role: string, hostKind: 'admin' | 'tenant' | 'unknown' = 'unknown'): string {
 	if (role === 'SUPER_ADMIN') return '/superadmin';
 	if (role === 'TENANT_ADMIN') return '/shop';
-	if (role === 'STAFF') return '/kitchen';
+	if (role === 'STAFF') return '/shop/kitchen';
 	if (hostKind === 'admin') return '/superadmin';
 	if (hostKind === 'tenant') return '/';
 	return '/shop/login';

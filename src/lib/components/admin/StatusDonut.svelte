@@ -137,7 +137,7 @@
 	.panel {
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
-		background: var(--surface-1);
+		background: var(--surface);
 		min-width: 0;
 	}
 
@@ -194,7 +194,7 @@
 	.centre strong {
 		font-size: 1.35rem;
 		font-weight: 600;
-		color: var(--text-1);
+		color: var(--text);
 		line-height: 1;
 		font-variant-numeric: tabular-nums;
 	}
@@ -240,7 +240,7 @@
 
 	.lg-val {
 		margin-left: auto;
-		color: var(--text-1);
+		color: var(--text);
 		font-weight: 600;
 		font-variant-numeric: tabular-nums;
 	}

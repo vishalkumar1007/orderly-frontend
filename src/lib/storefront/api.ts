@@ -32,6 +32,16 @@ export type StoreAddon = {
 	max_qty: number;
 };
 
+export type StoreOptionGroup = {
+	id: string;
+	name: string;
+	selection: 'single' | 'multiple';
+	required: boolean;
+	is_active: boolean;
+	sort_order: number;
+	options: StoreAddon[];
+};
+
 export type StoreProduct = {
 	id: string;
 	category_id: string;
@@ -45,6 +55,7 @@ export type StoreProduct = {
 	is_popular: boolean;
 	allow_special_instructions: boolean;
 	addons: StoreAddon[];
+	option_groups?: StoreOptionGroup[];
 	sort_order: number;
 };
 
@@ -98,8 +109,13 @@ export type StoreOrdering = {
 	closed_reason: string;
 	prep_time_minutes: number;
 	customer_login: boolean;
+	customer_login_mode: 'off' | 'optional' | 'required';
 	payment_requirement: string;
 	auto_accept: boolean;
+	store_status: string;
+	status_message: string;
+	store_status_label: string;
+	status_message_display: string;
 };
 
 export type StorePayments = {

@@ -1,87 +1,158 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import IndianRupee from '@lucide/svelte/icons/indian-rupee';
-	import Pencil from '@lucide/svelte/icons/pencil';
-	import Plus from '@lucide/svelte/icons/plus';
-	import Trash from '@lucide/svelte/icons/trash';
-	import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
-	import X from '@lucide/svelte/icons/x';
-	import { api } from '$lib/api/client';
-	import EmptyState from '$lib/components/admin/EmptyState.svelte';
+	import { Eye, Plus, Search } from '@lucide/svelte/icons';
+	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
 	import Modal from '$lib/components/admin/Modal.svelte';
 	import Reveal from '$lib/components/admin/Reveal.svelte';
 	import SelectField from '$lib/components/admin/SelectField.svelte';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
-	import Switch from '$lib/components/admin/Switch.svelte';
-	import TextArea from '$lib/components/admin/TextArea.svelte';
-	import TextInput from '$lib/components/admin/TextInput.svelte';
-	import FormField from '$lib/components/admin/FormField.svelte';
+	import SlideOver from '$lib/components/admin/SlideOver.svelte';
 	import { toast } from '$lib/components/admin/toast';
+	import CategoryForm from '$lib/components/menu/CategoryForm.svelte';
+	import CategoryTabs from '$lib/components/menu/CategoryTabs.svelte';
+	import EmptyState from '$lib/components/menu/EmptyState.svelte';
+	import ProductForm from '$lib/components/menu/ProductForm.svelte';
+	import ProductList from '$lib/components/menu/ProductList.svelte';
+	import {
+		getMenuSnapshot,
+		loadMenuSnapshot
+	} from '$lib/tenant/menuCache.svelte';
+	import {
+		menuApi,
+		productHasOptions,
+		type CategoryInput,
+		type MenuCategory,
+		type MenuProduct,
+		type ProductInput
+	} from '$lib/tenant/menu';
 
-	type Category = { id: string; name: string; is_active: boolean };
-	type Product = {
-		id: string;
-		category_id: string;
-		name: string;
-		price: number;
-		is_available: boolean;
-		description: string;
-	};
-
-	let categories = $state<Category[]>([]);
-	let products = $state<Product[]>([]);
+	const seed = getMenuSnapshot();
+	let categories = $state<MenuCategory[]>(seed?.categories ?? []);
+	let products = $state<MenuProduct[]>(seed?.products ?? []);
+	let currency = $state(seed?.currency ?? 'INR');
+	let currencySymbol = $state(seed?.currencySymbol ?? '₹');
 	let error = $state('');
-	let loading = $state(true);
+	let loading = $state(!seed);
 	let saving = $state(false);
 
-	/** Category filter; '' means all. */
 	let filter = $state('');
+	let search = $state('');
+	let availabilityFilter = $state<'all' | 'available' | 'unavailable'>('all');
+	let featuredOnly = $state(false);
+	let hasOptionsOnly = $state(false);
+	let sortBy = $state<'order' | 'name' | 'price' | 'category' | 'updated'>('order');
+	let filtersOpen = $state(false);
 
-	/* ---------- add / edit product dialog ---------- */
-	let dialogOpen = $state(false);
-	let editing = $state<Product | null>(null);
-	let formName = $state('');
-	let formPrice = $state('');
-	let formCategory = $state('');
-	let formDescription = $state('');
-	let formAvailable = $state(true);
-	let formError = $state('');
+	let productOpen = $state(false);
+	let editingProduct = $state<MenuProduct | null>(null);
+	let preselectCategoryId = $state('');
 
-	/* ---------- new category ---------- */
-	let newCategory = $state('');
-	let categoryBusy = $state(false);
+	let categoryOpen = $state(false);
+	let editingCategory = $state<MenuCategory | null>(null);
 
-	const shown = $derived(
-		filter ? products.filter((p) => p.category_id === filter) : products
-	);
+	let deleteProductTarget = $state<MenuProduct | null>(null);
+	let deleteProductOpen = $state(false);
+	let deleteBusy = $state(false);
+
+	let deleteCategoryOpen = $state(false);
+	let deleteCategoryTarget = $state<MenuCategory | null>(null);
+	let moveToCategoryId = $state('');
+	let categoryDeleteBusy = $state(false);
+
+	let moveProductOpen = $state(false);
+	let moveProductTarget = $state<MenuProduct | null>(null);
+	let moveTargetId = $state('');
+	let moveBusy = $state(false);
+
 	const availableCount = $derived(products.filter((p) => p.is_available).length);
-	const menuValue = $derived(
-		products.filter((p) => p.is_available).reduce((n, p) => n + Number(p.price), 0)
-	);
+	const unavailableCount = $derived(products.length - availableCount);
+	const categoryCounts = $derived.by(() => {
+		const counts: Record<string, number> = {};
+		for (const p of products) {
+			counts[p.category_id] = (counts[p.category_id] ?? 0) + 1;
+		}
+		return counts;
+	});
 
-	function productsIn(catId: string): Product[] {
-		return products.filter((p) => p.category_id === catId);
+	const shown = $derived.by(() => {
+		let list = [...products];
+		if (filter) list = list.filter((p) => p.category_id === filter);
+		const q = search.trim().toLowerCase();
+		if (q) {
+			list = list.filter(
+				(p) =>
+					p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q)
+			);
+		}
+		if (availabilityFilter === 'available') list = list.filter((p) => p.is_available);
+		if (availabilityFilter === 'unavailable') list = list.filter((p) => !p.is_available);
+		if (featuredOnly) list = list.filter((p) => p.is_featured);
+		if (hasOptionsOnly) list = list.filter((p) => productHasOptions(p));
+
+		const catName = (id: string) => categories.find((c) => c.id === id)?.name ?? '';
+		list.sort((a, b) => {
+			switch (sortBy) {
+				case 'name':
+					return a.name.localeCompare(b.name);
+				case 'price':
+					return Number(a.price) - Number(b.price);
+				case 'category':
+					return (
+						catName(a.category_id).localeCompare(catName(b.category_id)) ||
+						a.name.localeCompare(b.name)
+					);
+				case 'updated':
+					return (b.updated_at || '').localeCompare(a.updated_at || '');
+				default:
+					return a.sort_order - b.sort_order || a.name.localeCompare(b.name);
+			}
+		});
+		return list;
+	});
+
+	function catLabel(id: string) {
+		return categories.find((c) => c.id === id)?.name ?? 'Uncategorised';
+	}
+
+	function patchPayload(p: MenuProduct, overrides: Partial<ProductInput> = {}): ProductInput {
+		return {
+			category_id: p.category_id,
+			name: p.name,
+			description: p.description,
+			price: Number(p.price),
+			image_url: p.image_url ?? null,
+			is_available: p.is_available,
+			is_vegetarian: p.is_vegetarian,
+			is_featured: p.is_featured,
+			is_popular: p.is_popular,
+			allow_special_instructions: p.allow_special_instructions,
+			...overrides
+		};
 	}
 
 	async function load() {
-		const [c, p] = await Promise.all([
-			api<{ categories: Category[] }>('/api/v1/tenant/categories'),
-			api<{ products: Product[] }>('/api/v1/tenant/products')
-		]);
-		categories = c.categories;
-		products = p.products;
-		// Stay on "All" — silently defaulting to one category makes the menu look
-		// empty at a glance when the owner has several.
+		const snap = await loadMenuSnapshot(true);
+		categories = snap.categories;
+		products = snap.products;
+		currency = snap.currency;
+		currencySymbol = snap.currencySymbol;
 	}
 
 	onMount(() => {
 		let cancelled = false;
 		(async () => {
 			try {
-				await load();
+				const snap = await loadMenuSnapshot(Boolean(getMenuSnapshot()));
+				if (cancelled) return;
+				categories = snap.categories;
+				products = snap.products;
+				currency = snap.currency;
+				currencySymbol = snap.currencySymbol;
 			} catch (err) {
-				if (!cancelled) error = err instanceof Error ? err.message : 'Failed to load menu';
+				if (!cancelled && categories.length === 0) {
+					error = err instanceof Error ? err.message : 'Failed to load menu';
+				}
 			} finally {
 				if (!cancelled) loading = false;
 			}
@@ -91,561 +162,702 @@
 		};
 	});
 
-	/* ---------- product dialog ---------- */
-	function openAdd(catId?: string) {
-		editing = null;
-		formName = '';
-		formPrice = '';
-		formDescription = '';
-		formAvailable = true;
-		formCategory = catId ?? filter ?? categories[0]?.id ?? '';
-		formError = '';
-		dialogOpen = true;
+	function openAddProduct(catId?: string) {
+		editingProduct = null;
+		preselectCategoryId = catId || filter || '';
+		productOpen = true;
 	}
 
-	function openEdit(p: Product) {
-		editing = p;
-		formName = p.name;
-		formPrice = String(p.price);
-		formDescription = p.description ?? '';
-		formAvailable = p.is_available;
-		formCategory = p.category_id;
-		formError = '';
-		dialogOpen = true;
+	function openEditProduct(p: MenuProduct) {
+		editingProduct = p;
+		preselectCategoryId = p.category_id;
+		productOpen = true;
 	}
 
-	async function saveProduct() {
-		const name = formName.trim();
-		const price = Number(formPrice);
-		if (!name) {
-			formError = 'Give the item a name';
-			return;
-		}
-		if (!Number.isFinite(price) || price < 0) {
-			formError = 'Enter a valid price';
-			return;
-		}
-		if (!formCategory) {
-			formError = 'Pick a category';
-			return;
-		}
-
+	async function saveProduct(data: ProductInput) {
 		saving = true;
-		formError = '';
 		try {
-			const payload = {
-				name,
-				price,
-				category_id: formCategory,
-				description: formDescription.trim(),
-				is_available: formAvailable
-			};
-			if (editing) {
-				await api(`/api/v1/tenant/products/${editing.id}`, {
-					method: 'PATCH',
-					body: JSON.stringify(payload)
-				});
-				toast.success(`${name} updated`);
+			if (editingProduct) {
+				await menuApi.updateProduct(editingProduct.id, data);
+				toast.success(`${data.name} updated`);
 			} else {
-				await api('/api/v1/tenant/products', { method: 'POST', body: JSON.stringify(payload) });
-				toast.success(`${name} added`);
+				await menuApi.createProduct(data);
+				toast.success(`${data.name} added`);
 			}
-			dialogOpen = false;
+			productOpen = false;
 			await load();
 		} catch (err) {
-			formError = err instanceof Error ? err.message : 'Could not save';
+			toast.error(err instanceof Error ? err.message : 'Could not save');
 		} finally {
 			saving = false;
 		}
 	}
 
-	async function toggleAvailable(p: Product) {
-		// Optimistic: availability is flipped constantly during service, so it
-		// should feel instant. We reload to reconcile either way.
+	async function toggleAvailable(p: MenuProduct) {
 		const next = !p.is_available;
 		products = products.map((x) => (x.id === p.id ? { ...x, is_available: next } : x));
 		try {
-			await api(`/api/v1/tenant/products/${p.id}`, {
-				method: 'PATCH',
-				body: JSON.stringify({
-					name: p.name,
-					price: p.price,
-					category_id: p.category_id,
-					description: p.description,
-					is_available: next
-				})
-			});
+			await menuApi.updateProduct(p.id, patchPayload(p, { is_available: next }));
 		} catch (err) {
 			products = products.map((x) => (x.id === p.id ? { ...x, is_available: !next } : x));
 			toast.error(err instanceof Error ? err.message : 'Could not update');
 		}
 	}
 
-	async function removeProduct(p: Product) {
-		if (!confirm(`Remove "${p.name}" from your menu?`)) return;
+	function requestDeleteProduct(p: MenuProduct) {
+		deleteProductTarget = p;
+		deleteProductOpen = true;
+	}
+
+	async function confirmDeleteProduct() {
+		if (!deleteProductTarget) return;
+		deleteBusy = true;
 		try {
-			await api(`/api/v1/tenant/products/${p.id}`, { method: 'DELETE' });
-			toast.success(`${p.name} removed`);
+			await menuApi.deleteProduct(deleteProductTarget.id);
+			toast.success(`${deleteProductTarget.name} removed`);
+			deleteProductOpen = false;
+			deleteProductTarget = null;
 			await load();
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Could not remove');
+		} finally {
+			deleteBusy = false;
 		}
 	}
 
-	/* ---------- categories ---------- */
-	async function addCategory(e: SubmitEvent) {
-		e.preventDefault();
-		const name = newCategory.trim();
-		if (!name) return;
-		categoryBusy = true;
+	async function duplicateProduct(p: MenuProduct) {
 		try {
-			await api('/api/v1/tenant/categories', {
-				method: 'POST',
-				body: JSON.stringify({ name })
-			});
-			newCategory = '';
-			toast.success(`${name} added`);
+			const copy = await menuApi.duplicateProduct(p.id);
+			toast.success(`Duplicated as ${copy.name}`);
+			await load();
+			openEditProduct(copy);
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Could not duplicate');
+		}
+	}
+
+	function openMoveProduct(p: MenuProduct) {
+		moveProductTarget = p;
+		moveTargetId = categories.find((c) => c.id !== p.category_id)?.id ?? '';
+		moveProductOpen = true;
+	}
+
+	async function confirmMoveProduct() {
+		if (!moveProductTarget || !moveTargetId) return;
+		moveBusy = true;
+		try {
+			await menuApi.updateProduct(
+				moveProductTarget.id,
+				patchPayload(moveProductTarget, { category_id: moveTargetId })
+			);
+			toast.success(`Moved ${moveProductTarget.name}`);
+			moveProductOpen = false;
+			moveProductTarget = null;
 			await load();
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Could not add category');
+			toast.error(err instanceof Error ? err.message : 'Could not move');
 		} finally {
-			categoryBusy = false;
+			moveBusy = false;
 		}
 	}
+
+	async function reorderProduct(p: MenuProduct, direction: -1 | 1) {
+		const siblings = products
+			.filter((x) => x.category_id === p.category_id)
+			.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+		const idx = siblings.findIndex((x) => x.id === p.id);
+		const swap = idx + direction;
+		if (idx < 0 || swap < 0 || swap >= siblings.length) return;
+		const ids = siblings.map((x) => x.id);
+		[ids[idx], ids[swap]] = [ids[swap], ids[idx]];
+		const byCat = new Map<string, string[]>();
+		for (const c of categories) byCat.set(c.id, []);
+		for (const prod of [...products].sort((a, b) => a.sort_order - b.sort_order)) {
+			if (prod.category_id === p.category_id) continue;
+			const arr = byCat.get(prod.category_id) ?? [];
+			arr.push(prod.id);
+			byCat.set(prod.category_id, arr);
+		}
+		byCat.set(p.category_id, ids);
+		const ordered: string[] = [];
+		for (const c of categories) ordered.push(...(byCat.get(c.id) ?? []));
+		for (const prod of products) {
+			if (!ordered.includes(prod.id)) ordered.push(prod.id);
+		}
+		try {
+			await menuApi.reorderProducts(ordered);
+			await load();
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Could not reorder');
+		}
+	}
+
+	function openAddCategory() {
+		editingCategory = null;
+		categoryOpen = true;
+	}
+
+	function openEditCategory(c: MenuCategory) {
+		editingCategory = c;
+		categoryOpen = true;
+	}
+
+	async function saveCategory(data: CategoryInput) {
+		saving = true;
+		try {
+			if (editingCategory) {
+				await menuApi.updateCategory(editingCategory.id, data);
+				toast.success(`${data.name} updated`);
+			} else {
+				await menuApi.createCategory(data);
+				toast.success(`${data.name} created`);
+			}
+			categoryOpen = false;
+			await load();
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Could not save category');
+		} finally {
+			saving = false;
+		}
+	}
+
+	function requestDeleteCategory(id: string) {
+		const c = categories.find((x) => x.id === id);
+		if (!c) return;
+		deleteCategoryTarget = c;
+		moveToCategoryId = categories.find((x) => x.id !== id)?.id ?? '';
+		deleteCategoryOpen = true;
+	}
+
+	async function confirmDeleteCategory() {
+		if (!deleteCategoryTarget) return;
+		const count = categoryCounts[deleteCategoryTarget.id] ?? 0;
+		categoryDeleteBusy = true;
+		try {
+			if (count > 0) {
+				if (!moveToCategoryId) {
+					toast.error('Choose a category to move products into');
+					return;
+				}
+				await menuApi.deleteCategory(deleteCategoryTarget.id, moveToCategoryId);
+			} else {
+				await menuApi.deleteCategory(deleteCategoryTarget.id);
+			}
+			toast.success(`${deleteCategoryTarget.name} deleted`);
+			if (filter === deleteCategoryTarget.id) filter = '';
+			deleteCategoryOpen = false;
+			deleteCategoryTarget = null;
+			await load();
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Could not delete category');
+		} finally {
+			categoryDeleteBusy = false;
+		}
+	}
+
+	async function toggleCategoryActive(c: MenuCategory) {
+		try {
+			await menuApi.updateCategory(c.id, {
+				name: c.name,
+				description: c.description,
+				is_active: !c.is_active,
+				image_url: c.image_url ?? null
+			});
+			await load();
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Could not update category');
+		}
+	}
+
+	async function reorderCategory(c: MenuCategory, direction: -1 | 1) {
+		const ordered = [...categories].sort(
+			(a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)
+		);
+		const idx = ordered.findIndex((x) => x.id === c.id);
+		const swap = idx + direction;
+		if (idx < 0 || swap < 0 || swap >= ordered.length) return;
+		const ids = ordered.map((x) => x.id);
+		[ids[idx], ids[swap]] = [ids[swap], ids[idx]];
+		try {
+			await menuApi.reorderCategories(ids);
+			await load();
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Could not reorder');
+		}
+	}
+
+	const deleteCategoryProductCount = $derived(
+		deleteCategoryTarget ? (categoryCounts[deleteCategoryTarget.id] ?? 0) : 0
+	);
 </script>
 
-{#if error}
-	<ErrorState message={error} onretry={() => location.reload()} />
-{/if}
-
-<!-- ---------- Summary ---------- -->
-{#if loading}
-	<div class="osstats" style="grid-template-columns:repeat(2,minmax(0,1fr));">
-		{#each [1, 2, 3, 4] as _, i (i)}
-			<div class="osstat"><Skeleton height="2.2rem" /></div>
-		{/each}
-	</div>
-{:else}
-	<div class="osstats" style="grid-template-columns:repeat(2,minmax(0,1fr));">
-		<div class="osstat accent">
-			<div class="osstat-label">Items on menu</div>
-			<p class="osstat-value">{products.length}</p>
+<div class="menu-page">
+	<header class="menu-header">
+		<div>
+			<h1 class="menu-title">Menu</h1>
+			<p class="menu-sub">Manage what customers can order</p>
 		</div>
-		<div class="osstat">
-			<div class="osstat-label">Available now</div>
-			<p class="osstat-value">{availableCount}</p>
-		</div>
-		<div class="osstat">
-			<div class="osstat-label">Categories</div>
-			<p class="osstat-value">{categories.length}</p>
-		</div>
-		<div class="osstat">
-			<div class="osstat-label">Menu value</div>
-			<p class="osstat-value">₹{menuValue.toLocaleString('en-IN')}</p>
-		</div>
-	</div>
-{/if}
-
-{#if !loading && categories.length === 0}
-	<Reveal class="panel" delay={60}>
-		<EmptyState
-			title="No categories yet"
-			description="Categories group your menu for customers — start with one, then add items."
-		>
-			{#snippet action()}
-				<form onsubmit={addCategory} class="osh-inline-form">
-					<input class="input" placeholder="e.g. Momo" bind:value={newCategory} required />
-					<button class="btn btn-primary" type="submit" disabled={categoryBusy}>
-						<Plus size={15} strokeWidth={2.2} /> Add
-					</button>
-				</form>
-			{/snippet}
-		</EmptyState>
-	</Reveal>
-{:else if !loading}
-	<!-- ---------- Category chips ---------- -->
-	<div class="os-tabs" role="tablist" aria-label="Categories">
-		<button
-			class={['os-tab', filter === '' ? 'active' : ''].join(' ')}
-			role="tab"
-			aria-selected={filter === ''}
-			onclick={() => (filter = '')}
-		>
-			All
-			<span class="os-tab-count">{products.length}</span>
-		</button>
-		{#each categories as c (c.id)}
-			<button
-				class={['os-tab', filter === c.id ? 'active' : ''].join(' ')}
-				role="tab"
-				aria-selected={filter === c.id}
-				onclick={() => (filter = c.id)}
-			>
-				{c.name}
-				<span class="os-tab-count">{productsIn(c.id).length}</span>
+		<div class="menu-header-actions">
+			<a class="btn btn-ghost" href="/shop/storefront/preview">
+				<Eye size={15} strokeWidth={2} /> Preview Store
+			</a>
+			<button class="btn btn-ghost" type="button" onclick={openAddCategory}>
+				<Plus size={15} strokeWidth={2.2} /> Add Category
 			</button>
-		{/each}
-	</div>
+			<button
+				class="btn btn-primary"
+				type="button"
+				onclick={() => openAddProduct()}
+				disabled={categories.length === 0}
+			>
+				<Plus size={15} strokeWidth={2.2} /> Add Product
+			</button>
+		</div>
+	</header>
 
-	<div class="osh-actions-row">
-		<!-- Primary action gets its own full-width row on a phone. -->
-		<button
-			class="btn btn-primary osh-add-item"
-			type="button"
-			onclick={() => openAdd(filter || undefined)}
-			disabled={categories.length === 0}
-		>
-			<Plus size={16} strokeWidth={2.2} /> Add item
-		</button>
+	{#if error}
+		<ErrorState message={error} onretry={() => location.reload()} />
+	{/if}
 
-		<details class="osh-newcat">
-			<summary class="btn btn-ghost osh-newcat-summary">
-				<Plus size={15} strokeWidth={2.2} /> New category
-			</summary>
-			<form class="osh-inline-form" onsubmit={addCategory}>
-				<input class="input" placeholder="e.g. Desserts" bind:value={newCategory} />
-				<button class="btn btn-ghost" type="submit" disabled={categoryBusy || !newCategory.trim()}>
-					Add
-				</button>
-			</form>
-		</details>
-	</div>
-
-	<!-- ---------- Product list ---------- -->
-	<div class="osh-list">
-		{#each shown as p (p.id)}
-			<div class={['osh-prod', p.is_available ? '' : 'off'].join(' ')}>
-				<div class="osh-prod-main">
-					<div class="osh-prod-top">
-						<span class="osh-prod-name">{p.name}</span>
-						<span class="osh-prod-price">
-							<IndianRupee size={12} strokeWidth={2.2} />{p.price}
-						</span>
-					</div>
-					{#if p.description}
-						<p class="osh-prod-desc">{p.description}</p>
-					{/if}
-					<div class="osh-prod-meta">
-						<span class="osh-prod-cat">
-							{categories.find((c) => c.id === p.category_id)?.name ?? 'Uncategorised'}
-						</span>
-						{#if !p.is_available}<span class="oschip off">Sold out</span>{/if}
-					</div>
-				</div>
-
-				<div class="osh-prod-actions">
-					<!-- Availability is a switch in its own right, not a button wrapper. -->
-					<Switch
-						checked={p.is_available}
-						label={p.is_available ? 'Available' : 'Sold out'}
-						onchange={() => toggleAvailable(p)}
-					/>
-					<button
-						class="osh-icon-btn"
-						type="button"
-						aria-label={`Edit ${p.name}`}
-						title="Edit"
-						onclick={() => openEdit(p)}
-					>
-						<Pencil size={15} strokeWidth={1.9} />
-					</button>
-					<button
-						class="osh-icon-btn danger"
-						type="button"
-						aria-label={`Remove ${p.name}`}
-						title="Remove"
-						onclick={() => removeProduct(p)}
-					>
-						<Trash size={15} strokeWidth={1.9} />
-					</button>
-				</div>
+	{#if loading}
+		<div class="osstats menu-stats">
+			{#each [1, 2, 3, 4] as _, i (i)}
+				<div class="osstat"><Skeleton height="2.2rem" /></div>
+			{/each}
+		</div>
+	{:else if !error}
+		<div class="osstats menu-stats">
+			<div class="osstat accent">
+				<div class="osstat-label">Total Products</div>
+				<p class="osstat-value">{products.length}</p>
 			</div>
-		{:else}
+			<div class="osstat">
+				<div class="osstat-label">Active Products</div>
+				<p class="osstat-value">{availableCount}</p>
+			</div>
+			<div class="osstat">
+				<div class="osstat-label">Categories</div>
+				<p class="osstat-value">{categories.length}</p>
+			</div>
+			<div class="osstat">
+				<div class="osstat-label">Unavailable Items</div>
+				<p class="osstat-value">{unavailableCount}</p>
+			</div>
+		</div>
+	{/if}
+
+	{#if !loading && !error && categories.length === 0}
+		<Reveal class="panel" delay={60}>
 			<EmptyState
-				title="Nothing here yet"
-				description="Add your first item so customers can start ordering."
+				title="Your menu is empty"
+				description="Create your first category and start adding products."
+				hint="Categories help customers browse your products"
 			>
 				{#snippet action()}
-					<button class="btn btn-primary" type="button" onclick={() => openAdd(filter || undefined)}>
-						<Plus size={15} strokeWidth={2.2} /> Add item
+					<button class="btn btn-primary" type="button" onclick={openAddCategory}>
+						+ Create Category
 					</button>
 				{/snippet}
 			</EmptyState>
-		{/each}
-	</div>
-{/if}
+		</Reveal>
+	{:else if !loading && !error}
+		<section class="cat-section panel">
+			<div
+				class="panel-h"
+				style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;"
+			>
+				<div>
+					<h2 style="margin:0;font-size:0.95rem;">Categories</h2>
+					<p class="panel-note" style="margin:0.15rem 0 0;">
+						Organize products and control display order
+					</p>
+				</div>
+				<button class="btn btn-ghost btn-sm" type="button" onclick={openAddCategory}>
+					<Plus size={14} /> Add
+				</button>
+			</div>
+			<div class="cat-manage">
+				{#each [...categories].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)) as c (c.id)}
+					<div class="cat-row" class:inactive={!c.is_active}>
+						<div class="cat-row-main">
+							<span class="cat-name">{c.name}</span>
+							<span class="cat-count">{categoryCounts[c.id] ?? 0} products</span>
+							{#if !c.is_active}<span class="badge badge-neutral">Hidden</span>{/if}
+						</div>
+						<div class="cat-row-actions">
+							<button
+								type="button"
+								class="icon-btn"
+								aria-label="Move up"
+								onclick={() => reorderCategory(c, -1)}>↑</button
+							>
+							<button
+								type="button"
+								class="icon-btn"
+								aria-label="Move down"
+								onclick={() => reorderCategory(c, 1)}>↓</button
+							>
+							<button type="button" class="btn btn-quiet btn-sm" onclick={() => toggleCategoryActive(c)}>
+								{c.is_active ? 'Hide' : 'Show'}
+							</button>
+							<button type="button" class="btn btn-quiet btn-sm" onclick={() => openEditCategory(c)}
+								>Edit</button
+							>
+							<button
+								type="button"
+								class="btn btn-quiet btn-sm"
+								style="color:var(--danger);"
+								onclick={() => requestDeleteCategory(c.id)}
+							>
+								Delete
+							</button>
+						</div>
+					</div>
+				{/each}
+			</div>
+		</section>
 
-<!-- ---------- Add / edit dialog ---------- -->
-<Modal bind:open={dialogOpen} title={editing ? 'Edit item' : 'Add item'}>
-	<form
-		class="osh-form"
-		onsubmit={(e) => {
-			e.preventDefault();
-			void saveProduct();
-		}}
-	>
-		<FormField label="Item name" htmlFor="p-name" required>
-			<TextInput
-				id="p-name"
-				bind:value={formName}
-				placeholder="Steamed Momo"
-				autocomplete="off"
-			/>
-		</FormField>
-
-		<FormField label="Price" htmlFor="p-price" required>
-			<TextInput
-				id="p-price"
-				type="number"
-				min="0"
-				step="0.5"
-				inputmode="decimal"
-				bind:value={formPrice}
-				placeholder="80"
-			/>
-		</FormField>
-
-		<FormField label="Category" htmlFor="p-cat" required>
-			<SelectField
-				id="p-cat"
-				bind:value={formCategory}
-				options={categories.map((c) => ({ value: c.id, label: c.name }))}
-			/>
-		</FormField>
-
-		<FormField label="Description" htmlFor="p-desc" hint="Optional — shown under the name.">
-			<TextArea id="p-desc" rows={2} bind:value={formDescription} />
-		</FormField>
-
-		<Switch
-			bind:checked={formAvailable}
-			label="Available to order"
-			hint="Turn off to mark it sold out without deleting it."
+		<CategoryTabs
+			{categories}
+			counts={categoryCounts}
+			active={filter}
+			onselect={(id: string) => (filter = id)}
+			onadd={openAddCategory}
+			ondelete={(id: string) => requestDeleteCategory(id)}
 		/>
 
-		{#if formError}
-			<p class="err" style="margin:0;">{formError}</p>
-		{/if}
-
-		<div class="osh-form-actions">
-			<button class="btn btn-ghost" type="button" onclick={() => (dialogOpen = false)}>
-				<X size={15} strokeWidth={2} /> Cancel
+		<div class="toolbar">
+			<div class="search-wrap">
+				<span class="search-ico"><Search size={15} strokeWidth={1.9} /></span>
+				<input class="input" type="search" placeholder="Search products…" bind:value={search} />
+			</div>
+			<button
+				type="button"
+				class="btn btn-ghost btn-sm filters-toggle"
+				onclick={() => (filtersOpen = !filtersOpen)}
+			>
+				Filters
 			</button>
-			<button class="btn btn-primary" type="submit" disabled={saving}>
-				{saving ? 'Saving…' : editing ? 'Save changes' : 'Add item'}
-			</button>
+			<div class="toolbar-filters" class:open={filtersOpen}>
+				<select class="input" bind:value={availabilityFilter} aria-label="Availability">
+					<option value="all">All status</option>
+					<option value="available">Available</option>
+					<option value="unavailable">Unavailable</option>
+				</select>
+				<select class="input" bind:value={sortBy} aria-label="Sort">
+					<option value="order">Display order</option>
+					<option value="name">Name</option>
+					<option value="price">Price</option>
+					<option value="category">Category</option>
+					<option value="updated">Recently updated</option>
+				</select>
+				<label class="chip-filter">
+					<input type="checkbox" bind:checked={featuredOnly} /> Featured
+				</label>
+				<label class="chip-filter">
+					<input type="checkbox" bind:checked={hasOptionsOnly} /> Has options
+				</label>
+			</div>
 		</div>
-	</form>
+
+		{#if shown.length === 0}
+			<EmptyState
+				title={products.length === 0 ? 'No products yet' : 'No matching products'}
+				description={products.length === 0
+					? 'Add your first product so customers can start ordering.'
+					: 'Try a different search or clear filters.'}
+			>
+				{#snippet action()}
+					{#if products.length === 0}
+						<button
+							class="btn btn-primary"
+							type="button"
+							onclick={() => openAddProduct(filter || undefined)}
+						>
+							+ Add Product
+						</button>
+					{/if}
+				{/snippet}
+			</EmptyState>
+		{:else}
+			<ProductList
+				products={shown}
+				categoryName={catLabel}
+				{currency}
+				onedit={openEditProduct}
+				ondelete={requestDeleteProduct}
+				ontoggle={toggleAvailable}
+				onduplicate={duplicateProduct}
+				onmove={openMoveProduct}
+				onreorder={reorderProduct}
+			/>
+		{/if}
+	{/if}
+</div>
+
+<SlideOver bind:open={productOpen} title={editingProduct ? 'Edit product' : 'Add product'}>
+	{#if productOpen}
+		<ProductForm
+			{categories}
+			editing={editingProduct}
+			{preselectCategoryId}
+			{saving}
+			{currencySymbol}
+			onclose={() => (productOpen = false)}
+			onsave={saveProduct}
+		/>
+	{/if}
+</SlideOver>
+
+<SlideOver bind:open={categoryOpen} title={editingCategory ? 'Edit category' : 'Add category'}>
+	{#if categoryOpen}
+		<CategoryForm
+			editing={editingCategory}
+			{saving}
+			onclose={() => (categoryOpen = false)}
+			onsave={saveCategory}
+		/>
+	{/if}
+</SlideOver>
+
+<ConfirmDialog
+	bind:open={deleteProductOpen}
+	title="Delete product?"
+	message={deleteProductTarget
+		? `Delete “${deleteProductTarget.name}”? This cannot be undone.`
+		: ''}
+	confirmLabel="Delete"
+	danger
+	loading={deleteBusy}
+	onconfirm={confirmDeleteProduct}
+/>
+
+<Modal bind:open={deleteCategoryOpen} title="Delete category?">
+	{#if deleteCategoryTarget}
+		{#if deleteCategoryProductCount > 0}
+			<p>
+				This category contains <strong>{deleteCategoryProductCount}</strong> product{deleteCategoryProductCount ===
+				1
+					? ''
+					: 's'}.
+			</p>
+			<p class="panel-note">Move them to another category before deleting.</p>
+			<div class="field" style="margin-top:0.75rem;">
+				<label class="field-label" for="move-cat">Move products to</label>
+				<SelectField
+					id="move-cat"
+					bind:value={moveToCategoryId}
+					options={categories
+						.filter((c) => c.id !== deleteCategoryTarget?.id)
+						.map((c) => ({ value: c.id, label: c.name }))}
+				/>
+			</div>
+		{:else}
+			<p>Delete “{deleteCategoryTarget.name}”? This cannot be undone.</p>
+		{/if}
+	{/if}
+	{#snippet footer()}
+		<button
+			type="button"
+			class="btn btn-ghost"
+			onclick={() => (deleteCategoryOpen = false)}
+			disabled={categoryDeleteBusy}
+		>
+			Cancel
+		</button>
+		<button
+			type="button"
+			class="btn btn-danger"
+			onclick={confirmDeleteCategory}
+			disabled={categoryDeleteBusy ||
+				(deleteCategoryProductCount > 0 && !moveToCategoryId)}
+		>
+			{categoryDeleteBusy
+				? 'Working…'
+				: deleteCategoryProductCount > 0
+					? 'Move & Delete'
+					: 'Delete'}
+		</button>
+	{/snippet}
+</Modal>
+
+<Modal bind:open={moveProductOpen} title="Move category">
+	{#if moveProductTarget}
+		<p>Move “{moveProductTarget.name}” to another category.</p>
+		<div class="field" style="margin-top:0.75rem;">
+			<label class="field-label" for="move-prod-cat">Category</label>
+			<SelectField
+				id="move-prod-cat"
+				bind:value={moveTargetId}
+				options={categories
+					.filter((c) => c.id !== moveProductTarget?.category_id)
+					.map((c) => ({ value: c.id, label: c.name }))}
+			/>
+		</div>
+	{/if}
+	{#snippet footer()}
+		<button
+			type="button"
+			class="btn btn-ghost"
+			onclick={() => (moveProductOpen = false)}
+			disabled={moveBusy}
+		>
+			Cancel
+		</button>
+		<button
+			type="button"
+			class="btn btn-primary"
+			onclick={confirmMoveProduct}
+			disabled={moveBusy || !moveTargetId}
+		>
+			{moveBusy ? 'Moving…' : 'Move'}
+		</button>
+	{/snippet}
 </Modal>
 
 <style>
-	.osh-actions-row {
-		margin-bottom: 0.75rem;
-	}
-
-	.osh-add-item {
-		width: 100%;
-		min-height: 2.9rem;
-		margin-bottom: 0.5rem;
-	}
-
-	/* "New category" is secondary, so it collapses out of the way until wanted. */
-	.osh-newcat {
-		margin-bottom: 0.75rem;
-	}
-
-	.osh-newcat-summary {
-		list-style: none;
-		cursor: pointer;
-		-webkit-tap-highlight-color: transparent;
-	}
-
-	.osh-newcat-summary::-webkit-details-marker {
-		display: none;
-	}
-
-	.osh-newcat[open] .osh-newcat-summary {
-		margin-bottom: 0.4rem;
-	}
-
-	.osh-inline-form {
-		display: flex;
-		gap: 0.4rem;
-		flex: 1;
-		min-width: 0;
-	}
-
-	.osh-inline-form .input {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.osh-list {
+	.menu-page {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: 1rem;
 	}
-
-	.osh-prod {
+	.menu-header {
 		display: flex;
-		align-items: center;
-		gap: 0.6rem;
-		padding: 0.7rem 0.75rem;
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		min-width: 0;
-	}
-
-	.osh-prod.off {
-		opacity: 0.66;
-	}
-
-	.osh-prod-main {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.osh-prod-top {
-		display: flex;
-		align-items: baseline;
-		gap: 0.6rem;
-	}
-
-	.osh-prod-name {
-		font-size: 0.92rem;
-		font-weight: 650;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		min-width: 0;
-	}
-
-	.osh-prod-price {
-		margin-left: auto;
-		flex: none;
-		display: inline-flex;
-		align-items: center;
-		gap: 0.1rem;
-		font-weight: 700;
-		font-size: 0.9rem;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.osh-prod-desc {
-		margin: 0.15rem 0 0;
-		font-size: 0.78rem;
-		color: var(--text-3);
-		line-height: 1.4;
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-
-	.osh-prod-meta {
-		display: flex;
-		align-items: center;
-		gap: 0.4rem;
-		margin-top: 0.3rem;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 1rem;
 		flex-wrap: wrap;
 	}
-
-	.osh-prod-cat {
-		font-size: 0.7rem;
-		color: var(--text-3);
-		background: var(--surface-3);
-		padding: 0.1rem 0.4rem;
-		border-radius: 999px;
-	}
-
-	.osh-prod-actions {
-		flex: none;
-		display: flex;
-		align-items: center;
-		gap: 0.15rem;
-	}
-
-	.osh-icon-btn {
-		width: 2.25rem;
-		height: 2.25rem;
-		display: grid;
-		place-items: center;
-		border: 1px solid transparent;
-		border-radius: 9px;
-		background: none;
-		color: var(--text-3);
-		cursor: pointer;
-		-webkit-tap-highlight-color: transparent;
-		transition: all var(--tr);
-	}
-
-	.osh-icon-btn:hover {
-		background: var(--surface-3);
-		color: var(--text);
-	}
-
-	.osh-icon-btn.danger:hover {
-		color: var(--danger);
-		background: var(--danger-bg);
-	}
-
-	/* The Switch renders label text after the track; in a dense row we only
-	   want the track, so the text is hidden here rather than passed as "". */
-	.osh-prod-actions :global(.switch) {
+	.menu-title {
 		margin: 0;
-		gap: 0;
+		font-size: 1.35rem;
+		font-weight: 700;
 	}
-
-	.osh-prod-actions :global(.switch > span:last-child) {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
+	.menu-sub {
+		margin: 0.2rem 0 0;
+		color: var(--text-3);
+		font-size: 0.9rem;
 	}
-
-	.osh-form {
+	.menu-header-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+	}
+	.menu-stats {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.cat-section {
+		padding: 0.85rem 1rem 1rem;
+	}
+	.cat-manage {
 		display: flex;
 		flex-direction: column;
-		gap: 0.8rem;
+		gap: 0.4rem;
 	}
-
-	.osh-form-actions {
+	.cat-row {
 		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 0.55rem 0.35rem;
+		border-bottom: 1px solid var(--border);
+		flex-wrap: wrap;
+	}
+	.cat-row:last-child {
+		border-bottom: none;
+	}
+	.cat-row.inactive {
+		opacity: 0.65;
+	}
+	.cat-row-main {
+		display: flex;
+		align-items: center;
 		gap: 0.5rem;
-		margin-top: 0.25rem;
+		flex-wrap: wrap;
+		min-width: 0;
 	}
-
-	.osh-form-actions .btn {
+	.cat-name {
+		font-weight: 600;
+	}
+	.cat-count {
+		font-size: 0.78rem;
+		color: var(--text-3);
+	}
+	.cat-row-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem;
+		align-items: center;
+	}
+	.icon-btn {
+		width: 2rem;
+		height: 2rem;
+		border: 1px solid var(--border);
+		border-radius: 7px;
+		background: var(--surface);
+		cursor: pointer;
+		color: var(--text-2);
+	}
+	.toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		align-items: center;
+	}
+	.search-wrap {
+		position: relative;
 		flex: 1;
-		min-height: 2.75rem;
+		min-width: 10rem;
 	}
-
-	@media (min-width: 700px) {
-		/* Side by side once there is room, so the list starts higher up. */
-		.osh-actions-row {
+	.search-ico {
+		position: absolute;
+		left: 0.65rem;
+		top: 50%;
+		transform: translateY(-50%);
+		color: var(--text-3);
+		pointer-events: none;
+		display: inline-flex;
+	}
+	.search-wrap .input {
+		padding-left: 2.1rem;
+		width: 100%;
+	}
+	.toolbar-filters {
+		display: none;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		align-items: center;
+		width: 100%;
+	}
+	.toolbar-filters.open {
+		display: flex;
+	}
+	.toolbar-filters .input {
+		width: auto;
+		min-width: 8rem;
+	}
+	.chip-filter {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.8rem;
+		color: var(--text-2);
+		padding: 0.35rem 0.55rem;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		cursor: pointer;
+	}
+	@media (min-width: 768px) {
+		.filters-toggle {
+			display: none;
+		}
+		.toolbar-filters {
 			display: flex;
-			gap: 0.5rem;
-			align-items: flex-start;
-		}
-
-		.osh-add-item {
 			width: auto;
-			min-width: 9rem;
-			margin-bottom: 0;
-		}
-
-		.osh-newcat {
 			flex: 1;
-			margin-bottom: 0;
 		}
-
-		.osh-list {
-			display: grid;
-			grid-template-columns: repeat(2, minmax(0, 1fr));
+		.menu-stats {
+			grid-template-columns: repeat(4, minmax(0, 1fr));
 		}
 	}
 </style>

@@ -159,7 +159,9 @@ export async function api<T>(
 	const { authToken, hostSlug, ...init } = options;
 	const base = apiBaseURL(hostSlug);
 	const headers = new Headers(init.headers || {});
-	if (!headers.has('Content-Type') && init.body) {
+	// FormData must keep the browser-generated multipart boundary; forcing
+	// application/json breaks image uploads.
+	if (!headers.has('Content-Type') && init.body && !(init.body instanceof FormData)) {
 		headers.set('Content-Type', 'application/json');
 	}
 	// A caller may pass an explicit credential for one request. The storefront

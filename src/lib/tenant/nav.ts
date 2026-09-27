@@ -1,6 +1,7 @@
 import type { Component } from 'svelte';
 import ChefHat from '@lucide/svelte/icons/chef-hat';
 import ClipboardList from '@lucide/svelte/icons/clipboard-list';
+import HardDrive from '@lucide/svelte/icons/hard-drive';
 import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 import Mail from '@lucide/svelte/icons/mail';
 import Sparkles from '@lucide/svelte/icons/sparkles';
@@ -29,7 +30,10 @@ export type ShopNavItem = {
 
 export type ShopNavGroup = { label?: string; items: ShopNavItem[] };
 
-/** Full navigation, shown in the left rail / drawer. */
+/**
+ * Legacy staff shell nav. Kept for check_nav and any leftover ShopShell usage;
+ * the org portal uses TENANT_NAV. Kitchen now lives under /shop/kitchen.
+ */
 export const SHOP_NAV: ShopNavGroup[] = [
 	{
 		items: [{ href: '/shop', label: 'Dashboard', icon: LayoutDashboard }]
@@ -38,16 +42,15 @@ export const SHOP_NAV: ShopNavGroup[] = [
 		label: 'Selling',
 		items: [
 			{ href: '/shop/orders', label: 'Orders', icon: ClipboardList, badge: 'active' },
-			{ href: '/kitchen', label: 'Kitchen', icon: ChefHat, badge: 'active' },
+			{ href: '/shop/kitchen', label: 'Prep board', icon: ChefHat, badge: 'active' },
 			{ href: '/shop/menu', label: 'Menu', icon: UtensilsCrossed }
 		]
 	},
 	{
-		label: 'Store',
+		label: 'Storefront',
 		items: [
-			{ href: '/shop/setup', label: 'Setup', icon: ListChecks, nested: true },
-			{ href: '/shop/brand', label: 'Brand', icon: Palette, nested: true },
-			{ href: '/', label: 'View storefront', icon: Store }
+			{ href: '/shop/setup', label: 'Launch checklist', icon: ListChecks, nested: true },
+			{ href: '/', label: 'View live site', icon: Store }
 		]
 	}
 ];
@@ -61,7 +64,7 @@ export const SHOP_TABS: ShopNavItem[] = [
 	{ href: '/shop', label: 'Home', icon: LayoutDashboard },
 	{ href: '/shop/orders', label: 'Orders', icon: ClipboardList, badge: 'active' },
 	{ href: '/shop/menu', label: 'Menu', icon: UtensilsCrossed },
-	{ href: '/kitchen', label: 'Kitchen', icon: ChefHat, badge: 'active' }
+	{ href: '/shop/kitchen', label: 'Kitchen', icon: ChefHat, badge: 'active' }
 ];
 
 /** `/shop` must not light up while you are on `/shop/orders`. */
@@ -78,11 +81,11 @@ export function isActive(pathname: string, item: ShopNavItem): boolean {
  * of truth, which also keeps the browser tab and the app bar in agreement.
  */
 const TITLES: Array<[string, string]> = [
-	['/kitchen', 'Kitchen board'],
+	['/shop/kitchen', 'Prep board'],
 	['/shop/orders', 'Orders'],
 	['/shop/menu', 'Menu'],
-	['/shop/setup', 'Setup'],
-	['/shop/brand', 'Brand'],
+	['/shop/setup', 'Launch checklist'],
+	['/shop/brand', 'Console appearance'],
 	['/shop', 'Dashboard']
 ];
 
@@ -115,18 +118,27 @@ export const TENANT_NAV: ShopNavGroup[] = [
 		label: 'Selling',
 		items: [
 			{ href: '/shop/orders', label: 'Orders', icon: ClipboardList, nested: true },
-			{ href: '/shop/menu', label: 'Menu', icon: UtensilsCrossed, nested: true },
-			{ href: '/kitchen', label: 'Kitchen', icon: ChefHat, exact: true }
+			{ href: '/shop/menu', label: 'Menu', icon: UtensilsCrossed, nested: true }
 		]
 	},
 	{
-		label: 'Store',
+		label: 'Kitchen',
+		items: [{ href: '/shop/kitchen', label: 'Prep board', icon: ChefHat, exact: true, badge: 'active' }]
+	},
+	{
+		label: 'Storefront',
 		items: [
-			{ href: '/shop/setup', label: 'Setup', icon: ListChecks, nested: true },
-			{ href: '/shop/brand', label: 'Brand', icon: Palette, nested: true },
-			{ href: '/shop/storefront', label: 'Storefront', icon: LayoutTemplate, nested: true },
+			{ href: '/shop/setup', label: 'Launch checklist', icon: ListChecks, nested: true },
+			{ href: '/shop/storefront', label: 'Customer site', icon: LayoutTemplate, nested: true },
+			{ href: '/', label: 'View live site', icon: Store }
+		]
+	},
+	{
+		label: 'Organization',
+		items: [
+			{ href: '/shop/brand', label: 'Console appearance', icon: Palette, nested: true },
 			{ href: '/shop/settings/smtp', label: 'Email / SMTP', icon: Mail, nested: true },
-			{ href: '/shop/settings/storage', label: 'Storage', icon: Store, nested: true },
+			{ href: '/shop/settings/storage', label: 'Storage', icon: HardDrive, nested: true },
 			{ href: '/shop/settings/ai', label: 'AI', icon: Sparkles, nested: true }
 		]
 	}
@@ -136,9 +148,10 @@ export const TENANT_NAV: ShopNavGroup[] = [
 const TENANT_SEGMENT_LABELS: Record<string, string> = {
 	orders: 'Orders',
 	menu: 'Menu',
-	setup: 'Setup',
-	brand: 'Brand',
-	storefront: 'Storefront',
+	kitchen: 'Prep board',
+	setup: 'Launch checklist',
+	brand: 'Console appearance',
+	storefront: 'Customer site',
 	settings: 'Settings',
 	smtp: 'Email / SMTP',
 	storage: 'Storage',
@@ -181,7 +194,7 @@ function segmentLabel(segments: string[], index: number): string {
 
 /**
  * Build a navigable trail for a tenant route, e.g.
- * Overview / Storefront / Theme.
+ * Overview / Customer site / Theme.
  *
  * Every crumb except the last links somewhere real. `settings` is a grouping
  * segment with no page, so it inherits the previous crumb's target rather than
@@ -214,7 +227,6 @@ export function tenantCrumbs(pathname: string): TenantCrumb[] {
 /** Topbar title for a tenant route. */
 export function tenantTitle(pathname: string): string {
 	const segments = pathname.split('/').filter(Boolean);
-	if (segments[0] === 'kitchen') return 'Kitchen board';
 	if (segments[0] !== 'shop') return 'Dashboard';
 	if (segments.length <= 1) return 'Dashboard';
 	return segmentLabel(segments, segments.length - 1);

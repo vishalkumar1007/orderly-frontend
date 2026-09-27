@@ -1,32 +1,39 @@
 <script lang="ts">
-	import FormField from '$lib/components/admin/FormField.svelte';
-	import TextInput from '$lib/components/admin/TextInput.svelte';
 	import { seed, type StorefrontContext } from '$lib/storefront/admin-context';
-	import { storefrontAdminApi, type AdminStorefront } from '$lib/storefront/admin';
+	import {
+		LOGIN_MODE_OPTIONS,
+		storefrontAdminApi
+	} from '$lib/storefront/admin';
 	import { toast } from '$lib/components/admin/toast';
 
 	/**
 	 * Customer login.
 	 *
-	 * Signing in is a convenience, never a requirement. This screen controls
-	 * whether it is *available*; it cannot make it mandatory, and there is no
-	 * setting here that could block a guest from ordering. That is the point of
-	 * the screen, so the copy says so plainly.
+	 * Three modes: off (no phone sign-in), optional (guest checkout + OTP),
+	 * and required (must sign in before placing an order). The server enforces
+	 * required mode on create-order, so the UI gate cannot be bypassed.
 	 */
 	let { config, save }: StorefrontContext = $props();
 
-	let enabled = $state(seed(() => config.behaviour.customer_login_enabled));
+	function initialMode(): 'off' | 'optional' | 'required' {
+		const mode = config.behaviour.customer_login_mode;
+		if (mode === 'off' || mode === 'optional' || mode === 'required') return mode;
+		return config.behaviour.customer_login_enabled ? 'optional' : 'off';
+	}
+
+	let mode = $state<'off' | 'optional' | 'required'>(seed(() => initialMode()));
 	let saving = $state(false);
 
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
 		saving = true;
 		const ok = await save(() =>
-			storefrontAdminApi.saveBehaviour({ customer_login_enabled: enabled })
+			storefrontAdminApi.saveBehaviour({ customer_login_mode: mode })
 		);
 		saving = false;
 		if (ok) {
-			toast.success(enabled ? 'Phone sign-in is on' : 'Phone sign-in is off');
+			const label = LOGIN_MODE_OPTIONS.find((o) => o.value === mode)?.label ?? mode;
+			toast.success(`Customer login set to ${label.toLowerCase()}`);
 		} else {
 			toast.error('Could not save this setting');
 		}
@@ -37,28 +44,25 @@
 	<div class="sfctl-section">
 		<h2>Customer sign-in</h2>
 		<p class="sfctl-note">
-			Let customers sign in with their phone number to get faster checkout, order history and
-			live tracking. Turning this off changes nothing else: anyone can still order as a guest,
-			every time, without an account.
+			Phone OTP sign-in — no password, no email. Choose whether it is hidden, available, or
+			required before checkout.
 		</p>
 
 		<div style="display:grid;gap:0.4rem;">
-			<button
-				class="sfopt"
-				type="button"
-				aria-pressed={enabled}
-				onclick={() => (enabled = !enabled)}
-			>
-				<span class="sfopt-mark" aria-hidden="true"></span>
-				<span class="sfopt-body">
-					<span class="sfopt-label">Phone sign-in</span>
-					<span class="sfopt-hint">
-						{enabled
-							? 'Customers can sign in with a one-time code. No password, no email.'
-							: 'The sign-in screens are hidden. Guest checkout is unaffected.'}
+			{#each LOGIN_MODE_OPTIONS as option (option.value)}
+				<button
+					class="sfopt"
+					type="button"
+					aria-pressed={mode === option.value}
+					onclick={() => (mode = option.value)}
+				>
+					<span class="sfopt-mark" aria-hidden="true"></span>
+					<span class="sfopt-body">
+						<span class="sfopt-label">{option.label}</span>
+						<span class="sfopt-hint">{option.hint}</span>
 					</span>
-				</span>
-			</button>
+				</button>
+			{/each}
 		</div>
 	</div>
 
@@ -88,7 +92,15 @@
 	</div>
 
 	<div class="sfctl-foot">
-		<span class="sfctl-foot-note">Guest checkout is always available, whatever this is set to.</span>
+		<span class="sfctl-foot-note">
+			{#if mode === 'required'}
+				Guests cannot place an order until they sign in.
+			{:else if mode === 'optional'}
+				Guest checkout stays available; sign-in is a shortcut.
+			{:else}
+				Sign-in screens and OTP endpoints are hidden.
+			{/if}
+		</span>
 		<button class="btn btn-primary" type="submit" disabled={saving}>
 			{saving ? 'Saving…' : 'Save'}
 		</button>

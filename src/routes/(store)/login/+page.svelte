@@ -18,7 +18,10 @@
 	let { data } = $props();
 
 	const config = $derived(data.config);
-	const enabled = $derived(config?.ordering?.customer_login ?? true);
+	const enabled = $derived(
+		(config?.ordering?.customer_login_mode ??
+			(config?.ordering?.customer_login ? 'optional' : 'off')) !== 'off'
+	);
 
 	let phone = $state('');
 	let sending = $state(false);

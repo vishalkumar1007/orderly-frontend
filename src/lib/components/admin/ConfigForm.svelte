@@ -27,7 +27,8 @@
 	 * an empty string means the operator deliberately cleared the field.
 	 */
 	let draft = $state<Record<string, unknown>>({});
-	let nonce = $state('');
+	/** Last revision we seeded from — avoids re-seeding on every reactive tick. */
+	let seededKey = $state('');
 
 	function seed(): Record<string, unknown> {
 		const next: Record<string, unknown> = {};
@@ -40,18 +41,16 @@
 		return next;
 	}
 
-	// Re-seed when the server hands us a different revision of this record, so
-	// an external change shows up without a manual reload. The nonce keeps the
-	// effect from firing on every unrelated state change.
-	$effect(() => {
-		void view.updated_at;
-		void view.provider;
-		void view.config;
-		nonce = String(Date.now());
-	});
+	function revisionKey(): string {
+		return `${view.updated_at ?? ''}|${view.provider}|${JSON.stringify(view.config ?? {})}`;
+	}
 
+	// Re-seed only when the server revision actually changes (not on every
+	// $state proxy touch of a cached view).
 	$effect(() => {
-		void nonce;
+		const key = revisionKey();
+		if (key === seededKey) return;
+		seededKey = key;
 		draft = seed();
 		onchange?.(draft);
 	});

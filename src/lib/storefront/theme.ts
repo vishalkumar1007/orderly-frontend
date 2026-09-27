@@ -27,6 +27,9 @@ export type ButtonStyleId = 'rounded' | 'pill' | 'square' | 'soft';
 export type CardStyleId = 'elevated' | 'outlined' | 'filled' | 'minimal';
 export type HeaderStyleId = 'sticky' | 'solid' | 'transparent';
 export type HeroStyleId = 'image' | 'gradient' | 'compact' | 'none';
+export type ProductLayoutId = 'list' | 'grid' | 'compact';
+export type FilterStyleId = 'chips' | 'pills' | 'rail';
+export type CustomerLoginMode = 'off' | 'optional' | 'required';
 
 /** The theme as the public API returns it. */
 export type StoreTheme = {
@@ -38,6 +41,8 @@ export type StoreTheme = {
 	card: CardStyleId;
 	header: HeaderStyleId;
 	hero: HeroStyleId;
+	product_layout: ProductLayoutId;
+	filter_style: FilterStyleId;
 	primary: string;
 	secondary: string;
 	accent: string;
@@ -60,7 +65,9 @@ export const FONT_IMPORTS: Record<FontId, string> = {
 };
 
 export function fontImportFor(font: FontId): string {
-	return FONT_IMPORTS[font] ?? '';
+	const family = FONT_IMPORTS[font];
+	if (!family) return '';
+	return `https://fonts.googleapis.com/css2?family=${family.replace(/ /g, '+')}&display=swap`;
 }
 
 /** Fallback tokens, used before the store config arrives and in tests. */
@@ -73,6 +80,8 @@ export const FALLBACK_THEME: StoreTheme = {
 	card: 'elevated',
 	header: 'sticky',
 	hero: 'gradient',
+	product_layout: 'list',
+	filter_style: 'chips',
 	primary: '#5b4bdb',
 	secondary: '#8b5cf6',
 	accent: '#06b6d4',

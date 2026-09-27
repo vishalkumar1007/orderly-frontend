@@ -3,7 +3,12 @@
 	import { onMount } from 'svelte';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import { isStorefrontActive, STOREFRONT_NAV } from '$lib/storefront/admin-nav';
-	import { storefrontAdminApi, type AdminStorefront } from '$lib/storefront/admin';
+	import {
+		getStorefrontAdmin,
+		loadStorefrontAdmin,
+		setStorefrontAdmin,
+		type AdminStorefront
+	} from '$lib/storefront/adminCache.svelte';
 	import type { StorefrontContext } from '$lib/storefront/admin-context';
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
@@ -19,27 +24,34 @@
 	 */
 	let { children }: { children: Snippet<[StorefrontContext]> } = $props();
 
-	let config = $state<AdminStorefront | null>(null);
-	let loading = $state(true);
+	let config = $state<AdminStorefront | null>(getStorefrontAdmin());
+	let loading = $state(!getStorefrontAdmin());
 	let error = $state('');
 
-	async function load() {
-		loading = true;
+	async function load(opts: { force?: boolean; background?: boolean } = {}) {
+		const { force = false, background = false } = opts;
+		if (!background && !config) loading = true;
 		try {
-			config = await storefrontAdminApi.get();
+			config = await loadStorefrontAdmin(force);
 			error = '';
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Could not load your storefront';
+			if (!config) {
+				error = err instanceof Error ? err.message : 'Could not load your storefront';
+			}
 		} finally {
 			loading = false;
 		}
 	}
 
-	onMount(load);
+	onMount(() => {
+		const hadCache = Boolean(config);
+		void load({ force: hadCache, background: hadCache });
+	});
 
 	async function save(run: () => Promise<AdminStorefront>): Promise<boolean> {
 		try {
 			config = await run();
+			setStorefrontAdmin(config);
 			error = '';
 			return true;
 		} catch (err) {
@@ -51,7 +63,7 @@
 	}
 
 	async function refresh() {
-		await load();
+		await load({ force: true });
 	}
 
 	const pathname = $derived($page.url.pathname);

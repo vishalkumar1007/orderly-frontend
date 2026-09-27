@@ -102,7 +102,7 @@
 	.panel {
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
-		background: var(--surface-1);
+		background: var(--surface);
 		min-width: 0;
 	}
 
@@ -118,7 +118,7 @@
 	.panel-h {
 		font-size: 0.9rem;
 		font-weight: 600;
-		color: var(--text-1);
+		color: var(--text);
 	}
 
 	.sub {
@@ -148,8 +148,8 @@
 	}
 
 	.toggle button.active {
-		background: var(--surface-1);
-		color: var(--text-1);
+		background: var(--surface);
+		color: var(--text);
 	}
 
 	.frame {

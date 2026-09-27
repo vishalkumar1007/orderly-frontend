@@ -9,6 +9,7 @@
 		displayName = '',
 		role = 'SUPER_ADMIN',
 		collapsed = false,
+		settingsHref = '/superadmin/settings',
 		onNavigate,
 		onSignOut
 	}: {
@@ -16,6 +17,8 @@
 		displayName?: string;
 		role?: string;
 		collapsed?: boolean;
+		/** Destination for the Settings menu item — portal-specific. */
+		settingsHref?: string;
 		onNavigate?: () => void;
 		onSignOut?: () => void;
 	} = $props();
@@ -92,7 +95,7 @@
 				<strong>{email}</strong>
 				<span>{roleLabel}</span>
 			</div>
-			<a href="/superadmin/settings" role="menuitem" onclick={closeFromEvent}>
+			<a href={settingsHref} role="menuitem" onclick={closeFromEvent}>
 				<Settings size={15} strokeWidth={1.75} />
 				Settings
 			</a>

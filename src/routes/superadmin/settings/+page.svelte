@@ -10,6 +10,7 @@
 	} from '$lib/admin/api';
 	import type { PlatformSettings, TenantType } from '$lib/admin/types';
 	import { changePassword, me, type User } from '$lib/auth';
+	import { getConfig, preloadAllConfigs } from '$lib/admin/configCache.svelte';
 	import FormField from '$lib/components/admin/FormField.svelte';
 	import ServiceConfigPanel from './ServiceConfigPanel.svelte';
 	import TenantConfigTable from './tenant-access/+page.svelte';
@@ -54,6 +55,8 @@
 		error = '';
 		try {
 			[settings, profile, types] = await Promise.all([fetchSettings(), me(), fetchTenantTypes()]);
+			// Pre-fetch all service configs in the background so tab switches are instant.
+			preloadAllConfigs();
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load settings';
 		} finally {
@@ -161,227 +164,225 @@
 	}
 </script>
 
-{#if loading || !settings}
-	<div class="settings">
-		<Skeleton height="12rem" />
-		<Skeleton height="24rem" />
-	</div>
-{:else}
-	<div class="settings">
-		<SettingsNav {tabs} active={tab} onSelect={(id) => (tab = id)} />
+<div class="settings">
+	<SettingsNav {tabs} active={tab} onSelect={(id) => (tab = id)} />
 
-		<div>
-			{#if error}
-				<div class="alert alert-danger" style="margin-bottom:0.85rem;">{error}</div>
-			{/if}
+	<div>
+		{#if error}
+			<div class="alert alert-danger" style="margin-bottom:0.85rem;">{error}</div>
+		{/if}
 
-			{#if tab === 'general'}
-				<SettingsPanel title="General" description="Name and support details shown across the console.">
-					<div style="display:flex;flex-direction:column;gap:0.9rem;max-width:32rem;">
-						<FormField label="Platform name" htmlFor="set-name">
-							<TextInput id="set-name" bind:value={settings.general.platform_name} />
-						</FormField>
-						<FormField label="Support email" htmlFor="set-email">
-							<TextInput id="set-email" type="email" bind:value={settings.general.support_email} />
-						</FormField>
-						<FormField label="Timezone" htmlFor="set-tz" hint="Used for daily order and revenue cut-offs.">
-							<TextInput id="set-tz" bind:value={settings.general.timezone} />
-						</FormField>
-						<FormField label="Default locale" htmlFor="set-locale">
-							<TextInput id="set-locale" bind:value={settings.general.default_locale} />
-						</FormField>
-					</div>
-					{#snippet footer()}
-						<button type="button" class="btn btn-primary" disabled={saving} onclick={saveGeneral}>
-							{saving ? 'Saving…' : 'Save changes'}
-						</button>
-					{/snippet}
-				</SettingsPanel>
-			{:else if tab === 'email'}
-			<ServiceConfigPanel service="SMTP" />
+		{#if loading || !settings}
+			<div style="display:flex;flex-direction:column;gap:0.85rem;">
+				<Skeleton height="12rem" />
+				<Skeleton height="24rem" />
+			</div>
+		{:else if tab === 'general'}
+			<SettingsPanel title="General" description="Name and support details shown across the console.">
+				<div style="display:flex;flex-direction:column;gap:0.9rem;max-width:32rem;">
+					<FormField label="Platform name" htmlFor="set-name">
+						<TextInput id="set-name" bind:value={settings.general.platform_name} />
+					</FormField>
+					<FormField label="Support email" htmlFor="set-email">
+						<TextInput id="set-email" type="email" bind:value={settings.general.support_email} />
+					</FormField>
+					<FormField label="Timezone" htmlFor="set-tz" hint="Used for daily order and revenue cut-offs.">
+						<TextInput id="set-tz" bind:value={settings.general.timezone} />
+					</FormField>
+					<FormField label="Default locale" htmlFor="set-locale">
+						<TextInput id="set-locale" bind:value={settings.general.default_locale} />
+					</FormField>
+				</div>
+				{#snippet footer()}
+					<button type="button" class="btn btn-primary" disabled={saving} onclick={saveGeneral}>
+						{saving ? 'Saving…' : 'Save changes'}
+					</button>
+				{/snippet}
+			</SettingsPanel>
+		{:else if tab === 'email'}
+			<ServiceConfigPanel service="SMTP" initialView={getConfig('SMTP')} />
 		{:else if tab === 'storage'}
-			<ServiceConfigPanel service="STORAGE" />
+			<ServiceConfigPanel service="STORAGE" initialView={getConfig('STORAGE')} />
 		{:else if tab === 'ai'}
-			<ServiceConfigPanel service="AI" />
+			<ServiceConfigPanel service="AI" initialView={getConfig('AI')} />
 		{:else if tab === 'tenant-access'}
 			<TenantConfigTable />
 		{:else if tab === 'types'}
-				<SettingsPanel
-					title="Tenant types"
-					description="Business categories offered when onboarding. Deactivated types stay on existing tenants."
-				>
-					<div class="table-wrap">
-						<table class="table">
-							<thead>
+			<SettingsPanel
+				title="Tenant types"
+				description="Business categories offered when onboarding. Deactivated types stay on existing tenants."
+			>
+				<div class="table-wrap">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>Code</th>
+								<th>Label</th>
+								<th>Order</th>
+								<th>Status</th>
+								<th style="width:1%;"></th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each types as row (row.code)}
 								<tr>
-									<th>Code</th>
-									<th>Label</th>
-									<th>Order</th>
-									<th>Status</th>
-									<th style="width:1%;"></th>
+									<td><code class="mono">{row.code}</code></td>
+									<td>
+										<input
+											class="input"
+											style="max-width:14rem;"
+											bind:value={row.label}
+											aria-label="Label for {row.code}"
+										/>
+									</td>
+									<td class="num muted">{row.sort_order}</td>
+									<td>
+										<StatusBadge status={row.active ? 'ACTIVE' : 'INACTIVE'} />
+									</td>
+									<td>
+										<div style="display:flex;align-items:center;gap:0.5rem;">
+											<Switch bind:checked={row.active} label="" />
+											<button
+												type="button"
+												class="btn btn-ghost btn-sm"
+												onclick={() => saveType(row)}
+											>
+												Save
+											</button>
+										</div>
+									</td>
 								</tr>
-							</thead>
-							<tbody>
-								{#each types as row (row.code)}
-									<tr>
-										<td><code class="mono">{row.code}</code></td>
-										<td>
-											<input
-												class="input"
-												style="max-width:14rem;"
-												bind:value={row.label}
-												aria-label="Label for {row.code}"
-											/>
-										</td>
-										<td class="num muted">{row.sort_order}</td>
-										<td>
-											<StatusBadge status={row.active ? 'ACTIVE' : 'INACTIVE'} />
-										</td>
-										<td>
-											<div style="display:flex;align-items:center;gap:0.5rem;">
-												<Switch bind:checked={row.active} label="" />
-												<button
-													type="button"
-													class="btn btn-ghost btn-sm"
-													onclick={() => saveType(row)}
-												>
-													Save
-												</button>
-											</div>
-										</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
+							{/each}
+						</tbody>
+					</table>
+				</div>
 
-					<div
-						style="display:grid;gap:0.6rem;grid-template-columns:minmax(6rem,9rem) minmax(0,1fr) auto;align-items:end;margin-top:1.1rem;padding-top:1.1rem;border-top:1px solid var(--border);"
-					>
-						<FormField label="Code" htmlFor="nt-code">
-							<TextInput id="nt-code" bind:value={newCode} placeholder="MOMO" />
-						</FormField>
-						<FormField label="Label" htmlFor="nt-label">
-							<TextInput id="nt-label" bind:value={newLabel} placeholder="Momo" />
-						</FormField>
-						<button
-							type="button"
-							class="btn btn-primary"
-							disabled={saving || !newCode.trim() || !newLabel.trim()}
-							onclick={addType}
-						>
-							Add type
-						</button>
-					</div>
-				</SettingsPanel>
-			{:else if tab === 'security'}
-				<SettingsPanel title="Security" description="Password policy and session defaults for the whole platform.">
-					<div style="display:flex;flex-direction:column;gap:0.9rem;max-width:30rem;">
-						<FormField
-							label="Minimum password length"
-							htmlFor="set-pw-min"
-							hint="Applies to tenant admins and staff when they set a password."
-						>
-							<input
-								id="set-pw-min"
-								class="input"
-								type="number"
-								min="6"
-								bind:value={settings.security.password_min_length}
-							/>
-						</FormField>
-						<FormField
-							label="Invite link expiry (hours)"
-							htmlFor="set-invite"
-							hint="Setup links stop working after this period."
-						>
-							<input
-								id="set-invite"
-								class="input"
-								type="number"
-								min="1"
-								bind:value={settings.security.invite_expiry_hours}
-							/>
-						</FormField>
-						<FormField label="Session timeout (minutes)" htmlFor="set-session">
-							<input
-								id="set-session"
-								class="input"
-								type="number"
-								min="5"
-								bind:value={settings.security.session_timeout_minutes}
-							/>
-						</FormField>
-						<Switch
-							bind:checked={settings.security.require_mfa_for_admins}
-							label="Require MFA for admins"
-							hint="Enforcement is not wired up yet — this records the intent only."
-						/>
-					</div>
-					{#snippet footer()}
-						<button type="button" class="btn btn-primary" disabled={saving} onclick={saveSecurity}>
-							{saving ? 'Saving…' : 'Save changes'}
-						</button>
-					{/snippet}
-				</SettingsPanel>
-			{:else if tab === 'platform'}
-				<SettingsPanel
-					title="Platform"
-					description="Runtime flags. Domain and port are read from the environment."
+				<div
+					style="display:grid;gap:0.6rem;grid-template-columns:minmax(6rem,9rem) minmax(0,1fr) auto;align-items:end;margin-top:1.1rem;padding-top:1.1rem;border-top:1px solid var(--border);"
 				>
-					<dl class="dl" style="max-width:32rem;margin-bottom:1.1rem;">
-						<div><dt>Base domain</dt><dd class="mono">{settings.platform.base_domain}</dd></div>
-						<div><dt>Frontend port</dt><dd class="mono">{settings.platform.frontend_port ?? '—'}</dd></div>
-						<div><dt>Environment</dt><dd>{settings.app_env || '—'}</dd></div>
-					</dl>
-
-					<div style="display:flex;flex-direction:column;gap:0.85rem;max-width:32rem;">
-						<Switch
-							bind:checked={settings.platform.allow_self_serve}
-							label="Allow self-serve tenant signup"
-							hint="Lets businesses create their own account without a Super Admin."
+					<FormField label="Code" htmlFor="nt-code">
+						<TextInput id="nt-code" bind:value={newCode} placeholder="MOMO" />
+					</FormField>
+					<FormField label="Label" htmlFor="nt-label">
+						<TextInput id="nt-label" bind:value={newLabel} placeholder="Momo" />
+					</FormField>
+					<button
+						type="button"
+						class="btn btn-primary"
+						disabled={saving || !newCode.trim() || !newLabel.trim()}
+						onclick={addType}
+					>
+						Add type
+					</button>
+				</div>
+			</SettingsPanel>
+		{:else if tab === 'security'}
+			<SettingsPanel title="Security" description="Password policy and session defaults for the whole platform.">
+				<div style="display:flex;flex-direction:column;gap:0.9rem;max-width:30rem;">
+					<FormField
+						label="Minimum password length"
+						htmlFor="set-pw-min"
+						hint="Applies to tenant admins and staff when they set a password."
+					>
+						<input
+							id="set-pw-min"
+							class="input"
+							type="number"
+							min="6"
+							bind:value={settings.security.password_min_length}
 						/>
-						<Switch
-							bind:checked={settings.platform.maintenance_mode}
-							label="Maintenance mode"
-							hint="Hides tenant storefronts while you make platform changes."
+					</FormField>
+					<FormField
+						label="Invite link expiry (hours)"
+						htmlFor="set-invite"
+						hint="Setup links stop working after this period."
+					>
+						<input
+							id="set-invite"
+							class="input"
+							type="number"
+							min="1"
+							bind:value={settings.security.invite_expiry_hours}
 						/>
-					</div>
-					{#snippet footer()}
-						<button type="button" class="btn btn-primary" disabled={saving} onclick={savePlatform}>
-							{saving ? 'Saving…' : 'Save changes'}
-						</button>
-					{/snippet}
-				</SettingsPanel>
-			{:else}
-				<SettingsPanel title="Admin profile" description="Your Super Admin account and credentials.">
-					<dl class="dl" style="max-width:32rem;margin-bottom:1.25rem;">
-						<div><dt>Name</dt><dd>{profile?.name ?? '—'}</dd></div>
-						<div><dt>Email</dt><dd>{profile?.email ?? '—'}</dd></div>
-						<div><dt>Role</dt><dd>Super Admin</dd></div>
-					</dl>
+					</FormField>
+					<FormField label="Session timeout (minutes)" htmlFor="set-session">
+						<input
+							id="set-session"
+							class="input"
+							type="number"
+							min="5"
+							bind:value={settings.security.session_timeout_minutes}
+						/>
+					</FormField>
+					<Switch
+						bind:checked={settings.security.require_mfa_for_admins}
+						label="Require MFA for admins"
+						hint="Enforcement is not wired up yet — this records the intent only."
+					/>
+				</div>
+				{#snippet footer()}
+					<button type="button" class="btn btn-primary" disabled={saving} onclick={saveSecurity}>
+						{saving ? 'Saving…' : 'Save changes'}
+					</button>
+				{/snippet}
+			</SettingsPanel>
+		{:else if tab === 'platform'}
+			<SettingsPanel
+				title="Platform"
+				description="Runtime flags. Domain and port are read from the environment."
+			>
+				<dl class="dl" style="max-width:32rem;margin-bottom:1.1rem;">
+					<div><dt>Base domain</dt><dd class="mono">{settings.platform.base_domain}</dd></div>
+					<div><dt>Frontend port</dt><dd class="mono">{settings.platform.frontend_port ?? '—'}</dd></div>
+					<div><dt>Environment</dt><dd>{settings.app_env || '—'}</dd></div>
+				</dl>
 
-					<form style="max-width:22rem;" onsubmit={submitPassword}>
-						<p class="field-label" style="margin:0 0 0.6rem;">Change password</p>
-						<div style="display:flex;flex-direction:column;gap:0.85rem;">
-							<FormField label="Current password" htmlFor="cur-pw">
-								<TextInput id="cur-pw" type="password" bind:value={currentPassword} required />
-							</FormField>
-							<FormField label="New password" htmlFor="new-pw">
-								<TextInput id="new-pw" type="password" bind:value={newPassword} required />
-							</FormField>
-							<FormField label="Confirm new password" htmlFor="conf-pw">
-								<TextInput id="conf-pw" type="password" bind:value={confirmPassword} required />
-							</FormField>
-							<div>
-								<button type="submit" class="btn btn-primary" disabled={passwordSaving}>
-									{passwordSaving ? 'Updating…' : 'Update password'}
-								</button>
-							</div>
+				<div style="display:flex;flex-direction:column;gap:0.85rem;max-width:32rem;">
+					<Switch
+						bind:checked={settings.platform.allow_self_serve}
+						label="Allow self-serve tenant signup"
+						hint="Lets businesses create their own account without a Super Admin."
+					/>
+					<Switch
+						bind:checked={settings.platform.maintenance_mode}
+						label="Maintenance mode"
+						hint="Hides tenant storefronts while you make platform changes."
+					/>
+				</div>
+				{#snippet footer()}
+					<button type="button" class="btn btn-primary" disabled={saving} onclick={savePlatform}>
+						{saving ? 'Saving…' : 'Save changes'}
+					</button>
+				{/snippet}
+			</SettingsPanel>
+		{:else}
+			<SettingsPanel title="Admin profile" description="Your Super Admin account and credentials.">
+				<dl class="dl" style="max-width:32rem;margin-bottom:1.25rem;">
+					<div><dt>Name</dt><dd>{profile?.name ?? '—'}</dd></div>
+					<div><dt>Email</dt><dd>{profile?.email ?? '—'}</dd></div>
+					<div><dt>Role</dt><dd>Super Admin</dd></div>
+				</dl>
+
+				<form style="max-width:22rem;" onsubmit={submitPassword}>
+					<p class="field-label" style="margin:0 0 0.6rem;">Change password</p>
+					<div style="display:flex;flex-direction:column;gap:0.85rem;">
+						<FormField label="Current password" htmlFor="cur-pw">
+							<TextInput id="cur-pw" type="password" bind:value={currentPassword} required />
+						</FormField>
+						<FormField label="New password" htmlFor="new-pw">
+							<TextInput id="new-pw" type="password" bind:value={newPassword} required />
+						</FormField>
+						<FormField label="Confirm new password" htmlFor="conf-pw">
+							<TextInput id="conf-pw" type="password" bind:value={confirmPassword} required />
+						</FormField>
+						<div>
+							<button type="submit" class="btn btn-primary" disabled={passwordSaving}>
+								{passwordSaving ? 'Updating…' : 'Update password'}
+							</button>
 						</div>
-					</form>
-				</SettingsPanel>
-			{/if}
-		</div>
+					</div>
+				</form>
+			</SettingsPanel>
+		{/if}
 	</div>
-{/if}
+</div>

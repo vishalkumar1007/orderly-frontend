@@ -43,9 +43,17 @@
 		registerServiceWorker();
 	});
 
+	/**
+	 * Boolean, not the full pathname: navigating /shop → /shop/menu must not
+	 * re-fetch theme. An earlier effect tracked `$page.url.pathname` and hit
+	 * `/api/v1/tenant/theme` on every console navigation, which felt like the
+	 * whole shell was "loading" again even though Go answered quickly.
+	 */
+	const onShopConsole = $derived($page.url.pathname.startsWith('/shop'));
+
 	$effect(() => {
 		const kind = $page.data.hostKind;
-		const path = $page.url.pathname;
+		const shopConsole = onShopConsole;
 
 		// Platform + admin hosts own their own theme. Strip any tenant override
 		// so the Super Admin console never inherits a shop's brand.
@@ -57,17 +65,15 @@
 		let cancelled = false;
 		(async () => {
 			try {
-				// The admin areas have their own brand picker. Only the public
-				// storefront takes its colours from the storefront theme, and that
-				// arrives with the layout data — no extra request needed.
-				if (path.startsWith('/shop') || path.startsWith('/kitchen')) {
+				// Console appearance (admin brand) only applies on /shop/* routes.
+				// The public storefront uses --sf-* tokens from StoreRoot — never
+				// run applyBrandTheme on a storefront theme payload.
+				if (shopConsole) {
 					const theme = await api<BrandTheme>('/api/v1/tenant/theme');
 					if (!cancelled) applyBrandTheme(theme);
 					return;
 				}
-				if (storeConfig?.theme) return;
-				const store = await api<{ theme?: BrandTheme }>('/api/v1/public/store', {}, false);
-				if (!cancelled && store.theme) applyBrandTheme(store.theme);
+				clearBrandTheme();
 			} catch {
 				/* unpublished store or signed-out shop */
 			}
@@ -80,6 +86,14 @@
 
 <svelte:head>
 	<title>{documentTitle}</title>
+	<script>
+		// Initialize theme before first paint to prevent flash
+		(function() {
+			var stored = localStorage.getItem('orderly-theme');
+			var theme = stored === 'dark' || stored === 'light' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+			document.documentElement.dataset.theme = theme;
+		})();
+	</script>
 	<link rel="icon" href={storeConfig?.store?.favicon_url ?? favicon} />
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />

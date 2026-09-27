@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
 	import { useCart } from '$lib/storefront/cart-state.svelte';
+	import { lineKey } from '$lib/storefront/cart.svelte';
 	import ProductCard from '$lib/storefront/ProductCard.svelte';
 	import StoreHome from '$lib/storefront/StoreHome.svelte';
 	import type { StoreProduct } from '$lib/storefront/api';
@@ -20,6 +21,7 @@
 	const config = $derived(data.config);
 	const menu = $derived(data.menu);
 	const query = $derived($page.url.searchParams.get('q')?.trim() ?? '');
+	const layout = $derived(config?.theme?.product_layout ?? 'list');
 
 	const matches = $derived.by(() => {
 		if (!menu || !query) return null;
@@ -33,6 +35,10 @@
 
 	function add(product: StoreProduct) {
 		cart.add(product, 1);
+	}
+
+	function step(product: StoreProduct, delta: number) {
+		cart.step(lineKey(product.id, []), delta);
 	}
 </script>
 
@@ -72,19 +78,21 @@
 				<a class="sf-btn sf-btn-secondary" href="/menu">Browse the menu</a>
 			</div>
 		{:else}
-			<div class="sf-products" data-columns="true">
+			<div class="sf-products" data-layout={layout}>
 				{#each matches as product (product.id)}
 					<ProductCard
 						{product}
+						{layout}
 						currency={config.store.currency}
 						inCart={cart.quantityOf(product.id)}
 						orderable={config.ordering.enabled}
 						onadd={add}
+						onstep={step}
 					/>
 				{/each}
 			</div>
 		{/if}
 	</div>
 {:else}
-	<StoreHome {config} {menu} lines={cart.lines} onadd={add} />
+	<StoreHome {config} {menu} lines={cart.lines} onadd={add} onstep={step} />
 {/if}

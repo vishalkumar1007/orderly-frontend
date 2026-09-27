@@ -110,6 +110,32 @@ for path in /shop/login /shop /shop/storefront \
   check "$path" "200" "no"
 done
 
+# ---------------------------------------------------------------------------
+# The sign-in page must be branded in its very first frame.
+#
+# It renders precisely when nobody is signed in, so it cannot read the
+# authenticated tenant API. If the brand stops reaching it the page still renders
+# and still returns 200 — it just comes out the platform's indigo on an orange
+# shop, which no status check would ever notice.
+# ---------------------------------------------------------------------------
+if [ "$EXPECT_TENANT" != "0" ]; then
+  curl -s -o "$OUT/login.html" -m 30 -H "Host: $HOST" "$APP/shop/login"
+  # Scoped to the element's own style attribute. A whole-file grep would happily
+  # report the stylesheet's default indigo and look like it had found the brand.
+  brand=$(grep -oE '<(main|div)[^>]*style="[^"]*--accent:[^;"]*' "$OUT/login.html" |
+    head -1 | grep -oE '\-\-accent:[^;"]*' | head -1)
+  if [ -n "$brand" ]; then
+    printf '%-32s %-5s %-9s %s\n' '/shop/login (brand)' "200" "-" "$brand in the first frame"
+  else
+    FAILED=$((FAILED + 1))
+    printf '%-32s %-5s %-9s %s\n' '/shop/login (brand)' "200" "-" "no --accent in the first frame"
+    note ""
+    note "The sign-in page is not picking up the shop's brand. It has no token, so it"
+    note "reads GET /api/v1/public/theme during SSR and writes the tokens onto its"
+    note "root element. Check that endpoint still returns this shop's theme."
+  fi
+fi
+
 rm -rf "$OUT"
 printf '%s\n' '--------------------------------------------------------------------------'
 if [ "$EXPECT_TENANT" = "0" ]; then

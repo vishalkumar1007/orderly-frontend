@@ -36,7 +36,7 @@ const LIVE = new Set(STAGES.map((s) => s.key));
 /**
  * Shared live order board.
  *
- * `/shop/orders` and `/kitchen` are two views of the same data, so they share
+ * `/shop/orders` and `/shop/kitchen` are two views of the same data, so they share
  * one poller instead of each hitting the API on their own timer. Polling is
  * reference-counted (stops when no screen is showing it) and pauses while the
  * tab is hidden, which matters a lot for operators on phones.
