@@ -47,7 +47,7 @@ if [ "$probe" != "200" ]; then
     note "empty state renders without errors:"
     note ""
     note "  http://localhost:5173/superadmin/login   (first run: creates the Super Admin)"
-    note "  http://localhost:5173/superadmin/tenants/new"
+    note "  http://localhost:5173/superadmin/businesses/new"
     note ""
     note "Every route below would otherwise pass while rendering an empty page."
     rm -rf "$OUT"
@@ -83,6 +83,35 @@ check() {
   printf '%-32s %-5s %-9s %s\n' "$path" "$code" "$size" "$title"
 }
 
+# moved <old path> <where it should end up>
+#
+# A path that used to be a screen must still land on the screen that replaced
+# it. Whether the hop happens on the server (302) or in the browser (a shell
+# whose load redirects) depends on whether an ancestor layout opted out of SSR,
+# so this follows redirects and asserts where it stopped instead of asserting a
+# status code that is really a fact about someone else's +layout.ts.
+moved() {
+  path="$1"
+  want="$2"
+  code=$(curl -sL -o "$OUT/moved.html" -w '%{http_code}' -m 30 -H "Host: $HOST" "$APP$path")
+  final=$(curl -sL -o /dev/null -w '%{url_effective}' -m 30 -H "Host: $HOST" "$APP$path")
+  # curl reports the resolved URL, whose authority is the address it dialled
+  # rather than the Host header we sent, so strip any scheme and authority.
+  landed=$(printf '%s' "$final" | sed 's|^[a-z]*://[^/]*||')
+  note_txt="-> $landed"
+  # An SSR-disabled ancestor answers with the shell and redirects in the
+  # browser, so the server-side landing spot is the path itself. That is not a
+  # failure — the only real failure is a status that is not 200.
+  if [ "$code" != "200" ]; then
+    FAILED=$((FAILED + 1))
+    note_txt="$note_txt  <-- expected 200, got $code"
+  elif [ "$landed" != "$want" ] && [ "$landed" != "$path" ]; then
+    FAILED=$((FAILED + 1))
+    note_txt="$note_txt  <-- expected $want"
+  fi
+  printf '%-32s %-5s %-9s %s\n' "$path" "$code" "-" "$note_txt"
+}
+
 # Customer storefront.
 for path in '/' '/menu' '/menu?q=momo' '/menu?q=zzzz' '/cart' '/checkout' '/orders' \
             '/profile' '/login' '/login?next=%2Fcheckout' '/verify-otp' '/order/1' \
@@ -101,21 +130,89 @@ done
 
 # Admin storefront control. One entry per screen, so a screen that fails to
 # compile or throws during load is named rather than hidden behind a group.
-for path in /shop/login /shop /shop/storefront \
+for path in /shop/login /shop \
             /shop/customize \
             /shop/customize/branding /shop/customize/theme \
             /shop/customize/homepage /shop/customize/login \
-            /shop/storefront/branding /shop/storefront/theme \
-            /shop/storefront/homepage /shop/storefront/store-info \
-            /shop/storefront/login \
+            /shop/storefront/hours \
             /shop/storefront/qr /shop/storefront/preview \
-            /shop/organization /shop/organization/hours \
-            /shop/organization/payments /shop/organization/workflow \
-            /shop/settings /shop/settings/integrations \
-            /shop/settings/integrations/smtp \
-            /shop/settings/integrations/storage \
-            /shop/settings/integrations/ai; do
+            /shop/payments /shop/settings \
+            /shop/menu /shop/customers /shop/staff \
+            /shop/orders /shop/kitchen /shop/live /shop/setup \
+            /shop/iam /shop/order-history /shop/activity; do
   check "$path" "200" "no"
+done
+
+# ---------------------------------------------------------------------------
+# Paths that used to be screens.
+#
+# Settings absorbed its sections, opening hours moved to the storefront and
+# payments got its own destination. Every old path is somebody's bookmark, so
+# each one has to land on its replacement rather than 404.
+# ---------------------------------------------------------------------------
+moved /shop/brand                         '/shop/settings?section=appearance'
+moved /shop/integrations                  '/shop/settings?section=integrations'
+moved /shop/notifications                 '/shop/settings?section=notifications'
+moved /shop/settings/business-profile     '/shop/settings?section=business'
+moved /shop/settings/notifications        '/shop/settings?section=notifications'
+moved /shop/settings/integrations         '/shop/settings?section=integrations'
+moved /shop/settings/integrations/smtp    '/shop/settings?section=integrations&service=SMTP'
+moved /shop/settings/integrations/storage '/shop/settings?section=integrations&service=STORAGE'
+moved /shop/settings/integrations/ai      '/shop/settings?section=integrations&service=AI'
+moved /shop/settings/smtp                 '/shop/settings?section=integrations&service=SMTP'
+moved /shop/organization                  '/shop/settings'
+moved /shop/organization/hours            '/shop/storefront/hours'
+moved /shop/organization/payments         '/shop/payments'
+moved /shop/organization/workflow         '/shop/settings?section=workflow'
+moved /shop/storefront                    '/shop/customize'
+moved /shop/storefront/branding           '/shop/customize/branding'
+moved /shop/storefront/theme              '/shop/customize/theme'
+moved /shop/storefront/homepage           '/shop/customize/homepage'
+moved /shop/storefront/login              '/shop/customize/login'
+moved /shop/storefront/store-info         '/shop/settings?section=business'
+moved /shop/storefront/payments           '/shop/payments'
+moved /shop/storefront/workflow           '/shop/settings?section=workflow'
+
+# ---------------------------------------------------------------------------
+# The console on the wrong host.
+#
+# The business console lives on a business's own subdomain. Reached on the
+# platform host it must land on a sign-in page — and the sign-in page is itself
+# under /shop, so a guard that redirects it too makes the layout redirect to a
+# route that re-runs the guard. That loops until the browser gives up with
+# ERR_TOO_MANY_REDIRECTS, which is not a status code any per-route check would
+# ever notice: every individual hop is a perfectly good 302.
+#
+# curl stops after --max-redirs and exits 47, so the hop count is the assertion.
+# ---------------------------------------------------------------------------
+note ""
+printf '%-32s %-5s %-9s %s\n' 'WRONG-HOST' STATUS HOPS RESULT
+printf '%s\n' '--------------------------------------------------------------------------'
+
+lands() {
+  wrong_host="$1"
+  path="$2"
+  read -r code hops final <<EOF
+$(curl -sL -o /dev/null --max-redirs 10 -m 30 -H "Host: $wrong_host" \
+    -w '%{http_code} %{num_redirects} %{url_effective}' "$APP$path" 2>/dev/null || echo "000 99 loop")
+EOF
+  landed=$(printf '%s' "$final" | sed 's|^[a-z]*://[^/]*||')
+  result="-> $landed"
+  if [ "$hops" -ge 10 ] || [ "$code" = "000" ]; then
+    FAILED=$((FAILED + 1))
+    result="redirect loop  <-- the console must not bounce forever off the wrong host"
+  elif [ "$code" != "200" ]; then
+    FAILED=$((FAILED + 1))
+    result="$result  <-- expected 200, got $code"
+  fi
+  printf '%-32s %-5s %-9s %s\n' "$wrong_host$path" "$code" "$hops" "$result"
+}
+
+PLATFORM_HOST="${PLATFORM_HOST:-localhost:5173}"
+CONSOLE_HOST="${CONSOLE_HOST:-admin.localhost:5173}"
+for path in /shop /shop/login /shop/menu /shop/orders; do
+  lands "$PLATFORM_HOST" "$path"
+  lands "$CONSOLE_HOST" "$path"
 done
 
 # ---------------------------------------------------------------------------

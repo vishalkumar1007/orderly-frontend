@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { authErrorMessage, errorLines } from '$lib/admin/errors';
 	import { goto } from '$app/navigation';
 	import { adminSetup, adminSetupStatus } from '$lib/auth';
 	import AuthLayout from './AuthLayout.svelte';
@@ -21,10 +22,7 @@
 				return;
 			}
 		} catch (err) {
-			error =
-				err instanceof Error
-					? err.message
-					: 'Could not check setup status. Is the API running? (make run in orderly-backend)';
+			error = `${errorLines(err, 'check whether this platform needs setting up').detail} If the API is not running, start it with \`make run\` in orderly-backend.`;
 		} finally {
 			checking = false;
 		}
@@ -47,7 +45,7 @@
 			toast.success('Super admin account created. Sign in to continue.');
 			goto('/superadmin/login', { replaceState: true });
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Setup failed';
+			error = authErrorMessage(err, 'create the account');
 		} finally {
 			loading = false;
 		}

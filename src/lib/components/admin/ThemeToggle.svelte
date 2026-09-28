@@ -1,16 +1,36 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { applyTheme, resolveInitialTheme, toggleTheme, type ThemeMode } from '$lib/theme';
+	import { consoleAppearance, setColorMode } from '$lib/appearance.svelte';
+	import { resolveInitialTheme, type ThemeMode } from '$lib/theme';
 
-	let mode = $state<ThemeMode>('light');
+	/**
+	 * Light / dark.
+	 *
+	 * This used to write `data-theme` and a `localStorage` key of its own, which
+	 * made it a second theme system: it disagreed with the colour mode saved on
+	 * the account the moment either changed, and which one you saw depended on
+	 * whether you had reloaded. It now sets the signed-in person's own
+	 * `color_mode`, so the toggle, the Appearance screen and the next sign-in
+	 * are the same setting.
+	 *
+	 * Signed out — the storefront, a sign-in page — there is no account to write
+	 * to, and `setColorMode` falls back to flipping the attribute for the
+	 * session.
+	 */
+	let busy = $state(false);
 
-	onMount(() => {
-		mode = resolveInitialTheme();
-		applyTheme(mode);
-	});
+	/** The appearance is authoritative once loaded; before that, the cache is. */
+	const mode = $derived<ThemeMode>(
+		consoleAppearance.appearance ? consoleAppearance.mode : resolveInitialTheme()
+	);
 
-	function onToggle() {
-		mode = toggleTheme(mode);
+	async function onToggle() {
+		if (busy) return;
+		busy = true;
+		try {
+			await setColorMode(mode === 'light' ? 'dark' : 'light');
+		} finally {
+			busy = false;
+		}
 	}
 </script>
 
@@ -18,6 +38,7 @@
 	type="button"
 	class="btn btn-ghost theme-toggle"
 	aria-label={mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+	aria-pressed={mode === 'dark'}
 	title={mode === 'light' ? 'Dark mode' : 'Light mode'}
 	onclick={onToggle}
 >
@@ -42,10 +63,3 @@
 		</svg>
 	{/if}
 </button>
-
-<style>
-	.theme-toggle {
-		padding: 0.4rem 0.55rem;
-		min-width: 2.25rem;
-	}
-</style>

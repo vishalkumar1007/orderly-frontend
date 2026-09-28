@@ -23,6 +23,7 @@
 	import { toast } from '$lib/components/admin/toast';
 	import { formatCurrency } from '$lib/admin/format';
 	import { orderBoard } from '$lib/tenant/orders.svelte';
+	import type { SetupStepKey } from '$lib/tenant/dashboardCache.svelte';
 	import {
 		getDashboardSnapshot,
 		loadDashboardSnapshot,
@@ -31,6 +32,49 @@
 		type DashboardStats as Stats,
 		type DashboardStoreLink as StoreLink
 	} from '$lib/tenant/dashboardCache.svelte';
+	import { quickActions, terms } from '$lib/tenant/businessType.svelte';
+
+	const t = $derived(terms());
+
+	/**
+	 * Icons for the destinations a quick action can point at. Keyed by path so
+	 * a type can reorder or reword its shortcuts in `businessTypes.ts` without
+	 * touching this screen, and a path with no icon still renders.
+	 */
+	const ACTION_ICONS: Record<string, typeof ArrowRight> = {
+		'/shop/orders': ClipboardList,
+		'/shop/kitchen': ChefHat,
+		'/shop/menu': UtensilsCrossed,
+		'/shop/storefront/qr': QrCode
+	};
+
+	/**
+	 * The dashboard's shortcuts, in the order this kind of business needs them:
+	 * a cafe opens the counter first, a grocer the packing queue. The QR code is
+	 * appended for everyone because sharing the store is not type-specific.
+	 *
+	 * Live counts are layered on top, so the card says "3 active" rather than
+	 * repeating its own label.
+	 */
+	const quickLinks = $derived(
+		[...quickActions(), { label: 'QR code', href: '/shop/storefront/qr' }].map((a) => ({
+			...a,
+			icon: ACTION_ICONS[a.href.split('?')[0]] ?? ArrowRight,
+			hint: hintFor(a.href)
+		}))
+	);
+
+	function hintFor(href: string): string {
+		if (href.startsWith('/shop/orders')) {
+			return orderBoard.activeCount > 0
+				? `${orderBoard.activeCount} active`
+				: `View the ${t.order.toLowerCase()} board`;
+		}
+		if (href.startsWith('/shop/kitchen')) return `Prep ${t.ticket.toLowerCase()}s`;
+		if (href.startsWith('/shop/menu')) return `${t.items} & availability`;
+		if (href.startsWith('/shop/storefront/qr')) return 'Share your store';
+		return 'Open';
+	}
 	import {
 		fetchTenantAnalytics,
 		percentChange,
@@ -52,11 +96,18 @@
 		{ v: '90d', l: '90d' }
 	];
 
-	const CHECKLIST = [
-		{ key: 'menu' as const, label: 'Add products to your menu', href: '/shop/menu' },
-		{ key: 'payment' as const, label: 'Confirm payment methods', href: '/shop/organization/payments' },
-		{ key: 'qr' as const, label: 'Get your QR code', href: '/shop/storefront/qr' },
-		{ key: 'launch' as const, label: 'Publish your store', href: '/shop/setup' }
+	/**
+	 * The short form of the launch checklist. The full list, with its optional
+	 * steps, lives on /shop/setup — this is the nudge, not the workspace, so it
+	 * carries only what stands between the shop and its first order.
+	 */
+	const CHECKLIST: { key: SetupStepKey; label: string; href: string }[] = [
+		{ key: 'business_info', label: 'Complete your business details', href: '/shop/settings?section=business' },
+		{ key: 'menu', label: 'Add products to your menu', href: '/shop/menu' },
+		{ key: 'payment', label: 'Confirm payment methods', href: '/shop/payments' },
+		{ key: 'hours', label: 'Set your operating hours', href: '/shop/storefront/hours' },
+		{ key: 'storefront', label: 'Set up your storefront', href: '/shop/customize' },
+		{ key: 'launch', label: 'Publish your store', href: '/shop/setup' }
 	];
 
 	const seed = getDashboardSnapshot();
@@ -91,6 +142,34 @@
 	const periodLabel = $derived(
 		({ '7d': '7 days', '14d': '14 days', '30d': '30 days', '90d': '90 days' } as const)[window]
 	);
+
+	/** Minutes read as a duration, or a dash when nothing has been measured. */
+	function minutesLabel(value: number | undefined): string {
+		if (!value || value <= 0) return '—';
+		if (value < 1) return 'under a minute';
+		if (value < 60) return `${Math.round(value)} min`;
+		const hours = Math.floor(value / 60);
+		const minutes = Math.round(value % 60);
+		return minutes === 0 ? `${hours} hr` : `${hours} hr ${minutes} min`;
+	}
+
+	const prepLabel = $derived(minutesLabel(analytics?.median_prep_minutes));
+	const acceptLabel = $derived(minutesLabel(analytics?.avg_accept_minutes));
+
+	/** Human label for a payment method, including the unrecorded case. */
+	function payLabel(method: string): string {
+		switch (method) {
+			case 'ONLINE':
+				return 'Online payment';
+			case 'CASH':
+				return 'Cash';
+			case 'UNRECORDED':
+				return 'No payment recorded';
+			default:
+				return method.charAt(0) + method.slice(1).toLowerCase();
+		}
+	}
+
 
 	/** Compare first half vs second half of the selected window. */
 	const periodTrend = $derived.by(() => {
@@ -264,7 +343,7 @@
 		{:else if stats}
 			<div class="dash-today">
 				<div class="dash-stat accent">
-					<span class="dash-stat-label">Orders</span>
+					<span class="dash-stat-label">{t.orders}</span>
 					<strong class="dash-stat-value">{stats.orders_today}</strong>
 					<span class="dash-stat-hint">{stats.completed_today} completed</span>
 				</div>
@@ -276,10 +355,10 @@
 				<a class="dash-stat" class:hot={stats.pending_orders > 0} href="/shop/orders">
 					<span class="dash-stat-label">Needs action</span>
 					<strong class="dash-stat-value">{stats.pending_orders}</strong>
-					<span class="dash-stat-hint">new orders →</span>
+					<span class="dash-stat-hint">new {t.orders.toLowerCase()} →</span>
 				</a>
 				<a class="dash-stat" href="/shop/kitchen">
-					<span class="dash-stat-label">In kitchen</span>
+					<span class="dash-stat-label">In {t.station.toLowerCase()}</span>
 					<strong class="dash-stat-value">{stats.preparing_orders + stats.ready_orders}</strong>
 					<span class="dash-stat-hint">{stats.ready_orders} ready →</span>
 				</a>
@@ -294,42 +373,19 @@
 			<p>Jump to the work that matters</p>
 		</div>
 		<div class="dash-actions">
-			<a class="dash-action" href="/shop/orders">
-				<span class="dash-action-icon"><ClipboardList size={18} strokeWidth={1.85} /></span>
-				<span class="dash-action-body">
-					<strong>Selling</strong>
-					<span
-						>{orderBoard.activeCount > 0
-							? `${orderBoard.activeCount} active`
-							: 'View order board'}</span
-					>
-				</span>
-				<ArrowRight size={14} strokeWidth={2} />
-			</a>
-			<a class="dash-action" href="/shop/menu">
-				<span class="dash-action-icon"><UtensilsCrossed size={18} strokeWidth={1.85} /></span>
-				<span class="dash-action-body">
-					<strong>Menu</strong>
-					<span>Products & availability</span>
-				</span>
-				<ArrowRight size={14} strokeWidth={2} />
-			</a>
-			<a class="dash-action" href="/shop/kitchen">
-				<span class="dash-action-icon"><ChefHat size={18} strokeWidth={1.85} /></span>
-				<span class="dash-action-body">
-					<strong>Kitchen</strong>
-					<span>Prep tickets</span>
-				</span>
-				<ArrowRight size={14} strokeWidth={2} />
-			</a>
-			<a class="dash-action" href="/shop/storefront/qr">
-				<span class="dash-action-icon"><QrCode size={18} strokeWidth={1.85} /></span>
-				<span class="dash-action-body">
-					<strong>QR code</strong>
-					<span>Share your store</span>
-				</span>
-				<ArrowRight size={14} strokeWidth={2} />
-			</a>
+			{#each quickLinks as action (action.href)}
+				{@const Icon = action.icon}
+				<a class="dash-action" href={action.href}>
+					<span class="dash-action-icon">
+						<Icon size={18} strokeWidth={1.85} />
+					</span>
+					<span class="dash-action-body">
+						<strong>{action.label}</strong>
+						<span>{action.hint}</span>
+					</span>
+					<ArrowRight size={14} strokeWidth={2} />
+				</a>
+			{/each}
 		</div>
 	</section>
 
@@ -431,6 +487,37 @@
 			/>
 		</div>
 
+		<div class="dash-metrics">
+			<MetricCard
+				label="Typical prep time"
+				value={analyticsLoading ? '—' : prepLabel}
+				hint={analytics && analytics.avg_prep_minutes > 0
+					? `${analytics.avg_prep_minutes} min on average`
+					: 'From accepted to ready'}
+				loading={analyticsLoading}
+			/>
+			<MetricCard
+				label="Time to accept"
+				value={analyticsLoading ? '—' : acceptLabel}
+				hint="How long orders wait before you accept them"
+				loading={analyticsLoading}
+			/>
+			<MetricCard
+				label="Completion rate"
+				value={analyticsLoading ? '—' : `${analytics?.completion_rate ?? 0}%`}
+				hint={`Across ${periodLabel}`}
+				loading={analyticsLoading}
+			/>
+			<MetricCard
+				label="Cancellations"
+				value={analyticsLoading ? '—' : `${analytics?.cancellation_rate ?? 0}%`}
+				hint={analytics && analytics.cancelled_today > 0
+					? `${analytics.cancelled_today} today`
+					: 'None today'}
+				loading={analyticsLoading}
+			/>
+		</div>
+
 		<TrendAreaChart
 			title="Trend"
 			data={analytics?.orders_by_day ?? []}
@@ -443,11 +530,55 @@
 			<HourlyBarsChart data={analytics?.orders_by_hour ?? []} loading={analyticsLoading} />
 		</div>
 
-		<TopProductsPanel
-			data={analytics?.top_products ?? []}
-			loading={analyticsLoading}
-			formatMoney={money}
-		/>
+		<div class="dash-charts">
+			<TopProductsPanel
+				data={analytics?.top_products ?? []}
+				loading={analyticsLoading}
+				formatMoney={money}
+			/>
+			<TopProductsPanel
+				title="Best categories"
+				emptyLabel="No category sales in this period yet"
+				data={analytics?.top_categories ?? []}
+				loading={analyticsLoading}
+				formatMoney={money}
+			/>
+		</div>
+
+		<section class="panel pay-mix">
+			<div class="bento-head">
+				<h3 class="panel-h" style="margin:0;">How customers paid</h3>
+				<span class="bento-pill">{periodLabel}</span>
+			</div>
+			{#if analyticsLoading}
+				<Skeleton height="6rem" />
+			{:else if (analytics?.payment_mix ?? []).length === 0}
+				<p class="muted" style="font-size:0.82rem;margin:0;">
+					No completed orders in this period yet.
+				</p>
+			{:else}
+				<ul class="pay-rows">
+					{#each analytics?.payment_mix ?? [] as row (row.method + row.status)}
+						<li>
+							<div class="pay-top">
+								<strong>{payLabel(row.method)}</strong>
+								<span class="muted">
+									{row.order_count} order{row.order_count === 1 ? '' : 's'} · {money(row.revenue)}
+								</span>
+							</div>
+							<div class="pay-bar" aria-hidden="true">
+								<i style={`width:${Math.max(row.share, 2)}%;`}></i>
+							</div>
+							<span class="pay-share">{row.share}%</span>
+						</li>
+					{/each}
+				</ul>
+				<p class="field-hint" style="margin:0.75rem 0 0;">
+					Payment methods are set under
+					<a href="/shop/payments">Payments</a>.
+				</p>
+			{/if}
+		</section>
 	</section>
 
 	{#if !loading && stats && stats.orders_today === 0 && store?.is_published}
@@ -465,6 +596,68 @@
 </div>
 
 <style>
+	.pay-mix {
+		margin-top: 0.85rem;
+	}
+
+	.pay-rows {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: 0.75rem;
+	}
+
+	.pay-rows li {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 3rem;
+		grid-template-areas: 'top share' 'bar share';
+		align-items: center;
+		gap: 0.3rem 0.75rem;
+	}
+
+	.pay-top {
+		grid-area: top;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 0.5rem;
+		font-size: 0.82rem;
+	}
+
+	.pay-top strong {
+		font-weight: 600;
+	}
+
+	.pay-top .muted {
+		font-size: 0.75rem;
+	}
+
+	.pay-bar {
+		grid-area: bar;
+		height: 0.4rem;
+		border-radius: 999px;
+		background: var(--surface-3);
+		overflow: hidden;
+	}
+
+	.pay-bar i {
+		display: block;
+		height: 100%;
+		border-radius: 999px;
+		background: linear-gradient(90deg, var(--accent), var(--accent-2));
+	}
+
+	.pay-share {
+		grid-area: share;
+		text-align: right;
+		font-size: 0.8rem;
+		font-weight: 650;
+		font-variant-numeric: tabular-nums;
+		color: var(--text-2);
+	}
+
 	.dash {
 		display: flex;
 		flex-direction: column;
@@ -479,8 +672,11 @@
 		flex-direction: column;
 		gap: 1rem;
 		padding: 1.1rem 1.15rem;
+		/* A whisper, not a wash. `--accent-soft` here tinted the whole hero card
+		   in the brand colour, which is most of what made a saturated theme
+		   read as "the UI went dark". */
 		background:
-			radial-gradient(120% 140% at 100% 0%, var(--accent-soft) 0%, transparent 55%),
+			radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--accent) 5%, transparent) 0%, transparent 55%),
 			var(--surface);
 	}
 
@@ -638,7 +834,7 @@
 	}
 
 	.dash-stat.accent .dash-stat-value {
-		color: var(--accent-dark);
+		color: var(--icon-fg);
 	}
 
 	.dash-stat.hot {
@@ -700,8 +896,8 @@
 		display: grid;
 		place-items: center;
 		border-radius: 9px;
-		background: var(--accent-soft);
-		color: var(--accent-dark);
+		background: var(--icon-bg);
+		color: var(--icon-fg);
 	}
 
 	.dash-action-body {

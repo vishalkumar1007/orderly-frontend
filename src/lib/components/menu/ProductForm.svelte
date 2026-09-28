@@ -8,6 +8,11 @@
 	import ImageUpload from '$lib/components/menu/ImageUpload.svelte';
 	import OptionGroupsEditor from '$lib/components/menu/OptionGroupsEditor.svelte';
 	import type { MenuCategory, MenuProduct, OptionGroup, ProductInput } from '$lib/tenant/menu';
+	import { hasBusinessModule, terms } from '$lib/tenant/businessType.svelte';
+
+	// The catalogue's nouns come from the business type, not from this form.
+	const t = $derived(terms());
+
 
 	let {
 		categories,
@@ -47,6 +52,18 @@
 		editing?.option_groups?.length
 			? structuredClone(editing.option_groups)
 			: []
+	);
+
+	/**
+	 * Whether to offer option groups at all.
+	 *
+	 * A grocer selling a packet of rice has no sizes or toppings, so the editor
+	 * is noise. It still appears when the item already has options: a business
+	 * that changed type, or had options added before, must be able to see and
+	 * remove them rather than find them stranded behind a hidden control.
+	 */
+	const showOptions = $derived(
+		hasBusinessModule('variants') || hasBusinessModule('addons') || optionGroups.length > 0
 	);
 	let showMore = $state(
 		Boolean(
@@ -120,15 +137,15 @@
 </script>
 
 <form class="product-form" onsubmit={handleSubmit}>
-	<FormField label="Product image" hint="Optional · JPEG, PNG, or WebP · max 5MB · square 800×800 works best">
+	<FormField label={`${t.item} image`} hint="Optional · JPEG, PNG, or WebP · max 5MB · square 800×800 works best">
 		<ImageUpload bind:url={imageUrl} onupload={() => {}} disabled={saving} />
 	</FormField>
 
-	<FormField label="Product name" htmlFor="pf-name" required>
+	<FormField label={`${t.item} name`} htmlFor="pf-name" required>
 		<TextInput
 			id="pf-name"
 			bind:value={name}
-			placeholder="Product name"
+			placeholder={`${t.item} name`}
 			autocomplete="off"
 			required
 		/>
@@ -138,7 +155,7 @@
 		<TextArea id="pf-desc" rows={2} bind:value={description} placeholder="Short description for customers" />
 	</FormField>
 
-	<FormField label="Category" htmlFor="pf-cat" required>
+	<FormField label={t.group} htmlFor="pf-cat" required>
 		<SelectField
 			id="pf-cat"
 			bind:value={categoryId}
@@ -228,9 +245,16 @@
 				</button>
 			</div>
 
-			<FormField label="Options / Add-ons" hint="Sizes, toppings, extras — optional">
-				<OptionGroupsEditor bind:groups={optionGroups} disabled={saving} {currencySymbol} />
-			</FormField>
+			{#if showOptions}
+				<FormField
+					label={hasBusinessModule('variants') && !hasBusinessModule('addons')
+						? 'Sizes & variants'
+						: 'Options / Add-ons'}
+					hint="Sizes, toppings, extras — optional"
+				>
+					<OptionGroupsEditor bind:groups={optionGroups} disabled={saving} {currencySymbol} />
+				</FormField>
+			{/if}
 		</div>
 	{/if}
 
@@ -241,7 +265,7 @@
 	<div class="product-form-actions">
 		<button class="btn btn-ghost" type="button" onclick={onclose} disabled={saving}>Cancel</button>
 		<button class="btn btn-primary" type="submit" disabled={saving}>
-			{saving ? 'Saving…' : editing ? 'Save product' : 'Save product'}
+			{saving ? 'Saving…' : `Save ${t.item.toLowerCase()}`}
 		</button>
 	</div>
 </form>

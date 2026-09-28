@@ -5,7 +5,17 @@ export type AnalyticsWindow = '7d' | '14d' | '30d' | '90d';
 export type DayPoint = { day: string; order_count: number; revenue: number };
 export type HourPoint = { hour: number; order_count: number };
 export type ProductPoint = { name: string; units: number; revenue: number };
+export type CategoryPoint = { name: string; units: number; revenue: number };
 export type StatusPoint = { status: string; count: number };
+
+/** One way customers paid over the window, with its share of orders. */
+export type PaymentPoint = {
+	method: string;
+	status: string;
+	order_count: number;
+	revenue: number;
+	share: number;
+};
 
 export type TenantAnalytics = {
 	window: AnalyticsWindow;
@@ -31,9 +41,22 @@ export type TenantAnalytics = {
 	products_available: number;
 	products_unavailable: number;
 
+	/**
+	 * Operational quality. Median prep time is the headline because one ticket
+	 * left open all afternoon would drag the mean somewhere unrecognisable.
+	 */
+	median_prep_minutes: number;
+	avg_prep_minutes: number;
+	avg_accept_minutes: number;
+	completion_rate: number;
+	cancellation_rate: number;
+	cancelled_today: number;
+
 	orders_by_day: DayPoint[];
 	orders_by_hour: HourPoint[];
 	top_products: ProductPoint[];
+	top_categories: CategoryPoint[];
+	payment_mix: PaymentPoint[];
 	status_breakdown: StatusPoint[];
 };
 

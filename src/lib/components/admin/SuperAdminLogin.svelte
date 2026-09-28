@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { authErrorMessage } from '$lib/admin/errors';
 	import { goto } from '$app/navigation';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 	import Eye from '@lucide/svelte/icons/eye';
@@ -63,7 +64,7 @@
 			}
 			goto(homeForRole(user.role, 'admin'));
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Login failed';
+			error = authErrorMessage(err, 'sign in');
 		} finally {
 			loading = false;
 		}

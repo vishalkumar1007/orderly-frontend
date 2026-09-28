@@ -230,8 +230,8 @@
 		width: 3rem;
 		height: 3rem;
 		margin: 0 auto 0.25rem;
-		background: var(--accent-soft);
-		color: var(--accent-dark);
+		background: var(--icon-bg);
+		color: var(--icon-fg);
 		display: grid;
 		place-items: center;
 		border-radius: 999px;

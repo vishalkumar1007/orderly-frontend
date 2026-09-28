@@ -15,10 +15,10 @@
 
 	let {
 		store,
-		isOpen = $bindable(false)
+		open = $bindable(false)
 	}: {
 		store: StudioDraftStore;
-		isOpen: boolean;
+		open?: boolean;
 	} = $props();
 
 	let promptText = $state('');
@@ -52,13 +52,16 @@
 	function applyProposal() {
 		if (!proposal) return;
 		isApplied = true;
-		isOpen = false;
+		open = false;
 	}
 
 	function undoProposal() {
 		if (beforeDraft) {
 			store.draft = cloneConfig(beforeDraft);
-			store.persistToStorage();
+			// The draft lives on the server now, so undoing a proposal has to
+			// reach it — dropping it locally would leave the autosave to put
+			// the rejected suggestion back.
+			store.scheduleSave();
 		}
 		proposal = null;
 		isApplied = false;
@@ -68,11 +71,11 @@
 		if (proposal && !isApplied) {
 			undoProposal();
 		}
-		isOpen = false;
+		open = false;
 	}
 </script>
 
-{#if isOpen}
+{#if open}
 	<div
 		class="ai-modal-backdrop"
 		onclick={close}

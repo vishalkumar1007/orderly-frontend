@@ -3,17 +3,19 @@ import type { TenantAdmin, UserInviteResult } from '$lib/admin/types';
 
 export type ShopUser = TenantAdmin;
 
+import type { BusinessRole } from './iamApi';
+
 export type CreateShopUserPayload = {
 	name: string;
 	email: string;
 	phone?: string;
-	role: 'TENANT_ADMIN' | 'STAFF';
+	role: BusinessRole;
 };
 
 export type UpdateShopUserPayload = {
 	name?: string;
 	phone?: string;
-	role?: 'TENANT_ADMIN' | 'STAFF';
+	role?: BusinessRole;
 	status?: 'ACTIVE' | 'DISABLED';
 };
 

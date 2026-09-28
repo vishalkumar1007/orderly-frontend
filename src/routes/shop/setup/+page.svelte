@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { DashboardSetup, SetupStepKey } from '$lib/tenant/dashboardCache.svelte';
 	import { onMount } from 'svelte';
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import CircleDashed from '@lucide/svelte/icons/circle-dashed';
@@ -13,17 +14,7 @@
 	import StatusBadge from '$lib/components/admin/StatusBadge.svelte';
 	import { toast } from '$lib/components/admin/toast';
 
-	type Setup = {
-		setup_status: string;
-		is_published: boolean;
-		steps: {
-			business_info: boolean;
-			menu: boolean;
-			payment: boolean;
-			qr: boolean;
-			launch: boolean;
-		};
-	};
+	type Setup = DashboardSetup;
 
 	type StoreLink = { name: string; public_host: string; public_path: string; is_published: boolean };
 
@@ -33,17 +24,80 @@
 	let loading = $state(true);
 	let busy = $state(false);
 
-	const STEPS = [
-		{ key: 'business_info' as const, label: 'Business details', hint: 'Name, type and contact', href: '/shop' },
-		{ key: 'menu' as const, label: 'Your menu', hint: 'At least one item to sell', href: '/shop/menu' },
-		{ key: 'payment' as const, label: 'Payment methods', hint: 'How customers pay', href: '/shop/setup' },
-		{ key: 'qr' as const, label: 'QR & share link', hint: 'Get it in front of customers', href: '/shop/setup' },
-		{ key: 'launch' as const, label: 'Go live', hint: 'Publish your storefront', href: '/shop/setup' }
+	/**
+	 * The checklist, in the order it makes sense to work through. Each step
+	 * links to the screen that completes it — a checklist that cannot be acted
+	 * on from itself is just a list of chores.
+	 */
+	const STEPS: {
+		key: SetupStepKey;
+		label: string;
+		hint: string;
+		href: string;
+		optional?: boolean;
+	}[] = [
+		{
+			key: 'business_info',
+			label: 'Business details',
+			hint: 'Name, contact and address customers can see',
+			href: '/shop/settings?section=business'
+		},
+		{
+			key: 'menu',
+			label: 'Your menu',
+			hint: 'At least one category and one item customers can order',
+			href: '/shop/menu'
+		},
+		{
+			key: 'payment',
+			label: 'Payment methods',
+			hint: 'At least one way for customers to pay',
+			href: '/shop/payments'
+		},
+		{
+			key: 'hours',
+			label: 'Operating hours',
+			hint: 'When you accept orders',
+			href: '/shop/storefront/hours'
+		},
+		{
+			key: 'storefront',
+			label: 'Storefront',
+			hint: 'Branding, theme and homepage',
+			href: '/shop/customize'
+		},
+		{
+			key: 'staff',
+			label: 'Your team',
+			hint: 'Invite anyone who will work the counter',
+			href: '/shop/staff',
+			optional: true
+		},
+		{
+			key: 'launch',
+			label: 'Go live',
+			hint: 'Publish your storefront',
+			href: '/shop/setup'
+		}
 	];
 
-	const done = $derived(setup ? STEPS.filter((s) => setup!.steps[s.key]).length : 0);
-	const progress = $derived(Math.round((done / STEPS.length) * 100));
-	const canPublish = $derived(Boolean(setup && setup.steps.menu));
+	/** The steps the API says are mandatory, with a safe fallback. */
+	const required = $derived<SetupStepKey[]>(
+		setup?.required ?? ['business_info', 'menu', 'payment', 'hours', 'storefront']
+	);
+	const countable = $derived(STEPS.filter((s) => !s.optional));
+	const done = $derived(setup ? countable.filter((s) => setup!.steps[s.key]).length : 0);
+	const progress = $derived(Math.round((done / countable.length) * 100));
+	/** Publishing needs every required step, not just a menu. */
+	const missing = $derived(
+		setup ? required.filter((key) => !setup!.steps[key]) : required
+	);
+	const canPublish = $derived(Boolean(setup) && missing.length === 0);
+
+	/** The label for a step that is still outstanding, for the publish hint. */
+	function stepLabel(key: SetupStepKey): string {
+		return STEPS.find((s) => s.key === key)?.label ?? key;
+	}
 	const storefrontUrl = $derived(
 		store ? `http://${store.public_host}${store.public_path}` : ''
 	);
@@ -189,9 +243,10 @@
 				<Rocket size={15} strokeWidth={2.1} />
 				{busy ? 'Publishing…' : 'Publish store'}
 			</button>
-			{#if !canPublish}
+			{#if !canPublish && missing.length > 0}
 				<p class="field-hint" style="margin:0;">
-					Add at least one menu item before publishing.
+					Still to do before you can publish:
+					{missing.map(stepLabel).join(', ').toLowerCase()}.
 				</p>
 			{/if}
 		{/if}
@@ -213,7 +268,10 @@
 							{/if}
 						</span>
 						<span class="osh-step-main">
-							<span class="osh-step-label">{i + 1}. {s.label}</span>
+							<span class="osh-step-label">
+								{i + 1}. {s.label}
+								{#if s.optional}<span class="osh-step-optional">optional</span>{/if}
+							</span>
 							<span class="osh-step-hint">{s.hint}</span>
 						</span>
 						{#if isDone}
@@ -266,6 +324,18 @@
 {/if}
 
 <style>
+	.osh-step-optional {
+		margin-left: 0.4rem;
+		padding: 0.05rem 0.35rem;
+		border-radius: 999px;
+		background: var(--surface-3);
+		color: var(--text-3);
+		font-size: 0.62rem;
+		font-weight: 650;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
 	.osh-setup-hero {
 		display: flex;
 		flex-direction: column;

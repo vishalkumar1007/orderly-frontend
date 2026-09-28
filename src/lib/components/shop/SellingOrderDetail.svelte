@@ -202,8 +202,8 @@
 		display: inline-flex;
 		padding: 0.2rem 0.55rem;
 		border-radius: 999px;
-		background: var(--accent-soft, #eef2ff);
-		color: var(--accent-dark, #3730a3);
+		background: var(--icon-bg);
+		color: var(--icon-fg);
 		font-size: 0.72rem;
 		font-weight: 700;
 		text-transform: uppercase;

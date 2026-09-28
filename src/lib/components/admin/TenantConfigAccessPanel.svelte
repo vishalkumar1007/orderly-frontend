@@ -16,6 +16,7 @@
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
 	import StatusBadge from '$lib/components/admin/StatusBadge.svelte';
 	import Switch from '$lib/components/admin/Switch.svelte';
+	import { errorLines, errorMessage } from '$lib/admin/errors';
 	import { toast } from '$lib/components/admin/toast';
 
 	let {
@@ -40,7 +41,7 @@
 		try {
 			overview = await fetchTenantConfigOverview(tenantId);
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Could not load configuration access';
+			error = errorLines(err, 'load configuration access').detail;
 		} finally {
 			loading = false;
 		}
@@ -54,7 +55,7 @@
 			else toast.success(allow ? 'Access granted' : 'Access revoked');
 			await load();
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Could not change access');
+			toast.error(errorMessage(err, 'change this access'));
 		} finally {
 			busyService = '';
 		}
@@ -220,7 +221,7 @@
 	}
 
 	.src.platform {
-		color: var(--accent);
+		color: var(--icon-fg);
 	}
 
 	.row-toggle {

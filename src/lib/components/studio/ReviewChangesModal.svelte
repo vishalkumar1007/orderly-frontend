@@ -3,43 +3,36 @@
 	import Rocket from '@lucide/svelte/icons/rocket';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
-	import CheckCircle2 from '@lucide/svelte/icons/check-circle-2';
 	import AlertCircle from '@lucide/svelte/icons/alert-circle';
+	import CheckCircle2 from '@lucide/svelte/icons/check-circle-2';
 	import type { StudioDraftStore } from '$lib/storefront/studioDraft.svelte';
 
 	let {
 		store,
-		isOpen = $bindable(false)
+		open = $bindable(false),
+		onpublish,
+		ondiscard
 	}: {
 		store: StudioDraftStore;
-		isOpen: boolean;
+		open?: boolean;
+		/**
+		 * Publishing and discarding belong to the screen, not to this dialog:
+		 * both need a confirmation, a toast and a reload of the shared config,
+		 * and a modal that did its own thing was a second place for the outcome
+		 * of a publish to be decided.
+		 */
+		onpublish?: () => void;
+		ondiscard?: () => void;
 	} = $props();
 
 	const diffs = $derived(store.diffs);
-	let publishedSuccess = $state(false);
-
-	async function handlePublish() {
-		const ok = await store.publish();
-		if (ok) {
-			publishedSuccess = true;
-			setTimeout(() => {
-				publishedSuccess = false;
-				isOpen = false;
-			}, 1800);
-		}
-	}
-
-	function handleRevert() {
-		store.revertAll();
-		isOpen = false;
-	}
 </script>
 
-{#if isOpen}
+{#if open}
 	<div
 		class="review-modal-backdrop"
-		onclick={() => (isOpen = false)}
-		onkeydown={(e) => e.key === 'Escape' && (isOpen = false)}
+		onclick={() => (open = false)}
+		onkeydown={(e) => e.key === 'Escape' && (open = false)}
 		role="presentation"
 	>
 		<div
@@ -55,7 +48,7 @@
 						Inspect the changes between your working draft and what is live to customers.
 					</p>
 				</div>
-				<button type="button" class="review-close-btn" onclick={() => (isOpen = false)} aria-label="Close">
+				<button type="button" class="review-close-btn" onclick={() => (open = false)} aria-label="Close">
 					<X size={18} strokeWidth={2} />
 				</button>
 			</div>
@@ -68,16 +61,10 @@
 					</div>
 				{/if}
 
-				{#if publishedSuccess}
-					<div class="review-success">
-						<CheckCircle2 size={32} strokeWidth={2.2} />
-						<h3>Published Successfully!</h3>
-						<p>Your changes are now live on your customer storefront.</p>
-					</div>
-				{:else if diffs.length === 0}
+				{#if diffs.length === 0}
 					<div class="review-clean-state">
 						<CheckCircle2 size={28} strokeWidth={2} />
-						<p>No unpublished changes. Your draft is completely in sync with the live store!</p>
+						<p>Nothing unpublished. What you see in the Studio is what customers see.</p>
 					</div>
 				{:else}
 					<div class="review-summary-bar">
@@ -104,12 +91,12 @@
 			</div>
 
 			<div class="review-modal-footer">
-				{#if !publishedSuccess}
+				{#if true}
 					{#if diffs.length > 0}
 						<button
 							type="button"
 							class="btn btn-ghost btn-sm"
-							onclick={handleRevert}
+							onclick={() => ondiscard?.()}
 							disabled={store.isPublishing}
 						>
 							<RotateCcw size={14} strokeWidth={2} />
@@ -120,7 +107,7 @@
 					<button
 						type="button"
 						class="btn btn-secondary btn-sm"
-						onclick={() => (isOpen = false)}
+						onclick={() => (open = false)}
 						disabled={store.isPublishing}
 					>
 						Keep Editing
@@ -129,7 +116,7 @@
 						type="button"
 						class="btn btn-primary btn-sm"
 						disabled={store.isPublishing || diffs.length === 0}
-						onclick={handlePublish}
+						onclick={() => onpublish?.()}
 					>
 						<Rocket size={14} strokeWidth={2.4} />
 						<span>{store.isPublishing ? 'Publishing…' : 'Publish Live'}</span>
@@ -220,27 +207,8 @@
 		font-size: 0.8125rem;
 	}
 
-	.review-success {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		padding: 2.5rem 1rem;
-		color: #10b981;
-		text-align: center;
-	}
 
-	.review-success h3 {
-		margin: 0.75rem 0 0.25rem;
-		font-size: 1.125rem;
-		color: var(--text);
-	}
 
-	.review-success p {
-		margin: 0;
-		font-size: 0.8125rem;
-		color: var(--text-2);
-	}
 
 	.review-clean-state {
 		display: flex;
@@ -297,7 +265,7 @@
 		font-size: 0.65625rem;
 		font-weight: 700;
 		text-transform: uppercase;
-		color: var(--accent);
+		color: var(--icon-fg);
 		letter-spacing: 0.5px;
 	}
 

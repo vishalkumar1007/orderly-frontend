@@ -33,6 +33,35 @@
 	const primary = $derived(accent.trim() || selected?.tokens.accent || '#4f46e5');
 	const secondary = $derived(accent2.trim() || selected?.tokens.accent2 || selected?.tokens.accent || '#4f46e5');
 
+	/**
+	 * Quick picks.
+	 *
+	 * The presets above set a whole theme — colours, radii, fonts. Often what
+	 * somebody wants is this theme but in that colour, and the only way to say
+	 * so was to know a hex code. These are one tap, apply live, and are chosen
+	 * to stay legible as an accent in both modes: nothing paler than the amber,
+	 * nothing so dark it reads as ink.
+	 */
+	const QUICK_COLOURS: Array<{ name: string; accent: string; accent2: string }> = [
+		{ name: 'Indigo', accent: '#4f46e5', accent2: '#6366f1' },
+		{ name: 'Blue', accent: '#2563eb', accent2: '#3b82f6' },
+		{ name: 'Sky', accent: '#0284c7', accent2: '#0ea5e9' },
+		{ name: 'Teal', accent: '#0d9488', accent2: '#14b8a6' },
+		{ name: 'Emerald', accent: '#059669', accent2: '#10b981' },
+		{ name: 'Lime', accent: '#65a30d', accent2: '#84cc16' },
+		{ name: 'Amber', accent: '#d97706', accent2: '#f59e0b' },
+		{ name: 'Orange', accent: '#ea580c', accent2: '#f97316' },
+		{ name: 'Rose', accent: '#e11d48', accent2: '#f43f5e' },
+		{ name: 'Pink', accent: '#db2777', accent2: '#ec4899' },
+		{ name: 'Violet', accent: '#7c3aed', accent2: '#a78bfa' },
+		{ name: 'Slate', accent: '#475569', accent2: '#64748b' }
+	];
+
+	/** Which quick pick, if any, the current colours match. */
+	const activeQuick = $derived(
+		QUICK_COLOURS.find((c) => c.accent.toLowerCase() === primary.toLowerCase())?.accent ?? ''
+	);
+
 	const MODES = [
 		{ id: 'light', label: 'Light', icon: Sun },
 		{ id: 'dark', label: 'Dark', icon: Moon },
@@ -99,6 +128,31 @@
 					</button>
 				{/each}
 			</div>
+		</div>
+
+		<div class="theme-field theme-field-wide">
+			<span class="theme-field-label" id="quick-label">Quick colours</span>
+			<div class="quick-row" role="radiogroup" aria-labelledby="quick-label">
+				{#each QUICK_COLOURS as choice (choice.accent)}
+					{@const on = activeQuick === choice.accent}
+					<button
+						type="button"
+						class="quick-dot"
+						class:on
+						role="radio"
+						aria-checked={on}
+						aria-label={choice.name}
+						title={choice.name}
+						{disabled}
+						style:background={choice.accent}
+						onclick={() => {
+							accent = choice.accent;
+							accent2 = choice.accent2;
+						}}
+					></button>
+				{/each}
+			</div>
+			<p class="field-hint">Applies straight away. Save to keep it.</p>
 		</div>
 
 		<div class="theme-field">
@@ -179,6 +233,41 @@
 </div>
 
 <style>
+	.theme-field-wide {
+		grid-column: 1 / -1;
+	}
+
+	.quick-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+	}
+
+	.quick-dot {
+		width: 1.6rem;
+		height: 1.6rem;
+		flex: none;
+		padding: 0;
+		border: 2px solid transparent;
+		border-radius: 999px;
+		cursor: pointer;
+		box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+		transition: transform 0.12s ease, border-color 0.12s ease;
+	}
+
+	.quick-dot:hover:not(:disabled) {
+		transform: scale(1.12);
+	}
+
+	.quick-dot.on {
+		border-color: var(--text);
+	}
+
+	.quick-dot:disabled {
+		cursor: not-allowed;
+		opacity: 0.5;
+	}
+
 	.theme-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
@@ -279,7 +368,7 @@
 		place-items: center;
 		border-radius: 999px;
 		background: var(--accent);
-		color: #fff;
+		color: var(--on-accent);
 	}
 
 	.theme-dots {

@@ -116,8 +116,8 @@
 	}
 
 	.rank.top {
-		background: color-mix(in srgb, var(--accent) 15%, transparent);
-		color: var(--accent);
+		background: color-mix(in srgb, var(--icon-fg) 15%, transparent);
+		color: var(--icon-fg);
 	}
 
 	.row-main {

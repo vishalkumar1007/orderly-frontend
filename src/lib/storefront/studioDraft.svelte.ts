@@ -1,6 +1,29 @@
-import { storefrontAdminApi, type AdminStorefront, type AdminSection } from './admin';
-import { computeClientThemeVars } from './theme';
+import { ApiClientError, api } from '$lib/api/client';
 import { setStorefrontAdmin } from './adminCache.svelte';
+import { computeClientThemeVars } from './theme';
+import type { AdminStorefront } from './admin';
+
+/**
+ * The Studio's working copy.
+ *
+ * A draft belongs to the shop, not to the browser it was typed in. It is stored
+ * server-side (`/api/v1/tenant/customize/draft`), so it opens on any device the
+ * owner signs in on and survives a crash, and publishing it is a single
+ * transaction rather than a run of writes that can stop halfway.
+ *
+ * Three things this replaces, all of which were quiet rather than loud:
+ *
+ *  - "Autosaved" meant localStorage. Switching device lost the work.
+ *  - Publishing replayed the whole local document over the live shop, so a
+ *    draft left open overwrote whatever a colleague had changed in between.
+ *  - The change list was hand-written and covered about half the fields it
+ *    published, so editing prep time, tax, the packaging fee, an address or a
+ *    hero image left the header saying "Published Live" over unsaved work.
+ *
+ * The third is why the field map below is the only description of what a change
+ * is: `diffs`, `isDirty` and the review screen all read it, so a field cannot be
+ * publishable and invisible at the same time.
+ */
 
 export type DiffItem = {
 	category: string;
@@ -9,343 +32,323 @@ export type DiffItem = {
 	to: string;
 };
 
-/** Deep clone a storefront config */
+/** How a value is shown in the change list. */
+type Fmt = (v: unknown) => string;
+
+const asText: Fmt = (v) => (v === '' || v == null ? '(none)' : String(v));
+const asOnOff: Fmt = (v) => (v ? 'On' : 'Off');
+const asPresence: Fmt = (v) => (v ? 'Set' : '(none)');
+const asMoney: Fmt = (v) => (v == null || v === '' ? '0' : String(v));
+
+type FieldSpec = {
+	category: string;
+	label: string;
+	/** Path into the storefront document, e.g. `theme.preset`. */
+	path: string;
+	format?: Fmt;
+};
+
+/**
+ * Every field the Studio can change, in the order the review screen lists them.
+ *
+ * Adding a control means adding a line here. Leaving it out is what made the
+ * old screen lie, so this list — not the publish call — is the definition of
+ * what counts as an unpublished change.
+ */
+const FIELDS: FieldSpec[] = [
+	// Brand identity
+	{ category: 'Brand', label: 'Business name', path: 'store.name' },
+	{ category: 'Brand', label: 'Tagline', path: 'store.tagline' },
+	{ category: 'Brand', label: 'Description', path: 'store.description' },
+	{ category: 'Brand', label: 'Logo', path: 'store.logo_url', format: asPresence },
+	{ category: 'Brand', label: 'Favicon', path: 'store.favicon_url', format: asPresence },
+
+	// Contact
+	{ category: 'Contact', label: 'Phone', path: 'store.phone' },
+	{ category: 'Contact', label: 'Address', path: 'store.address' },
+
+	// Look
+	{ category: 'Look', label: 'Theme preset', path: 'theme.preset' },
+	{ category: 'Look', label: 'Colour mode', path: 'theme.mode' },
+	{ category: 'Look', label: 'Primary colour', path: 'theme.primary' },
+	{ category: 'Look', label: 'Secondary colour', path: 'theme.secondary' },
+	{ category: 'Look', label: 'Accent colour', path: 'theme.accent' },
+	{ category: 'Look', label: 'Typeface', path: 'theme.font' },
+	{ category: 'Look', label: 'Corner style', path: 'theme.radius' },
+	{ category: 'Look', label: 'Button style', path: 'theme.button' },
+	{ category: 'Look', label: 'Card style', path: 'theme.card' },
+	{ category: 'Look', label: 'Header style', path: 'theme.header' },
+	{ category: 'Look', label: 'Hero style', path: 'theme.hero' },
+	{ category: 'Look', label: 'Hero image', path: 'theme.hero_image_url', format: asPresence },
+	{ category: 'Look', label: 'Catalogue layout', path: 'theme.product_layout' },
+	{ category: 'Look', label: 'Filter style', path: 'theme.filter_style' },
+
+	// Ordering
+	{ category: 'Ordering', label: 'Accepting orders', path: 'behaviour.ordering_enabled', format: asOnOff },
+	{ category: 'Ordering', label: 'Closed message', path: 'behaviour.closed_message' },
+	{ category: 'Ordering', label: 'Customer login', path: 'behaviour.customer_login_mode' },
+	{ category: 'Ordering', label: 'Preparation time', path: 'behaviour.prep_time_minutes' },
+	{ category: 'Ordering', label: 'Tax', path: 'behaviour.tax_percent', format: asMoney },
+	{ category: 'Ordering', label: 'Packaging fee', path: 'behaviour.packaging_fee', format: asMoney },
+	{ category: 'Ordering', label: 'Published', path: 'behaviour.published', format: asOnOff },
+
+	// Payments
+	{ category: 'Payments', label: 'Online payment', path: 'payments.online_payment_enabled', format: asOnOff },
+	{ category: 'Payments', label: 'Cash', path: 'payments.cash_enabled', format: asOnOff },
+	{ category: 'Payments', label: 'Pay at pickup', path: 'payments.pay_at_pickup_enabled', format: asOnOff },
+	{ category: 'Payments', label: 'Default method', path: 'payments.default_payment_method' },
+
+	// Workflow
+	{ category: 'Workflow', label: 'Order acceptance', path: 'workflow.acceptance_mode' },
+	{ category: 'Workflow', label: 'Payment timing', path: 'workflow.payment_requirement' },
+	{ category: 'Workflow', label: 'Ready notification', path: 'workflow.ready_notification', format: asOnOff },
+	{ category: 'Workflow', label: 'Auto-complete', path: 'workflow.auto_complete', format: asOnOff }
+];
+
+function at(obj: unknown, path: string): unknown {
+	return path.split('.').reduce<unknown>((acc, key) => {
+		if (acc && typeof acc === 'object') return (acc as Record<string, unknown>)[key];
+		return undefined;
+	}, obj);
+}
+
+/** Deep clone, with the CSS custom properties recomputed for the preview. */
 export function cloneConfig(cfg: AdminStorefront): AdminStorefront {
 	const cloned: AdminStorefront = JSON.parse(JSON.stringify(cfg));
-	if (cloned.theme) {
-		cloned.theme.vars = computeClientThemeVars(cloned.theme);
-	}
+	if (cloned.theme) cloned.theme.vars = computeClientThemeVars(cloned.theme);
 	return cloned;
 }
 
-/** Compute human-readable differences between draft and published */
-export function computeConfigDiff(draft: AdminStorefront, published: AdminStorefront): DiffItem[] {
+/** What has changed between the draft and what customers see today. */
+export function computeConfigDiff(
+	draft: AdminStorefront,
+	published: AdminStorefront
+): DiffItem[] {
 	const diffs: DiffItem[] = [];
-
-	// Style / Theme
-	if (draft.theme.preset !== published.theme.preset) {
-		diffs.push({
-			category: 'Style',
-			label: 'Theme Preset',
-			from: published.theme.preset,
-			to: draft.theme.preset
-		});
-	}
-	if (draft.theme.font !== published.theme.font) {
-		diffs.push({
-			category: 'Style',
-			label: 'Typography',
-			from: published.theme.font,
-			to: draft.theme.font
-		});
-	}
-	if (draft.theme.button !== published.theme.button) {
-		diffs.push({
-			category: 'Style',
-			label: 'Button Style',
-			from: published.theme.button,
-			to: draft.theme.button
-		});
-	}
-	if (draft.theme.radius !== published.theme.radius) {
-		diffs.push({
-			category: 'Style',
-			label: 'Border Radius',
-			from: published.theme.radius,
-			to: draft.theme.radius
-		});
-	}
-	if (draft.theme.card !== published.theme.card) {
-		diffs.push({
-			category: 'Style',
-			label: 'Product Card Style',
-			from: published.theme.card,
-			to: draft.theme.card
-		});
-	}
-	if (draft.theme.product_layout !== published.theme.product_layout) {
-		diffs.push({
-			category: 'Style',
-			label: 'Menu Layout',
-			from: published.theme.product_layout,
-			to: draft.theme.product_layout
-		});
+	for (const field of FIELDS) {
+		const to = at(draft, field.path);
+		const from = at(published, field.path);
+		// Loose compare: the API returns numbers the form holds as strings, and
+		// "20" is not a change from 20.
+		if (String(to ?? '') === String(from ?? '')) continue;
+		const fmt = field.format ?? asText;
+		diffs.push({ category: field.category, label: field.label, from: fmt(from), to: fmt(to) });
 	}
 
-	// Branding
-	if (draft.store.name !== published.store.name) {
-		diffs.push({
-			category: 'Branding',
-			label: 'Business Name',
-			from: published.store.name,
-			to: draft.store.name
-		});
-	}
-	if (draft.store.tagline !== published.store.tagline) {
-		diffs.push({
-			category: 'Branding',
-			label: 'Tagline',
-			from: published.store.tagline || '(none)',
-			to: draft.store.tagline || '(none)'
-		});
-	}
-	if (draft.store.logo_url !== published.store.logo_url) {
-		diffs.push({
-			category: 'Branding',
-			label: 'Logo URL',
-			from: published.store.logo_url ? 'Configured' : '(none)',
-			to: draft.store.logo_url ? 'Configured' : '(none)'
-		});
-	}
-	if (draft.theme.primary !== published.theme.primary) {
-		diffs.push({
-			category: 'Branding',
-			label: 'Primary Color',
-			from: published.theme.primary,
-			to: draft.theme.primary
-		});
-	}
-	if (draft.theme.secondary !== published.theme.secondary) {
-		diffs.push({
-			category: 'Branding',
-			label: 'Secondary Color',
-			from: published.theme.secondary,
-			to: draft.theme.secondary
-		});
-	}
-	if (draft.theme.accent !== published.theme.accent) {
-		diffs.push({
-			category: 'Branding',
-			label: 'Accent Color',
-			from: published.theme.accent,
-			to: draft.theme.accent
-		});
-	}
-	if (draft.theme.mode !== published.theme.mode) {
-		diffs.push({
-			category: 'Branding',
-			label: 'Theme Mode',
-			from: published.theme.mode,
-			to: draft.theme.mode
-		});
-	}
-	if (draft.store.business_type !== published.store.business_type) {
-		diffs.push({
-			category: 'Branding',
-			label: 'Business Type',
-			from: published.store.business_type || 'RESTAURANT',
-			to: draft.store.business_type
-		});
-	}
-
-	// Menu Appearance
-	if (draft.theme.filter_style !== published.theme.filter_style) {
-		diffs.push({
-			category: 'Menu Appearance',
-			label: 'Category Style',
-			from: published.theme.filter_style,
-			to: draft.theme.filter_style
-		});
-	}
-	if (draft.theme.header !== published.theme.header) {
-		diffs.push({
-			category: 'Menu Appearance',
-			label: 'Header Behavior',
-			from: published.theme.header,
-			to: draft.theme.header
-		});
-	}
-
-	// Customer Experience
-	if (draft.behaviour.customer_login_mode !== published.behaviour.customer_login_mode) {
-		diffs.push({
-			category: 'Customer Experience',
-			label: 'Customer Phone Login',
-			from: published.behaviour.customer_login_mode,
-			to: draft.behaviour.customer_login_mode
-		});
-	}
-	if (draft.behaviour.ordering_enabled !== published.behaviour.ordering_enabled) {
-		diffs.push({
-			category: 'Customer Experience',
-			label: 'Ordering Enabled',
-			from: published.behaviour.ordering_enabled ? 'ON' : 'OFF',
-			to: draft.behaviour.ordering_enabled ? 'ON' : 'OFF'
-		});
-	}
-
-	// Checkout
-	if (draft.payments.online_payment_enabled !== published.payments.online_payment_enabled) {
-		diffs.push({
-			category: 'Checkout',
-			label: 'Online Payment',
-			from: published.payments.online_payment_enabled ? 'Enabled' : 'Disabled',
-			to: draft.payments.online_payment_enabled ? 'Enabled' : 'Disabled'
-		});
-	}
-	if (draft.payments.cash_enabled !== published.payments.cash_enabled) {
-		diffs.push({
-			category: 'Checkout',
-			label: 'Cash at Counter',
-			from: published.payments.cash_enabled ? 'Enabled' : 'Disabled',
-			to: draft.payments.cash_enabled ? 'Enabled' : 'Disabled'
-		});
-	}
-	if (draft.payments.pay_at_pickup_enabled !== published.payments.pay_at_pickup_enabled) {
-		diffs.push({
-			category: 'Checkout',
-			label: 'Pay at Pickup',
-			from: published.payments.pay_at_pickup_enabled ? 'Enabled' : 'Disabled',
-			to: draft.payments.pay_at_pickup_enabled ? 'Enabled' : 'Disabled'
-		});
-	}
-	if (draft.workflow.acceptance_mode !== published.workflow.acceptance_mode) {
-		diffs.push({
-			category: 'Checkout',
-			label: 'Order Acceptance Mode',
-			from: published.workflow.acceptance_mode,
-			to: draft.workflow.acceptance_mode
-		});
-	}
-	if (draft.workflow.payment_requirement !== published.workflow.payment_requirement) {
-		diffs.push({
-			category: 'Checkout',
-			label: 'Payment Requirement',
-			from: published.workflow.payment_requirement,
-			to: draft.workflow.payment_requirement
-		});
-	}
-
-	// Homepage sections
-	const dSecs = draft.homepage?.sections ?? [];
-	const pSecs = published.homepage?.sections ?? [];
-	if (JSON.stringify(dSecs) !== JSON.stringify(pSecs)) {
+	// The homepage is a list, so it is compared as one rather than field by
+	// field: the useful statement is "the homepage changed", not eleven rows.
+	const a = JSON.stringify(draft.homepage?.sections ?? []);
+	const b = JSON.stringify(published.homepage?.sections ?? []);
+	if (a !== b) {
+		const on = (cfg: AdminStorefront) =>
+			(cfg.homepage?.sections ?? []).filter((s) => s.enabled).length;
 		diffs.push({
 			category: 'Homepage',
-			label: 'Homepage Sections',
-			from: `${pSecs.filter((s) => s.enabled).length} enabled`,
-			to: `${dSecs.filter((s) => s.enabled).length} enabled`
+			label: 'Sections',
+			from: `${on(published)} shown`,
+			to: `${on(draft)} shown`
 		});
 	}
-
 	return diffs;
 }
 
-/** Reactive Draft Store Class */
+type DraftEnvelope = {
+	draft: AdminStorefront | null;
+	base_version?: string;
+	updated_at?: string;
+	updated_by?: string;
+	live_version?: string;
+	stale?: boolean;
+};
+
+const AUTOSAVE_DELAY_MS = 900;
+
 export class StudioDraftStore {
 	draft = $state<AdminStorefront>(null!);
 	published = $state<AdminStorefront>(null!);
 	history = $state<AdminStorefront[]>([]);
-	lastSavedTimestamp = $state<string>('');
-	isSaving = $state<boolean>(false);
-	isPublishing = $state<boolean>(false);
-	error = $state<string>('');
+
+	/** Server-reported save state, never a guess. */
+	savedAt = $state<string>('');
+	savedBy = $state<string>('');
+	isSaving = $state(false);
+	isPublishing = $state(false);
+	isLoading = $state(true);
+	/** The live shop moved on after this draft was started. */
+	isStale = $state(false);
+	error = $state('');
+
+	#timer: ReturnType<typeof setTimeout> | null = null;
+	#pending = false;
 
 	constructor(initial: AdminStorefront) {
-		this.init(initial);
+		this.published = cloneConfig(initial);
+		this.draft = cloneConfig(initial);
 	}
 
-	init(base: AdminStorefront) {
-		const clean = cloneConfig(base);
-		this.published = clean;
-
-		// Check local storage for existing draft
-		const slug = clean.store.slug || 'your-shop';
-		const storageKey = `orderly_studio_draft_${slug}`;
-		let loadedFromStorage = false;
-
-		if (typeof window !== 'undefined') {
-			try {
-				const saved = localStorage.getItem(storageKey);
-				if (saved) {
-					const parsed = JSON.parse(saved);
-					if (parsed && parsed.theme && parsed.store) {
-						this.draft = cloneConfig(parsed);
-						this.lastSavedTimestamp = 'Restored unsaved draft';
-						loadedFromStorage = true;
-					}
-				}
-			} catch {
-				// ignore parse errors
+	/**
+	 * Adopt the live config and pick up any draft stored for this shop.
+	 *
+	 * Called whenever the shell's config arrives or changes. A draft found on
+	 * the server wins over the live values — that is the point of it — but the
+	 * baseline it is compared against is always the live shop.
+	 */
+	async load(live: AdminStorefront): Promise<void> {
+		this.published = cloneConfig(live);
+		this.isLoading = true;
+		try {
+			const env = await api<DraftEnvelope>('/api/v1/tenant/customize/draft');
+			if (env.draft) {
+				// A stored draft is a partial document: merge it over the live
+				// config so a field nobody touched keeps its published value.
+				this.draft = cloneConfig(mergeDraft(live, env.draft));
+				this.savedAt = env.updated_at ?? '';
+				this.savedBy = env.updated_by ?? '';
+				this.isStale = Boolean(env.stale);
+			} else {
+				this.draft = cloneConfig(live);
+				this.savedAt = '';
+				this.savedBy = '';
+				this.isStale = false;
 			}
+			this.error = '';
+		} catch (err) {
+			// No draft is a usable state; failing to reach the server is not a
+			// reason to refuse to open the Studio.
+			this.draft = cloneConfig(live);
+			this.error = err instanceof Error ? err.message : '';
+		} finally {
+			this.isLoading = false;
+			this.history = [];
 		}
-
-		if (!loadedFromStorage) {
-			this.draft = cloneConfig(base);
-		}
-
-		this.history = [];
 	}
 
-	/** Record change and append to undo stack */
+	/** Apply a change, remember it for undo, and schedule the autosave. */
 	mutate(updater: (draft: AdminStorefront) => void) {
-		// push current to history before modifying
-		if (this.history.length >= 25) {
-			this.history.shift();
-		}
+		if (this.history.length >= 25) this.history.shift();
 		this.history.push(cloneConfig(this.draft));
 
 		updater(this.draft);
-
-		// ensure CSS custom vars are always up-to-date
 		this.draft.theme.vars = computeClientThemeVars(this.draft.theme);
-
-		// auto-persist to storage
-		this.persistToStorage();
+		this.scheduleSave();
 	}
 
-	persistToStorage() {
-		if (typeof window === 'undefined' || !this.draft) return;
+	scheduleSave() {
+		this.#pending = true;
+		if (this.#timer) clearTimeout(this.#timer);
+		this.#timer = setTimeout(() => void this.saveNow(), AUTOSAVE_DELAY_MS);
+	}
+
+	/**
+	 * Push the working copy to the server.
+	 *
+	 * Debounced rather than per-keystroke, and the whole document each time: the
+	 * draft is one row, so a partial save has nothing to merge against and a
+	 * dropped request would leave a hole nobody could see.
+	 */
+	async saveNow(): Promise<boolean> {
+		if (this.#timer) {
+			clearTimeout(this.#timer);
+			this.#timer = null;
+		}
+		if (!this.#pending || !this.draft) return true;
+		this.isSaving = true;
 		try {
-			const slug = this.draft.store.slug || 'your-shop';
-			localStorage.setItem(`orderly_studio_draft_${slug}`, JSON.stringify(this.draft));
-			const now = new Date();
-			this.lastSavedTimestamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-		} catch {
-			// ignore storage errors
+			const env = await api<DraftEnvelope>('/api/v1/tenant/customize/draft', {
+				method: 'PUT',
+				body: JSON.stringify(this.payload())
+			});
+			this.savedAt = env.updated_at ?? new Date().toISOString();
+			this.isStale = Boolean(env.stale);
+			this.#pending = false;
+			this.error = '';
+			return true;
+		} catch (err) {
+			this.error = err instanceof Error ? err.message : 'Could not save your draft';
+			return false;
+		} finally {
+			this.isSaving = false;
 		}
 	}
 
 	undo(): boolean {
-		if (this.history.length === 0) return false;
 		const prev = this.history.pop();
-		if (prev) {
-			this.draft = cloneConfig(prev);
-			this.persistToStorage();
+		if (!prev) return false;
+		this.draft = cloneConfig(prev);
+		this.scheduleSave();
+		return true;
+	}
+
+	/** Throw the draft away and go back to what customers see. */
+	async discard(): Promise<boolean> {
+		if (this.#timer) clearTimeout(this.#timer);
+		this.#pending = false;
+		try {
+			const live = await api<AdminStorefront>('/api/v1/tenant/customize/draft', {
+				method: 'DELETE'
+			});
+			this.published = cloneConfig(live);
+			this.draft = cloneConfig(live);
+			this.history = [];
+			this.savedAt = '';
+			this.savedBy = '';
+			this.isStale = false;
+			this.error = '';
+			setStorefrontAdmin(live);
 			return true;
+		} catch (err) {
+			this.error = err instanceof Error ? err.message : 'Could not discard your draft';
+			return false;
 		}
-		return false;
 	}
 
-	revertAll() {
-		this.draft = cloneConfig(this.published);
-		this.history = [];
-		if (typeof window !== 'undefined') {
-			const slug = this.draft.store.slug || 'your-shop';
-			localStorage.removeItem(`orderly_studio_draft_${slug}`);
-		}
-		this.lastSavedTimestamp = '';
-	}
+	/**
+	 * Publish. One call, one transaction: it all lands or none of it does.
+	 *
+	 * `force` is the answer to a conflict the owner has been shown, never a
+	 * default — the point of refusing a stale draft is that somebody gets to
+	 * decide.
+	 */
+	async publish(force = false): Promise<'published' | 'conflict' | 'failed'> {
+		if (!this.draft) return 'failed';
+		// Flush anything the debounce is still holding, or publishing would
+		// apply the previous keystroke's document.
+		this.#pending = true;
+		if (!(await this.saveNow())) return 'failed';
 
-	get diffs(): DiffItem[] {
-		if (!this.draft || !this.published) return [];
-		return computeConfigDiff(this.draft, this.published);
-	}
-
-	get isDirty(): boolean {
-		return this.diffs.length > 0;
-	}
-
-	async publish(): Promise<boolean> {
-		if (!this.draft) return false;
 		this.isPublishing = true;
 		this.error = '';
-
 		try {
-			const d = this.draft;
+			const live = await api<AdminStorefront>(
+				`/api/v1/tenant/customize/draft/publish${force ? '?force=true' : ''}`,
+				{ method: 'POST' }
+			);
+			this.published = cloneConfig(live);
+			this.draft = cloneConfig(live);
+			this.history = [];
+			this.savedAt = '';
+			this.savedBy = '';
+			this.isStale = false;
+			setStorefrontAdmin(live);
+			return 'published';
+		} catch (err) {
+			if (err instanceof ApiClientError && err.status === 409) {
+				this.isStale = true;
+				this.error = err.message;
+				return 'conflict';
+			}
+			this.error = err instanceof Error ? err.message : 'Could not publish your changes';
+			return 'failed';
+		} finally {
+			this.isPublishing = false;
+		}
+	}
 
-			// 1. Identity & Branding
-			await storefrontAdminApi.saveIdentity({
+	/** The document the API stores. Only what a draft may change. */
+	payload() {
+		const d = this.draft;
+		return {
+			store: {
 				name: d.store.name,
 				logo_url: d.store.logo_url,
 				favicon_url: d.store.favicon_url,
@@ -353,10 +356,8 @@ export class StudioDraftStore {
 				description: d.store.description,
 				phone: d.store.phone,
 				address: d.store.address
-			});
-
-			// 2. Theme tokens
-			await storefrontAdminApi.saveTheme({
+			},
+			theme: {
 				preset: d.theme.preset,
 				mode: d.theme.mode,
 				font: d.theme.font,
@@ -371,58 +372,53 @@ export class StudioDraftStore {
 				secondary: d.theme.secondary,
 				accent: d.theme.accent,
 				hero_image_url: d.theme.hero_image_url
-			});
-
-			// 3. Homepage sections
-			if (d.homepage?.sections) {
-				await storefrontAdminApi.saveHomepage(d.homepage.sections);
-			}
-
-			// 4. Payments
-			await storefrontAdminApi.savePayments({
-				online_payment_enabled: d.payments.online_payment_enabled,
-				cash_enabled: d.payments.cash_enabled,
-				pay_at_pickup_enabled: d.payments.pay_at_pickup_enabled,
-				default_payment_method: d.payments.default_payment_method
-			});
-
-			// 5. Workflow
-			await storefrontAdminApi.saveWorkflow({
-				acceptance_mode: d.workflow.acceptance_mode,
-				payment_requirement: d.workflow.payment_requirement,
-				ready_notification: d.workflow.ready_notification,
-				auto_complete: d.workflow.auto_complete
-			});
-
-			// 6. Behaviour & Customer login
-			const updated = await storefrontAdminApi.saveBehaviour({
+			},
+			behaviour: {
 				ordering_enabled: d.behaviour.ordering_enabled,
+				closed_message: d.behaviour.closed_message,
 				customer_login_mode: d.behaviour.customer_login_mode,
 				prep_time_minutes: d.behaviour.prep_time_minutes,
 				tax_percent: d.behaviour.tax_percent,
 				packaging_fee: d.behaviour.packaging_fee,
-				published: d.behaviour.published,
-				store_status: d.behaviour.store_status
-			});
-
-			// Update baseline to match new published state
-			this.published = cloneConfig(updated);
-			this.draft = cloneConfig(updated);
-			this.history = [];
-			setStorefrontAdmin(updated);
-
-			// Clear local storage draft
-			if (typeof window !== 'undefined') {
-				const slug = updated.store.slug || 'your-shop';
-				localStorage.removeItem(`orderly_studio_draft_${slug}`);
-			}
-
-			return true;
-		} catch (err) {
-			this.error = err instanceof Error ? err.message : 'Could not publish changes';
-			return false;
-		} finally {
-			this.isPublishing = false;
-		}
+				published: d.behaviour.published
+			},
+			homepage: { sections: d.homepage?.sections ?? [] },
+			payments: d.payments,
+			workflow: d.workflow
+		};
 	}
+
+	get diffs(): DiffItem[] {
+		if (!this.draft || !this.published) return [];
+		return computeConfigDiff(this.draft, this.published);
+	}
+
+	get isDirty(): boolean {
+		return this.diffs.length > 0;
+	}
+
+	/** Change count per category, for the section badges in the rail. */
+	get diffsByCategory(): Record<string, number> {
+		const out: Record<string, number> = {};
+		for (const d of this.diffs) out[d.category] = (out[d.category] ?? 0) + 1;
+		return out;
+	}
+}
+
+/**
+ * Lay a stored draft over the live config.
+ *
+ * The draft carries only what the Studio can change, so everything else — the
+ * catalogues the pickers render from, opening hours, the resolved public URL —
+ * must come from the live document or the screen would render against holes.
+ */
+function mergeDraft(live: AdminStorefront, draft: Partial<AdminStorefront>): AdminStorefront {
+	const out: AdminStorefront = JSON.parse(JSON.stringify(live));
+	if (draft.store) Object.assign(out.store, draft.store);
+	if (draft.theme) Object.assign(out.theme, draft.theme);
+	if (draft.behaviour) Object.assign(out.behaviour, draft.behaviour);
+	if (draft.payments) Object.assign(out.payments, draft.payments);
+	if (draft.workflow) Object.assign(out.workflow, draft.workflow);
+	if (draft.homepage?.sections) out.homepage = { sections: draft.homepage.sections };
+	return out;
 }

@@ -1,341 +1,592 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import Sparkles from '@lucide/svelte/icons/sparkles';
-	import Rocket from '@lucide/svelte/icons/rocket';
-	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
-	import CheckCircle2 from '@lucide/svelte/icons/check-circle-2';
+	import { onMount, untrack } from 'svelte';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
+	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+	import CircleCheck from '@lucide/svelte/icons/circle-check';
+	import CloudOff from '@lucide/svelte/icons/cloud-off';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
-	import Save from '@lucide/svelte/icons/save';
 	import FileDiff from '@lucide/svelte/icons/file-diff';
+	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
+	import Sparkles from '@lucide/svelte/icons/sparkles';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
+	import Upload from '@lucide/svelte/icons/upload';
+	import { templateFor } from '$lib/admin/businessTypes';
 	import { useStorefront, type StorefrontContext } from '$lib/storefront/admin-context';
 	import { StudioDraftStore } from '$lib/storefront/studioDraft.svelte';
+	import {
+		studioSectionFor,
+		visibleStudioSections
+	} from '$lib/storefront/studioSections';
 	import StudioControls from '$lib/components/studio/StudioControls.svelte';
 	import StudioPreview from '$lib/components/studio/StudioPreview.svelte';
 	import AiAssistantModal from '$lib/components/studio/AiAssistantModal.svelte';
 	import ReviewChangesModal from '$lib/components/studio/ReviewChangesModal.svelte';
+	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
+	import Skeleton from '$lib/components/admin/Skeleton.svelte';
 	import { toast } from '$lib/components/admin/toast';
 
+	/**
+	 * Storefront Studio.
+	 *
+	 * Three columns, which is the whole idea: what you can change, what you are
+	 * changing, and what it will look like. The sections used to be a row of
+	 * tabs inside the control panel inside the page — three levels of navigation
+	 * for one screen — and the header carried six equally-weighted buttons, so
+	 * nothing read as the thing you came to do.
+	 *
+	 * The section rail names itself after the business type. A hotel does not
+	 * have a "Menu", and a console that insists it does was built for somebody
+	 * else's shop.
+	 *
+	 * Draft state is the server's answer, never a guess: "Saved", "Saving" and
+	 * "Unpublished changes" all come from the draft endpoint, and the one
+	 * emphasised action is Publish.
+	 */
 	let props: Partial<StorefrontContext> = $props();
 	const ctx = useStorefront(() => props);
 
-	let store = $state<StudioDraftStore>(new StudioDraftStore(ctx.config));
-	let showAiModal = $state(false);
-	let showReviewModal = $state(false);
-	let saveDraftSuccess = $state(false);
+	const store = new StudioDraftStore(ctx.config);
+	let showAi = $state(false);
+	let showReview = $state(false);
+	let discardOpen = $state(false);
+	let conflictOpen = $state(false);
+	let discarding = $state(false);
 
-	// Sync when server config loads
+	/** Reload the draft whenever the shell hands us a different shop. */
+	let loadedSlug = $state('');
 	$effect(() => {
-		if (ctx.config && (!store || store.published.store.slug !== ctx.config.store.slug)) {
-			store.init(ctx.config);
-		}
+		const slug = ctx.config?.store?.slug ?? '';
+		if (!slug || slug === loadedSlug) return;
+		loadedSlug = slug;
+		untrack(() => void store.load(ctx.config));
 	});
 
-	function handleUndo() {
-		const ok = store.undo();
-		if (ok) {
-			toast.info('Undid last change');
+	onMount(() => {
+		// A draft that only exists on the server is worth flushing before the
+		// tab closes; the debounce may still be holding the last keystroke.
+		const flush = () => void store.saveNow();
+		window.addEventListener('beforeunload', flush);
+		return () => window.removeEventListener('beforeunload', flush);
+	});
+
+	const template = $derived(templateFor(ctx.config?.store?.business_type ?? ''));
+	const terms = $derived(template.terminology);
+	const controls = $derived(template.controls);
+	const allowed = $derived(new Set(controls));
+	const sections = $derived(visibleStudioSections(controls));
+	const active = $derived(studioSectionFor($page.url.searchParams.get('section'), controls));
+
+	const counts = $derived(store.diffsByCategory);
+	const changeCount = $derived(store.diffs.length);
+	const isDirty = $derived(changeCount > 0);
+
+	function countFor(categories: string[]): number {
+		return categories.reduce((sum, c) => sum + (counts[c] ?? 0), 0);
+	}
+
+	function select(id: string) {
+		goto(`?section=${id}`, { replaceState: true, keepFocus: true, noScroll: true });
+	}
+
+	/** "Saved 2 min ago" beats a bare timestamp for something that just happened. */
+	const savedLabel = $derived.by(() => {
+		if (store.isSaving) return 'Saving…';
+		if (!store.savedAt) return '';
+		const then = new Date(store.savedAt).getTime();
+		if (Number.isNaN(then)) return 'Saved';
+		const mins = Math.floor((Date.now() - then) / 60000);
+		if (mins < 1) return 'Saved just now';
+		if (mins === 1) return 'Saved 1 min ago';
+		if (mins < 60) return `Saved ${mins} min ago`;
+		return `Saved ${new Date(store.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+	});
+
+	async function publish(force = false) {
+		const result = await store.publish(force);
+		if (result === 'published') {
+			showReview = false;
+			conflictOpen = false;
+			toast.success('Your storefront is live');
+			await ctx.refresh();
+		} else if (result === 'conflict') {
+			showReview = false;
+			conflictOpen = true;
+		} else {
+			toast.error(store.error || 'Could not publish your changes');
 		}
 	}
 
-	function handleManualSaveDraft() {
-		store.persistToStorage();
-		saveDraftSuccess = true;
-		toast.success('Draft saved to browser storage');
-		setTimeout(() => {
-			saveDraftSuccess = false;
-		}, 2000);
-	}
-
-	async function handleDirectPublish() {
-		const ok = await store.publish();
+	async function discard() {
+		discarding = true;
+		const ok = await store.discard();
+		discarding = false;
+		discardOpen = false;
 		if (ok) {
-			toast.success('Storefront published live successfully!');
-		} else if (store.error) {
-			toast.error(store.error);
+			toast.success('Draft discarded');
+			await ctx.refresh();
+		} else {
+			toast.error(store.error || 'Could not discard your draft');
 		}
 	}
 
-	const isDirty = $derived(store.isDirty);
-	const diffCount = $derived(store.diffs.length);
+	function undo() {
+		if (store.undo()) toast.info('Undid last change');
+	}
 </script>
 
 <svelte:head>
-	<title>Storefront Studio | Orderly</title>
+	<title>Storefront Studio · Orderly</title>
 </svelte:head>
 
-<div class="storefront-studio-workspace">
-	<!-- Main Studio Header Bar -->
-	<header class="studio-header-bar">
-		<div class="studio-header-left">
-			<div class="studio-title-badge-group">
-				<h1 class="studio-heading">Storefront Studio</h1>
-				{#if isDirty}
-					<span class="studio-badge badge-draft">
-						<span class="studio-pulse-dot"></span>
-						Draft ({diffCount} change{diffCount === 1 ? '' : 's'})
-					</span>
-				{:else}
-					<span class="studio-badge badge-live">
-						<CheckCircle2 size={13} strokeWidth={2.4} />
-						Published Live
-					</span>
-				{/if}
-
-				{#if store.lastSavedTimestamp}
-					<span class="studio-last-saved">
-						Autosaved {store.lastSavedTimestamp}
-					</span>
-				{/if}
+<div class="studio">
+	<header class="studio-bar">
+		<div class="studio-bar-left">
+			<a class="btn btn-ghost btn-sm" href="/shop" aria-label="Back to the console">
+				<ArrowLeft size={15} strokeWidth={2} />
+			</a>
+			<div class="studio-id">
+				<h1>Storefront Studio</h1>
+				<p>{template.label} · {ctx.config?.store?.name ?? ''}</p>
 			</div>
-
-			<p class="studio-subtitle">
-				Split-screen customization workspace. Changes update preview immediately.
-			</p>
 		</div>
 
-		<div class="studio-header-actions">
-			<!-- AI Design Assistant Action -->
-			<button
-				type="button"
-				class="btn btn-ai-assistant"
-				onclick={() => (showAiModal = true)}
-				title="Open AI Design Assistant"
-			>
-				<Sparkles size={15} strokeWidth={2.2} />
-				<span>Ask AI</span>
-			</button>
+		<div class="studio-state" role="status" aria-live="polite">
+			{#if store.isLoading}
+				<span class="studio-chip">Loading…</span>
+			{:else if store.isStale}
+				<span class="studio-chip chip-warn">
+					<TriangleAlert size={13} strokeWidth={2.2} />
+					Storefront changed elsewhere
+				</span>
+			{:else if isDirty}
+				<span class="studio-chip chip-draft">
+					<span class="studio-dot"></span>
+					{changeCount} unpublished {changeCount === 1 ? 'change' : 'changes'}
+				</span>
+			{:else}
+				<span class="studio-chip chip-live">
+					<CircleCheck size={13} strokeWidth={2.4} />
+					Everything published
+				</span>
+			{/if}
 
-			<!-- Undo Action -->
+			{#if savedLabel}
+				<span class="studio-saved">
+					{#if store.error}
+						<CloudOff size={12} strokeWidth={2} />
+					{/if}
+					{savedLabel}{store.savedBy ? ` · ${store.savedBy}` : ''}
+				</span>
+			{/if}
+		</div>
+
+		<div class="studio-actions">
 			<button
-				type="button"
 				class="btn btn-ghost btn-sm"
+				type="button"
+				onclick={() => (showAi = true)}
+				title="Ask the design assistant"
+			>
+				<Sparkles size={14} strokeWidth={2.1} />
+				<span class="studio-action-label">Ask AI</span>
+			</button>
+			<button
+				class="btn btn-ghost btn-sm"
+				type="button"
 				disabled={store.history.length === 0}
-				onclick={handleUndo}
-				title="Undo last change"
+				onclick={undo}
+				title="Undo the last change"
 			>
 				<RotateCcw size={14} strokeWidth={2} />
-				<span>Undo</span>
 			</button>
-
-			<!-- Review Changes Action -->
 			<button
+				class="btn btn-ghost btn-sm"
 				type="button"
+				disabled={!isDirty}
+				onclick={() => (discardOpen = true)}
+				title="Discard the draft"
+			>
+				<Trash2 size={14} strokeWidth={2} />
+			</button>
+			<button
 				class="btn btn-secondary btn-sm"
-				onclick={() => (showReviewModal = true)}
-				title="Review diff before publishing"
+				type="button"
+				disabled={!isDirty}
+				onclick={() => (showReview = true)}
 			>
 				<FileDiff size={14} strokeWidth={2} />
-				<span>Review{diffCount > 0 ? ` (${diffCount})` : ''}</span>
+				<span class="studio-action-label">Review</span>
+				{#if isDirty}<span class="studio-count">{changeCount}</span>{/if}
 			</button>
-
-			<!-- Save Draft Action -->
 			<button
+				class="btn btn-primary btn-sm"
 				type="button"
-				class="btn btn-ghost btn-sm"
-				onclick={handleManualSaveDraft}
-				title="Save draft"
+				disabled={!isDirty || store.isPublishing}
+				onclick={() => void publish()}
 			>
-				<Save size={14} strokeWidth={2} />
-				<span>Save Draft</span>
+				<Upload size={14} strokeWidth={2.1} />
+				{store.isPublishing ? 'Publishing…' : 'Publish'}
 			</button>
-
-			<!-- Publish Live Action -->
-			<button
-				type="button"
-				class="btn btn-primary btn-sm btn-publish"
-				disabled={store.isPublishing}
-				onclick={handleDirectPublish}
-			>
-				<Rocket size={14} strokeWidth={2.4} />
-				<span>{store.isPublishing ? 'Publishing…' : 'Publish'}</span>
-			</button>
+			{#if ctx.config?.public_url}
+				<a
+					class="btn btn-ghost btn-sm"
+					href={ctx.config.public_url}
+					target="_blank"
+					rel="noopener"
+					title="Open the live storefront"
+				>
+					<ExternalLink size={14} strokeWidth={2} />
+				</a>
+			{/if}
 		</div>
 	</header>
 
-	<!-- Split-Screen Studio Body -->
-	<div class="studio-split-screen">
-		<!-- Left: Customization Controls -->
-		<aside class="studio-controls-pane">
-			{#if store.draft}
-				<StudioControls {store} />
-			{/if}
-		</aside>
+	<div class="studio-body">
+		<nav class="studio-rail" aria-label="Studio sections">
+			{#each sections as section (section.id)}
+				{@const on = active.id === section.id}
+				{@const n = countFor(section.categories)}
+				<button
+					type="button"
+					class="studio-rail-item"
+					class:on
+					aria-current={on ? 'page' : undefined}
+					onclick={() => select(section.id)}
+				>
+					<span class="studio-rail-icon"><section.icon size={16} strokeWidth={1.9} /></span>
+					<span class="studio-rail-text">
+						<span class="studio-rail-label">{section.label(terms)}</span>
+						<span class="studio-rail-hint">{section.hint(terms)}</span>
+					</span>
+					{#if n > 0}<span class="studio-rail-count" title="{n} unpublished">{n}</span>{/if}
+				</button>
+			{/each}
+		</nav>
 
-		<!-- Right: Real Live Storefront Preview -->
-		<main class="studio-preview-wrapper">
-			{#if store.draft}
-				<StudioPreview config={store.draft} />
+		<section class="studio-panel" aria-label="{active.label(terms)} controls">
+			{#if store.isLoading}
+				<div class="studio-loading">
+					<Skeleton height="1.1rem" width="9rem" />
+					<Skeleton height="4rem" />
+					<Skeleton height="4rem" />
+					<Skeleton height="4rem" />
+				</div>
+			{:else}
+				<StudioControls {store} section={active.id} {terms} {allowed} />
 			{/if}
-		</main>
+		</section>
+
+		<section class="studio-stage" aria-label="Live preview">
+			<StudioPreview config={store.draft} />
+		</section>
 	</div>
 </div>
 
-<!-- AI Design Assistant Modal -->
-<AiAssistantModal {store} bind:isOpen={showAiModal} />
+<AiAssistantModal bind:open={showAi} {store} />
+<ReviewChangesModal
+	bind:open={showReview}
+	{store}
+	onpublish={() => void publish()}
+	ondiscard={() => {
+		showReview = false;
+		discardOpen = true;
+	}}
+/>
 
-<!-- Review & Publish Changes Modal -->
-<ReviewChangesModal {store} bind:isOpen={showReviewModal} />
+<ConfirmDialog
+	bind:open={discardOpen}
+	title="Discard this draft?"
+	message="Everything unpublished goes, and your storefront stays exactly as customers see it now. This cannot be undone."
+	confirmLabel="Discard draft"
+	danger
+	loading={discarding}
+	onconfirm={discard}
+/>
+
+<ConfirmDialog
+	bind:open={conflictOpen}
+	title="Your storefront changed elsewhere"
+	message="Somebody has edited this storefront since you started. Publishing now replaces their changes with yours. Open the live site in a new tab to compare before you decide."
+	confirmLabel="Publish mine anyway"
+	danger
+	loading={store.isPublishing}
+	onconfirm={() => void publish(true)}
+/>
 
 <style>
-	.storefront-studio-workspace {
+	.studio {
 		display: flex;
 		flex-direction: column;
-		height: calc(100dvh - var(--topbar-h, 54px));
+		/* Fill the shell's content area: a studio is a workspace, not a page you
+		   scroll as a whole — each column scrolls on its own. */
+		height: calc(100dvh - var(--topbar-h) - 2.5rem);
+		min-height: 34rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-lg);
 		background: var(--surface);
 		overflow: hidden;
-		margin: -1.25rem -1.25rem -1.5rem; /* Break out of default padding */
 	}
 
-	.studio-header-bar {
+	.studio-bar {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		padding: 0.75rem 1.25rem;
-		background: var(--surface);
-		border-bottom: 1px solid var(--border);
 		gap: 1rem;
+		padding: 0.6rem 0.75rem;
+		border-bottom: 1px solid var(--border);
+		background: var(--surface-2);
+		flex: none;
 		flex-wrap: wrap;
-		z-index: 20;
 	}
 
-	.studio-header-left {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-	}
-
-	.studio-title-badge-group {
+	.studio-bar-left {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		flex-wrap: wrap;
+		gap: 0.5rem;
+		min-width: 0;
 	}
 
-	.studio-heading {
+	.studio-id h1 {
 		margin: 0;
-		font-size: 1.125rem;
-		font-weight: 700;
-		color: var(--text);
-		letter-spacing: -0.2px;
+		font-family: var(--font-display);
+		font-size: 0.95rem;
+		font-weight: 650;
+		letter-spacing: -0.01em;
+		white-space: nowrap;
 	}
 
-	.studio-subtitle {
+	.studio-id p {
 		margin: 0;
-		font-size: 0.75rem;
+		font-size: 0.72rem;
 		color: var(--text-3);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
-	.studio-badge {
+	.studio-state {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+		margin-inline: auto;
+	}
+
+	.studio-chip {
 		display: inline-flex;
 		align-items: center;
-		gap: 5px;
-		padding: 2px 8px;
+		gap: 0.35rem;
+		padding: 0.25rem 0.55rem;
 		border-radius: 999px;
-		font-size: 0.6875rem;
-		font-weight: 700;
+		border: 1px solid var(--border);
+		background: var(--surface);
+		font-size: 0.73rem;
+		font-weight: 600;
+		color: var(--text-2);
+		white-space: nowrap;
 	}
 
-	.badge-live {
-		background: color-mix(in srgb, #10b981 12%, transparent);
-		color: #10b981;
-		border: 1px solid color-mix(in srgb, #10b981 30%, transparent);
+	.chip-live {
+		color: var(--success);
+		border-color: color-mix(in srgb, var(--success) 30%, transparent);
+		background: var(--success-bg);
 	}
 
-	.badge-draft {
-		background: color-mix(in srgb, #f59e0b 14%, transparent);
-		color: #f59e0b;
-		border: 1px solid color-mix(in srgb, #f59e0b 35%, transparent);
+	.chip-draft {
+		color: var(--warn);
+		border-color: color-mix(in srgb, var(--warn) 30%, transparent);
+		background: var(--warn-bg);
 	}
 
-	.studio-pulse-dot {
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
-		background: #f59e0b;
-		box-shadow: 0 0 6px #f59e0b;
-		animation: pulse-ring 1.8s infinite;
+	.chip-warn {
+		color: var(--danger);
+		border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+		background: var(--danger-bg);
 	}
 
-	@keyframes pulse-ring {
-		0% {
-			transform: scale(0.9);
-			opacity: 1;
-		}
-		50% {
-			transform: scale(1.3);
-			opacity: 0.6;
-		}
-		100% {
-			transform: scale(0.9);
-			opacity: 1;
-		}
+	.studio-dot {
+		width: 0.45rem;
+		height: 0.45rem;
+		border-radius: 999px;
+		background: currentColor;
 	}
 
-	.studio-last-saved {
-		font-size: 0.6875rem;
+	.studio-saved {
+		font-size: 0.7rem;
 		color: var(--text-3);
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		white-space: nowrap;
 	}
 
-	.studio-header-actions {
+	.studio-actions {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: 0.3rem;
 		flex-wrap: wrap;
 	}
 
-	.btn-ai-assistant {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		padding: 6px 12px;
-		font-size: 0.8125rem;
-		font-weight: 700;
-		background: linear-gradient(135deg, #6366f1, #8b5cf6);
-		color: #ffffff;
-		border: none;
-		border-radius: var(--radius-sm, 6px);
-		cursor: pointer;
-		box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);
-		transition: all 0.15s ease;
-	}
-
-	.btn-ai-assistant:hover {
-		transform: translateY(-1px);
-		box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
-	}
-
-	.btn-publish {
-		background: var(--accent);
-		color: #ffffff;
+	.studio-count {
+		display: inline-grid;
+		place-items: center;
+		min-width: 1.05rem;
+		height: 1.05rem;
+		padding: 0 0.25rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--text) 12%, transparent);
+		font-size: 0.62rem;
 		font-weight: 700;
 	}
 
-	.studio-split-screen {
-		display: grid;
-		grid-template-columns: minmax(360px, 460px) 1fr;
+	.studio-body {
 		flex: 1;
-		height: calc(100% - 58px);
-		overflow: hidden;
+		min-height: 0;
+		display: grid;
+		grid-template-columns: 14rem minmax(0, 22rem) minmax(0, 1fr);
 	}
 
-	@media (max-width: 900px) {
-		.studio-split-screen {
-			grid-template-columns: 1fr;
-			overflow-y: auto;
+	.studio-rail {
+		border-right: 1px solid var(--border);
+		padding: 0.6rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		overflow-y: auto;
+		background: var(--surface-2);
+	}
+
+	.studio-rail-item {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.55rem;
+		width: 100%;
+		padding: 0.55rem 0.6rem;
+		border: 1px solid transparent;
+		border-radius: 10px;
+		background: transparent;
+		color: var(--text-2);
+		font-family: inherit;
+		text-align: left;
+		cursor: pointer;
+		transition: background var(--tr), color var(--tr);
+	}
+
+	.studio-rail-item:hover {
+		background: var(--surface-3);
+		color: var(--text);
+	}
+
+	.studio-rail-item.on {
+		background: color-mix(in srgb, var(--accent) 12%, transparent);
+		color: var(--text);
+	}
+
+	.studio-rail-icon {
+		flex: none;
+		margin-top: 0.1rem;
+		color: var(--icon-fg);
+	}
+
+	.studio-rail-item.on .studio-rail-icon {
+		color: var(--accent-dark);
+	}
+
+	.studio-rail-text {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.studio-rail-label {
+		display: block;
+		font-size: 0.83rem;
+		font-weight: 600;
+		color: var(--text);
+	}
+
+	.studio-rail-hint {
+		display: block;
+		font-size: 0.7rem;
+		color: var(--text-3);
+		line-height: 1.35;
+	}
+
+	.studio-rail-count {
+		flex: none;
+		display: grid;
+		place-items: center;
+		min-width: 1.15rem;
+		height: 1.15rem;
+		padding: 0 0.3rem;
+		border-radius: 999px;
+		background: var(--warn-bg);
+		color: var(--warn);
+		font-size: 0.64rem;
+		font-weight: 700;
+	}
+
+	.studio-panel {
+		border-right: 1px solid var(--border);
+		overflow-y: auto;
+		padding: 0.9rem;
+	}
+
+	.studio-loading {
+		display: grid;
+		gap: 0.7rem;
+	}
+
+	.studio-stage {
+		overflow-y: auto;
+		background: var(--surface-3);
+		padding: 1rem;
+	}
+
+	/* —— Narrower: the preview drops under the controls, the rail becomes a
+	   scrolling row. A three-column workspace below ~1200px is three columns
+	   of nothing. —— */
+	@media (max-width: 1200px) {
+		.studio {
+			height: auto;
+			min-height: 0;
+		}
+
+		.studio-body {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.studio-rail {
+			flex-direction: row;
+			overflow-x: auto;
+			border-right: 0;
+			border-bottom: 1px solid var(--border);
+		}
+
+		.studio-rail-item {
+			width: auto;
+			white-space: nowrap;
+		}
+
+		.studio-rail-hint {
+			display: none;
+		}
+
+		.studio-panel {
+			border-right: 0;
+			border-bottom: 1px solid var(--border);
 		}
 	}
 
-	.studio-controls-pane {
-		height: 100%;
-		overflow: hidden;
-		display: flex;
-		flex-direction: column;
-	}
+	@media (max-width: 720px) {
+		.studio-state {
+			order: 3;
+			width: 100%;
+			margin-inline: 0;
+		}
 
-	.studio-preview-wrapper {
-		height: 100%;
-		overflow: hidden;
-		display: flex;
-		flex-direction: column;
+		.studio-action-label {
+			display: none;
+		}
 	}
 </style>

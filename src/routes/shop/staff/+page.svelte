@@ -22,9 +22,12 @@
 		type ShopUser
 	} from '$lib/tenant/staffApi';
 
+	// Mirrors the roles the API accepts. What each one can reach is shown on
+	// the IAM screen; this list only decides who can be invited as what.
 	const ROLES = [
-		{ value: 'TENANT_ADMIN', label: 'Tenant Admin' },
-		{ value: 'STAFF', label: 'Staff' }
+		{ value: 'TENANT_ADMIN', label: 'Owner — full control of this business' },
+		{ value: 'MANAGER', label: 'Manager — runs the shop, cannot reconfigure it' },
+		{ value: 'STAFF', label: 'Staff — selling and kitchen only' }
 	];
 
 	let users = $state<ShopUser[]>([]);
@@ -48,6 +51,21 @@
 		users.filter((u) => u.role === 'TENANT_ADMIN' && u.status === 'ACTIVE').length
 	);
 	const staffCount = $derived(users.filter((u) => u.role === 'STAFF').length);
+	const managerCount = $derived(users.filter((u) => u.role === 'MANAGER').length);
+
+	/** Human label for a role, so the table never prints a raw enum. */
+	function roleLabel(role: string): string {
+		switch (role) {
+			case 'TENANT_ADMIN':
+				return 'Owner';
+			case 'MANAGER':
+				return 'Manager';
+			case 'STAFF':
+				return 'Staff';
+			default:
+				return role;
+		}
+	}
 
 	async function load() {
 		loading = true;
@@ -83,7 +101,7 @@
 				name: addForm.name.trim(),
 				email: addForm.email.trim(),
 				phone: addForm.phone.trim(),
-				role: addForm.role as 'TENANT_ADMIN' | 'STAFF'
+				role: addForm.role as 'TENANT_ADMIN' | 'MANAGER' | 'STAFF'
 			});
 			addOpen = false;
 			toast.success(`${res.user.name} invited`);
@@ -173,12 +191,17 @@
 	<header class="staff-head">
 		<div>
 			<p class="muted staff-lead">
-				Invite employees, assign roles, and control who can run Selling and Kitchen.
+				Who works here. To see or change what each person can reach, open
+				<a href="/shop/iam">access control</a>.
 			</p>
 			<div class="staff-stats">
 				<span><strong>{users.length}</strong> people</span>
-				<span><strong>{admins}</strong> admins</span>
+				<span><strong>{admins}</strong> owner{admins === 1 ? '' : 's'}</span>
+				{#if managerCount > 0}
+					<span><strong>{managerCount}</strong> manager{managerCount === 1 ? '' : 's'}</span>
+				{/if}
 				<span><strong>{staffCount}</strong> staff</span>
+				<a class="staff-iam-link" href="/shop/iam">What each role can reach →</a>
 			</div>
 		</div>
 		<button type="button" class="btn btn-primary" onclick={openAdd}>
@@ -214,7 +237,7 @@
 							</span>
 						</div>
 					</td>
-					<td style="color:var(--text-2);">{u.role === 'STAFF' ? 'Staff' : 'Admin'}</td>
+					<td style="color:var(--text-2);">{roleLabel(String(u.role))}</td>
 					<td>
 						<span class="badge-cluster">
 							<StatusBadge status={u.status} />
@@ -257,8 +280,10 @@
 			label="Role"
 			htmlFor="su-role"
 			hint={addForm.role === 'TENANT_ADMIN'
-				? 'Admins can manage menu, staff, storefront, and settings.'
-				: 'Staff can run Selling and Kitchen only.'}
+				? 'Owners can change anything here, including payments, the storefront and who has access.'
+				: addForm.role === 'MANAGER'
+					? 'Managers run orders, the kitchen, the menu, customers and staff — but cannot change how the business is configured.'
+					: 'Staff can work Selling and Kitchen. They see no configuration at all.'}
 		>
 			<SelectField id="su-role" bind:value={addForm.role} options={ROLES} />
 		</FormField>
@@ -324,6 +349,20 @@
 		gap: 0.75rem;
 		font-size: 0.8rem;
 		color: var(--text-2);
+	}
+
+	.staff-iam-link {
+		color: var(--accent-dark);
+		font-weight: 550;
+		text-decoration: none;
+	}
+
+	.staff-iam-link:hover {
+		text-decoration: underline;
+	}
+
+	.staff-lead a {
+		color: var(--accent-dark);
 	}
 
 	.staff-stats strong {

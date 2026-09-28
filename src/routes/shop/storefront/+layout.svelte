@@ -1,12 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
-	import {
-		isCustomizeShellPath,
-		isStorefrontActive,
-		STOREFRONT_NAV
-	} from '$lib/storefront/admin-nav';
 	import {
 		ensureLiveStorefrontAdmin,
 		getStorefrontAdminOrDefault,
@@ -18,10 +11,15 @@
 	import type { Snippet } from 'svelte';
 
 	/**
-	 * Storefront control shell.
+	 * The storefront screens that are not Customize: Preview, QR & Share and
+	 * Operating hours.
 	 *
-	 * Navigation always paints immediately. Config defaults are available
-	 * instantly so a slow or failing API cannot blank the route.
+	 * They share one storefront document, loaded here once, so the preview and
+	 * the controls beside it can never describe different states of the same
+	 * shop. The Customize hub has its own shell under `/shop/customize`.
+	 *
+	 * The page always renders: an API failure shows a banner above it, never a
+	 * blank screen.
 	 */
 	let {
 		data,
@@ -33,7 +31,6 @@
 
 	let config = $state<AdminStorefront>(data.storefront ?? getStorefrontAdminOrDefault());
 	let error = $state(data.storefrontError ?? '');
-	let loading = $state(false);
 	let retrying = $state(false);
 
 	setStorefrontContext({
@@ -45,7 +42,6 @@
 	});
 
 	async function bootstrap(force = false) {
-		loading = true;
 		try {
 			const fetched = await loadStorefrontAdmin(force);
 			config = fetched;
@@ -54,7 +50,6 @@
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Could not load your storefront';
 		} finally {
-			loading = false;
 			retrying = false;
 		}
 	}
@@ -85,87 +80,31 @@
 		retrying = true;
 		await bootstrap(true);
 	}
-
-	const pathname = $derived($page.url.pathname);
-	const showCustomizeShell = $derived(isCustomizeShellPath(pathname));
 </script>
 
-{#snippet statusPane()}
-	{#if error}
-		<div
-			class="alert alert-danger"
-			style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;"
+{#if error}
+	<div class="alert alert-danger sf-shell-alert">
+		<div><strong>API notice:</strong> {error}</div>
+		<button
+			class="btn btn-primary btn-sm"
+			type="button"
+			disabled={retrying}
+			onclick={() => void retry()}
 		>
-			<div>
-				<strong>API notice:</strong> {error}
-			</div>
-			<button
-				class="btn btn-primary btn-sm"
-				type="button"
-				disabled={retrying}
-				onclick={() => void retry()}
-			>
-				{retrying ? 'Retrying…' : 'Try again'}
-			</button>
-		</div>
-	{/if}
-	{@render children({ config, save, refresh })}
-{/snippet}
-
-{#if showCustomizeShell}
-	<div class="sfctl">
-		<nav class="sfctl-nav" aria-label="Storefront customize">
-			{#each STOREFRONT_NAV as item (item.href)}
-				{@const active = isStorefrontActive(pathname, item)}
-				<a
-					class="sfctl-link"
-					class:active
-					href={item.href}
-					aria-current={active ? 'page' : undefined}
-				>
-					<span class="sfctl-icon" aria-hidden="true">
-						<item.icon size={17} strokeWidth={1.9} />
-					</span>
-					<span class="sfctl-txt">
-						<span class="sfctl-label">{item.label}</span>
-						<span class="sfctl-desc">{item.description}</span>
-					</span>
-				</a>
-			{/each}
-		</nav>
-
-		<div class="sfctl-main">
-			<div class="sfctl-bar">
-				<a class="btn btn-ghost btn-sm" href="/shop">
-					<ArrowLeft size={15} strokeWidth={2} /> Back to shop
-				</a>
-				<div class="sfctl-status">
-					{#if config}
-						<span
-							class="badge"
-							class:badge-ok={config.behaviour.published}
-							class:badge-warn={!config.behaviour.published}
-						>
-							{config.behaviour.published ? 'Live' : 'Not published'}
-						</span>
-						<span
-							class="badge"
-							class:badge-ok={config.ordering_available_now}
-							class:badge-warn={!config.ordering_available_now}
-						>
-							{config.ordering_available_now ? 'Accepting orders' : 'Closed'}
-						</span>
-					{:else if loading}
-						<span class="badge">Loading…</span>
-					{:else}
-						<span class="badge badge-warn">Unavailable</span>
-					{/if}
-				</div>
-			</div>
-
-			{@render statusPane()}
-		</div>
+			{retrying ? 'Retrying…' : 'Try again'}
+		</button>
 	</div>
-{:else}
-	{@render statusPane()}
 {/if}
+
+{@render children({ config, save, refresh })}
+
+<style>
+	.sf-shell-alert {
+		margin-bottom: 1rem;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+</style>

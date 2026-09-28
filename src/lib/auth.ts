@@ -1,13 +1,31 @@
 import { api, clearTokens, setTokens } from './api/client';
 
+/** The business a tenant token belongs to, as the API reports it on /me. */
+export type HostTenant = {
+	id: string;
+	slug: string;
+	name: string;
+	setup_status: string;
+	is_published: boolean;
+	/** Drives the console's vocabulary and which modules it shows. */
+	business_type: string;
+};
+
 export type User = {
 	id: string;
 	email: string;
 	name: string;
-	role: 'SUPER_ADMIN' | 'TENANT_ADMIN' | 'STAFF';
+	role: 'SUPER_ADMIN' | 'TENANT_ADMIN' | 'MANAGER' | 'STAFF';
 	tenant_id: string | null;
 	status: string;
 	must_set_password?: boolean;
+	/** Human name for the role, e.g. "Manager". Supplied by the API. */
+	role_label?: string;
+	/**
+	 * What this identity may reach, decided by the API. The console filters its
+	 * navigation with this rather than with its own copy of the role table.
+	 */
+	permissions?: string[];
 };
 
 type AuthResponse = { tokens: Parameters<typeof setTokens>[0]; user: User };
@@ -63,6 +81,24 @@ export async function me() {
 		return data.user;
 	}
 	return data as User;
+}
+
+/**
+ * The identity together with the business it was issued for.
+ *
+ * On a tenant host the API answers with both. The console needs the business
+ * type before it draws anything — the rail's labels come from it — so this is
+ * one call rather than a second round trip after the shell has rendered.
+ */
+export async function meWithTenant(): Promise<{ user: User; tenant: HostTenant | null }> {
+	const data = await api<User | { user: User; host_tenant?: HostTenant }>(
+		'/api/v1/auth/me',
+		{ timeoutMs: 5_000 }
+	);
+	if (data && typeof data === 'object' && 'user' in data && data.user) {
+		return { user: data.user, tenant: (data as { host_tenant?: HostTenant }).host_tenant ?? null };
+	}
+	return { user: data as User, tenant: null };
 }
 
 export async function changePassword(currentPassword: string, newPassword: string) {

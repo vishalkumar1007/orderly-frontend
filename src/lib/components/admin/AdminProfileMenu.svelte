@@ -2,7 +2,9 @@
 	import { onMount } from 'svelte';
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
 	import LogOut from '@lucide/svelte/icons/log-out';
+	import Palette from '@lucide/svelte/icons/palette';
 	import Settings from '@lucide/svelte/icons/settings';
+	import UserRound from '@lucide/svelte/icons/user-round';
 
 	let {
 		email = '',
@@ -10,6 +12,8 @@
 		role = 'SUPER_ADMIN',
 		collapsed = false,
 		settingsHref = '/superadmin/settings',
+		profileHref = '',
+		appearanceHref = '',
 		onNavigate,
 		onSignOut
 	}: {
@@ -19,6 +23,21 @@
 		collapsed?: boolean;
 		/** Destination for the Settings menu item — portal-specific. */
 		settingsHref?: string;
+		/**
+		 * The signed-in person's own account screen. It lives here rather than
+		 * in the navigation rail: a rail lists what the console governs, and
+		 * your own credentials are not one of those things.
+		 */
+		profileHref?: string;
+		/**
+		 * How this person changes their own console theme.
+		 *
+		 * It sits in the account menu, not the rail, because it is a preference
+		 * about their screen rather than a thing the business governs — and
+		 * because it must stay reachable for someone whose role never opens
+		 * Settings at all.
+		 */
+		appearanceHref?: string;
 		onNavigate?: () => void;
 		onSignOut?: () => void;
 	} = $props();
@@ -95,6 +114,18 @@
 				<strong>{email}</strong>
 				<span>{roleLabel}</span>
 			</div>
+			{#if profileHref}
+				<a href={profileHref} role="menuitem" onclick={closeFromEvent}>
+					<UserRound size={15} strokeWidth={1.75} />
+					Your profile
+				</a>
+			{/if}
+			{#if appearanceHref}
+				<a href={appearanceHref} role="menuitem" onclick={closeFromEvent}>
+					<Palette size={15} strokeWidth={1.75} />
+					Appearance
+				</a>
+			{/if}
 			<a href={settingsHref} role="menuitem" onclick={closeFromEvent}>
 				<Settings size={15} strokeWidth={1.75} />
 				Settings

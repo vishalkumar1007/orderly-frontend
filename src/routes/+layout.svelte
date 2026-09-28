@@ -3,15 +3,14 @@
 	import { page } from '$app/stores';
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
-	import { api, getAccessToken } from '$lib/api/client';
+	import { getAccessToken } from '$lib/api/client';
 	import {
 		applyBrandTheme,
 		clearBrandTheme,
 		getCachedBrandTheme,
-		invalidateBrandThemeCache,
-		setCachedBrandTheme,
-		type BrandTheme
+		invalidateBrandThemeCache
 	} from '$lib/brandTheme';
+	import { adoptAppearance, loadAppearance, readStoredTheme } from '$lib/appearance.svelte';
 	import { initConnectivity, initInstallPrompt, registerServiceWorker } from '$lib/pwa.svelte';
 	import { initTheme } from '$lib/theme';
 
@@ -62,48 +61,57 @@
 		pathname === '/shop/login' || pathname.startsWith('/setup-password')
 	);
 
-	$effect(() => {
-		const kind = hostKind;
-		const slug = tenantSlug;
-		const shopConsole = onShopConsole;
-		const isPublic = onShopPublic;
+	/**
+	 * Which console, if any, this page belongs to.
+	 *
+	 * Both of them paint from the same per-user appearance record; they differ
+	 * only in the default underneath it. The customer storefront is neither —
+	 * it renders from `--sf-*` tokens and has no account to read.
+	 */
+	const consoleKind = $derived.by<'tenant' | 'platform' | null>(() => {
+		if (hostKind === 'tenant') return onShopConsole && !onShopPublic ? 'tenant' : null;
+		return pathname.startsWith('/superadmin') && pathname !== '/superadmin/login'
+			? 'platform'
+			: null;
+	});
 
-		// Platform + admin hosts own their own theme. Strip any tenant override
-		// so the Super Admin console never inherits a shop's brand.
-		if (kind !== 'tenant') {
+	$effect(() => {
+		const kind = consoleKind;
+		const slug = tenantSlug;
+
+		// Not in a console: strip any console override so a shop's accent never
+		// tints the storefront and a tenant's brand never reaches the platform.
+		if (!kind) {
 			clearBrandTheme();
 			invalidateBrandThemeCache();
 			return;
 		}
 
-		// Console appearance only applies on authenticated /shop/* routes.
-		// The public storefront uses --sf-* tokens from StoreRoot.
-		if (!shopConsole) {
-			clearBrandTheme();
-			return;
-		}
-
-		if (isPublic) return;
-
-		const cacheKey = slug || 'tenant';
-		const cached = getCachedBrandTheme(cacheKey);
+		const scope = kind === 'platform' ? 'platform' : slug || 'tenant';
+		const cached = getCachedBrandTheme(scope);
 		if (cached) {
 			applyBrandTheme(cached);
 			return;
 		}
 
-		// No staff session → skip authenticated theme (avoids 401 → clearTokens).
+		// No session → skip the authenticated read (avoids 401 → clearTokens).
 		if (typeof localStorage !== 'undefined' && !getAccessToken()) return;
+
+		// Paint last session's resolved theme first. The appearance a person
+		// chose lives on their account, which means the correct answer is one
+		// round trip away — long enough to flash the built-in accent at somebody
+		// who picked another one.
+		const remembered = readStoredTheme(scope);
+		if (remembered) applyBrandTheme(remembered);
 
 		let cancelled = false;
 		(async () => {
 			try {
-				const theme = await api<BrandTheme>('/api/v1/tenant/theme');
+				const appearance = await loadAppearance(kind);
 				if (cancelled) return;
-				applyBrandTheme(theme);
-				setCachedBrandTheme(cacheKey, theme);
+				adoptAppearance(kind, scope, appearance);
 			} catch {
-				/* unpublished store or signed-out shop — do not auto-retry */
+				/* signed out, or an older API — do not auto-retry */
 			}
 		})();
 		return () => {

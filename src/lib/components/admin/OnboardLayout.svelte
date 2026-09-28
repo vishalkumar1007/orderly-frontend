@@ -25,9 +25,18 @@
 	<WizardStepNav {steps} {current} onSelect={onStepSelect} />
 
 	<div class="wizard-panel">
-		<p class="wizard-progress-inline" style="padding:1.25rem 1.25rem 0;margin:0;">
-			Step {current + 1} of {steps.length}
-		</p>
+		<!-- One progress indicator, at the top of the panel where it reads as
+		     part of the frame rather than competing with the footer buttons. -->
+		<div
+			class="wizard-bar"
+			role="progressbar"
+			aria-valuemin={1}
+			aria-valuemax={steps.length}
+			aria-valuenow={current + 1}
+			aria-label={`Step ${current + 1} of ${steps.length}`}
+		>
+			<span style={`width:${((current + 1) / steps.length) * 100}%;`}></span>
+		</div>
 		<div class="wizard-body">{@render form()}</div>
 		<div class="wizard-foot">{@render footer()}</div>
 	</div>
@@ -38,10 +47,15 @@
 </div>
 
 <style>
-	/* Without a preview rail the form takes the full remaining width. */
-	@media (min-width: 1120px) {
-		.onboard-wide {
-			grid-template-columns: 210px minmax(0, 1fr);
-		}
+	.wizard-bar {
+		height: 3px;
+		background: var(--surface-3);
+	}
+
+	.wizard-bar span {
+		display: block;
+		height: 100%;
+		background: linear-gradient(90deg, var(--accent), var(--accent-2));
+		transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 </style>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { Eye, Plus, Search } from '@lucide/svelte/icons';
 	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
@@ -26,6 +27,12 @@
 		type MenuProduct,
 		type ProductInput
 	} from '$lib/tenant/menu';
+	import { terms } from '$lib/tenant/businessType.svelte';
+
+	// Every noun on this screen belongs to the business, not to us. A grocer
+	// manages aisles of products; a hotel manages departments of services.
+	// The data model is the same either way — only the words change.
+	const t = $derived(terms());
 
 	const seed = getMenuSnapshot();
 	let categories = $state<MenuCategory[]>(seed?.categories ?? []);
@@ -38,7 +45,18 @@
 
 	let filter = $state('');
 	let search = $state('');
-	let availabilityFilter = $state<'all' | 'available' | 'unavailable'>('all');
+	/**
+	 * Seeded from the URL so a link can point at a real view rather than just
+	 * at the screen. A grocer's "what is out of stock" shortcut is the same
+	 * catalogue with one filter applied — worth a link, not a second page.
+	 */
+	let availabilityFilter = $state<'all' | 'available' | 'unavailable'>(
+		availabilityFromUrl($page.url.searchParams.get('availability'))
+	);
+
+	function availabilityFromUrl(raw: string | null): 'all' | 'available' | 'unavailable' {
+		return raw === 'available' || raw === 'unavailable' ? raw : 'all';
+	}
 	let featuredOnly = $state(false);
 	let hasOptionsOnly = $state(false);
 	let sortBy = $state<'order' | 'name' | 'price' | 'category' | 'updated'>('order');
@@ -394,7 +412,7 @@
 <div class="menu-page">
 	<header class="menu-header">
 		<div>
-			<h1 class="menu-title">Menu</h1>
+			<h1 class="menu-title">{t.catalog}</h1>
 			<p class="menu-sub">Manage what customers can order</p>
 		</div>
 		<div class="menu-header-actions">
@@ -402,7 +420,7 @@
 				<Eye size={15} strokeWidth={2} /> Preview Store
 			</a>
 			<button class="btn btn-ghost" type="button" onclick={openAddCategory}>
-				<Plus size={15} strokeWidth={2.2} /> Add Category
+				<Plus size={15} strokeWidth={2.2} /> Add {t.group.toLowerCase()}
 			</button>
 			<button
 				class="btn btn-primary"
@@ -410,7 +428,7 @@
 				onclick={() => openAddProduct()}
 				disabled={categories.length === 0}
 			>
-				<Plus size={15} strokeWidth={2.2} /> Add Product
+				<Plus size={15} strokeWidth={2.2} /> Add {t.item.toLowerCase()}
 			</button>
 		</div>
 	</header>
@@ -428,19 +446,19 @@
 	{:else if !error}
 		<div class="osstats menu-stats">
 			<div class="osstat accent">
-				<div class="osstat-label">Total Products</div>
+				<div class="osstat-label">Total {t.items.toLowerCase()}</div>
 				<p class="osstat-value">{products.length}</p>
 			</div>
 			<div class="osstat">
-				<div class="osstat-label">Active Products</div>
+				<div class="osstat-label">Active {t.items.toLowerCase()}</div>
 				<p class="osstat-value">{availableCount}</p>
 			</div>
 			<div class="osstat">
-				<div class="osstat-label">Categories</div>
+				<div class="osstat-label">{t.groups}</div>
 				<p class="osstat-value">{categories.length}</p>
 			</div>
 			<div class="osstat">
-				<div class="osstat-label">Unavailable Items</div>
+				<div class="osstat-label">Unavailable {t.items.toLowerCase()}</div>
 				<p class="osstat-value">{unavailableCount}</p>
 			</div>
 		</div>
@@ -449,13 +467,13 @@
 	{#if !loading && !error && categories.length === 0}
 		<Reveal class="panel" delay={60}>
 			<EmptyState
-				title="Your menu is empty"
-				description="Create your first category and start adding products."
-				hint="Categories help customers browse your products"
+				title={`Your ${t.catalog.toLowerCase()} is empty`}
+				description={`Create your first ${t.group.toLowerCase()} and start adding ${t.items.toLowerCase()}.`}
+				hint={`${t.groups} help customers browse your ${t.items.toLowerCase()}`}
 			>
 				{#snippet action()}
 					<button class="btn btn-primary" type="button" onclick={openAddCategory}>
-						+ Create Category
+						+ Create {t.group.toLowerCase()}
 					</button>
 				{/snippet}
 			</EmptyState>
@@ -467,9 +485,9 @@
 				style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;"
 			>
 				<div>
-					<h2 style="margin:0;font-size:0.95rem;">Categories</h2>
+					<h2 style="margin:0;font-size:0.95rem;">{t.groups}</h2>
 					<p class="panel-note" style="margin:0.15rem 0 0;">
-						Organize products and control display order
+						Organize {t.items.toLowerCase()} and control display order
 					</p>
 				</div>
 				<button class="btn btn-ghost btn-sm" type="button" onclick={openAddCategory}>
@@ -548,7 +566,7 @@
 					<option value="order">Display order</option>
 					<option value="name">Name</option>
 					<option value="price">Price</option>
-					<option value="category">Category</option>
+					<option value="category">{t.group}</option>
 					<option value="updated">Recently updated</option>
 				</select>
 				<label class="chip-filter">
@@ -574,7 +592,7 @@
 							type="button"
 							onclick={() => openAddProduct(filter || undefined)}
 						>
-							+ Add Product
+							+ Add {t.item.toLowerCase()}
 						</button>
 					{/if}
 				{/snippet}
@@ -595,7 +613,7 @@
 	{/if}
 </div>
 
-<SlideOver bind:open={productOpen} title={editingProduct ? 'Edit product' : 'Add product'}>
+<SlideOver bind:open={productOpen} title={editingProduct ? `Edit ${t.item.toLowerCase()}` : `Add ${t.item.toLowerCase()}`}>
 	{#if productOpen}
 		<ProductForm
 			{categories}
@@ -609,7 +627,7 @@
 	{/if}
 </SlideOver>
 
-<SlideOver bind:open={categoryOpen} title={editingCategory ? 'Edit category' : 'Add category'}>
+<SlideOver bind:open={categoryOpen} title={editingCategory ? `Edit ${t.group.toLowerCase()}` : `Add ${t.group.toLowerCase()}`}>
 	{#if categoryOpen}
 		<CategoryForm
 			editing={editingCategory}
@@ -632,18 +650,16 @@
 	onconfirm={confirmDeleteProduct}
 />
 
-<Modal bind:open={deleteCategoryOpen} title="Delete category?">
+<Modal bind:open={deleteCategoryOpen} title={`Delete ${t.group.toLowerCase()}?`}>
 	{#if deleteCategoryTarget}
 		{#if deleteCategoryProductCount > 0}
 			<p>
-				This category contains <strong>{deleteCategoryProductCount}</strong> product{deleteCategoryProductCount ===
-				1
-					? ''
-					: 's'}.
+				This {t.group.toLowerCase()} contains <strong>{deleteCategoryProductCount}</strong>
+				{deleteCategoryProductCount === 1 ? t.item.toLowerCase() : t.items.toLowerCase()}.
 			</p>
-			<p class="panel-note">Move them to another category before deleting.</p>
+			<p class="panel-note">Move them to another {t.group.toLowerCase()} before deleting.</p>
 			<div class="field" style="margin-top:0.75rem;">
-				<label class="field-label" for="move-cat">Move products to</label>
+				<label class="field-label" for="move-cat">Move {t.items.toLowerCase()} to</label>
 				<SelectField
 					id="move-cat"
 					bind:value={moveToCategoryId}
@@ -681,11 +697,11 @@
 	{/snippet}
 </Modal>
 
-<Modal bind:open={moveProductOpen} title="Move category">
+<Modal bind:open={moveProductOpen} title={`Move ${t.group.toLowerCase()}`}>
 	{#if moveProductTarget}
-		<p>Move “{moveProductTarget.name}” to another category.</p>
+		<p>Move “{moveProductTarget.name}” to another {t.group.toLowerCase()}.</p>
 		<div class="field" style="margin-top:0.75rem;">
-			<label class="field-label" for="move-prod-cat">Category</label>
+			<label class="field-label" for="move-prod-cat">{t.group}</label>
 			<SelectField
 				id="move-prod-cat"
 				bind:value={moveTargetId}

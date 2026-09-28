@@ -7,15 +7,29 @@
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
 	import OpsFullscreenToggle from '$lib/components/admin/OpsFullscreenToggle.svelte';
 	import { isOnline } from '$lib/pwa.svelte';
+	import { terms } from '$lib/tenant/businessType.svelte';
 
 	/**
 	 * Prep board — same live data as /shop/orders, tuned for the counter:
 	 * no money, no customer names up front, and one big tap target per ticket.
+	 *
+	 * The stage names come from the business type. The workflow underneath is
+	 * identical for everyone, but the words are not: a grocer's third column is
+	 * packing, not cooking, and a hotel delivers rather than hands over.
 	 */
-	const KITCHEN_STAGES = STAGES.map((s, i) => ({
-		...s,
-		label: ['New tickets', 'Queued', 'Cooking', 'Ready to hand over'][i] ?? s.label
-	}));
+	const t = $derived(terms());
+	const KITCHEN_STAGES = $derived(
+		STAGES.map((s, i) => ({
+			...s,
+			label:
+				[
+					`New ${t.ticket.toLowerCase()}s`,
+					'Queued',
+					t.prep,
+					`Ready to be ${t.handover}`
+				][i] ?? s.label
+		}))
+	);
 
 	let active = $state('PREPARING');
 
@@ -51,7 +65,7 @@
 			await orderBoard.transition(order as never, action);
 			toast.success(`#${order.order_number} → ${label}`);
 		} catch {
-			toast.error('Could not update that ticket');
+			toast.error(`Could not update that ${t.ticket.toLowerCase()}`);
 		}
 	}
 </script>
@@ -61,15 +75,15 @@
 		<div class="osh-kitchen-fs-bar">
 			<span class="osh-kitchen-count">
 				<ChefHat size={14} strokeWidth={2} />
-				{totalLive} {totalLive === 1 ? 'order' : 'orders'} live
+				{totalLive} {totalLive === 1 ? t.order.toLowerCase() : t.orders.toLowerCase()} live
 			</span>
 			<OpsFullscreenToggle label="Fullscreen" />
 		</div>
 	{:else}
 		<div class="osh-kitchen-toolbar">
 			<p class="osh-kitchen-lead">
-				Ticket board for prep — the same orders as <a href="/shop/orders">Selling</a>, without money or
-				customer details up front.
+				{t.ticket} board for the {t.station.toLowerCase()} — the same {t.orders.toLowerCase()} as
+				<a href="/shop/orders">Selling</a>, without money or customer details up front.
 			</p>
 			<OpsFullscreenToggle label="Fullscreen" />
 		</div>
@@ -91,12 +105,12 @@
 		<div class="osh-kitchen-top">
 			<span class="osh-kitchen-count">
 				<ChefHat size={13} strokeWidth={2} />
-				{totalLive} {totalLive === 1 ? 'order' : 'orders'} live
+				{totalLive} {totalLive === 1 ? t.order.toLowerCase() : t.orders.toLowerCase()} live
 			</span>
 		</div>
 	{/if}
 
-	<div class="os-tabs" role="tablist" aria-label="Kitchen stage">
+	<div class="os-tabs" role="tablist" aria-label="{t.station} stage">
 		{#each KITCHEN_STAGES as s (s.key)}
 			{@const count = orderBoard.countFor(s.key)}
 			<button
@@ -125,7 +139,7 @@
 		<h2>Nothing in {stage.label.toLowerCase()}</h2>
 		<p>
 			{#if totalLive === 0}
-				New tickets will show up here the moment they come in.
+				New {t.ticket.toLowerCase()}s will show up here the moment they come in.
 			{:else}
 				Pick another stage above, or enjoy the quiet.
 			{/if}
@@ -211,8 +225,8 @@
 		gap: 0.3rem;
 		padding: 0.25rem 0.55rem;
 		border-radius: 999px;
-		background: var(--accent-soft);
-		color: var(--accent-dark);
+		background: var(--icon-bg);
+		color: var(--icon-fg);
 		font-size: 0.72rem;
 		font-weight: 700;
 		white-space: nowrap;
@@ -279,7 +293,7 @@
 		min-width: 1.75rem;
 		font-size: 1.05rem;
 		font-weight: 800;
-		color: var(--accent-dark);
+		color: var(--icon-fg);
 		font-variant-numeric: tabular-nums;
 	}
 
@@ -308,8 +322,8 @@
 		height: 3.25rem;
 		margin: 0 auto 0.85rem;
 		border-radius: 999px;
-		background: var(--accent-soft);
-		color: var(--accent-dark);
+		background: var(--icon-bg);
+		color: var(--icon-fg);
 		display: grid;
 		place-items: center;
 	}

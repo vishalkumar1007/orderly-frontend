@@ -10,12 +10,19 @@
 	--accent-dark: #4f46e5;
 	--accent-soft: color-mix(in srgb, var(--accent) 13%, white);
 	--accent-ring: color-mix(in srgb, var(--accent) 20%, transparent);
+	/*
+	 * What is legible on top of the accent. `applyBrandTheme` recomputes both
+	 * from the theme's own colours and writes them onto <html>; these are the
+	 * values for the built-in accent, used until it does.
+	 */
+	--on-accent: #ffffff;
+	--on-accent-2: #ffffff;
 
-	/* Radii */
-	--radius: 12px;
-	--radius-sm: 8px;
-	--radius-lg: 18px;
-	--radius-xl: 24px;
+	/* Radii — professional dashboard, not bubbly */
+	--radius: 8px;
+	--radius-sm: 6px;
+	--radius-lg: 10px;
+	--radius-xl: 12px;
 
 	/* Type */
 	--font: 'Inter', system-ui, -apple-system, sans-serif;
@@ -35,11 +42,21 @@
 	--rail-w: 260px;
 	--rail-w-collapsed: 72px;
 	--topbar-h: 64px;
-	--content-max: 1240px;
+	--content-max: 1480px;
 }
 
 :root,
 [data-theme='light'] {
+	/*
+	 * The working surfaces stay neutral.
+	 *
+	 * Tinting the whole page with the accent was tried and is wrong: a console
+	 * is somewhere you read dense tables and forms for hours, and a coloured
+	 * sheet behind all of it is tiring and makes the status colours — success,
+	 * warning, danger — sit on a background that shifts with the brand. The
+	 * theme is carried by the rail instead, which is the part you see without
+	 * reading it.
+	 */
 	--bg: #f7f8fb;
 	--surface: #ffffff;
 	--surface-2: #fbfcfe;
@@ -60,6 +77,51 @@
 	--info-bg: #eaf0fe;
 
 	--chart-grid: color-mix(in srgb, var(--border) 80%, transparent);
+
+	/*
+	 * The rail is a neutral surface with a whisper of the accent in it — 3.5%,
+	 * enough to tell two themes apart side by side and not enough to read as a
+	 * coloured panel.
+	 *
+	 * An earlier pass put the accent into the surface, the borders, the hover,
+	 * the icon boxes and the label colours at once. Every one of them was
+	 * defensible alone; together they turned a navigation column into a swatch,
+	 * and a saturated theme made the whole thing look dim. The accent now
+	 * appears in exactly one place — the item you are on — which is the only
+	 * place it carries information.
+	 */
+	--rail: color-mix(in srgb, var(--accent) 2%, rgba(255, 255, 255, 0.86));
+	--rail-solid: color-mix(in srgb, var(--accent) 2.5%, #ffffff);
+	--wash-near: 3%;
+	--wash-far: 2.5%;
+
+	/* Text and icons are neutral, always. Legibility is not a brand decision. */
+	--rail-text: #5a6376;
+	--rail-text-strong: #0d1424;
+	--rail-border: #e6e8ef;
+	--rail-hover: rgba(13, 20, 36, 0.045);
+	--rail-active: color-mix(in srgb, var(--accent) 12%, transparent);
+	--rail-icon-bg: rgba(13, 20, 36, 0.04);
+	--rail-scroll: rgba(13, 20, 36, 0.16);
+
+	/*
+	 * Decorative furniture: the tile behind a stat icon, an avatar, a section
+	 * glyph, a checklist marker. Neutral, always.
+	 *
+	 * These used to be `--accent-soft` / `--accent-dark`. Individually that
+	 * looked considered; multiplied across every card, row and section header it
+	 * meant a saturated theme tinted the entire console and the eye had nothing
+	 * left to pick out. See the rule above the tokens in the dark block.
+	 */
+	--icon-bg: #eef0f5;
+	--icon-fg: #5a6376;
+
+	/*
+	 * The one accent-coloured thing in the rail, so it has to be readable
+	 * against it: deepened toward the ink because the pale presets (lime,
+	 * amber) sit at 4.08:1 raw, under the 4.5:1 AA needs for body text.
+	 */
+	--rail-accent-text: color-mix(in srgb, var(--accent) 70%, #0d1424);
 
 	/* Aliases kept for shared primitives */
 	--ink: var(--text);
@@ -97,6 +159,27 @@
 	--accent-dark: #a5b4fc;
 	--chart-grid: color-mix(in srgb, var(--border) 90%, transparent);
 
+	/* Same restraint as light: a hint in the surface, neutral everywhere else. */
+	--rail: color-mix(in srgb, var(--accent) 4%, rgba(12, 14, 24, 0.88));
+	--rail-solid: color-mix(in srgb, var(--accent) 4%, #0c0e18);
+	--wash-near: 5%;
+	--wash-far: 3.5%;
+
+	--rail-text: #98a1b6;
+	--rail-text-strong: #ffffff;
+	--rail-border: rgba(255, 255, 255, 0.08);
+	--rail-hover: rgba(255, 255, 255, 0.055);
+	--rail-active: color-mix(in srgb, var(--accent) 20%, transparent);
+	--rail-icon-bg: rgba(255, 255, 255, 0.045);
+	--rail-scroll: rgba(255, 255, 255, 0.14);
+
+	--icon-bg: rgba(255, 255, 255, 0.06);
+	--icon-fg: #98a1b6;
+
+	/* Lifted toward white: the darker secondaries — indigo's #6366f1, slate's
+	   #64748b — sit at 3.7–3.9:1 against a near-black rail on their own. */
+	--rail-accent-text: color-mix(in srgb, var(--accent-2) 72%, #ffffff);
+
 	--shadow-md: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
 	--shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
 
@@ -111,14 +194,22 @@
 	--info-soft: var(--info-bg);
 }
 
-/* The rail is dark in BOTH themes — one treatment, no per-theme fork. */
-:root {
-	--rail: #0c0e18;
-	--rail-text: #98a1b6;
-	--rail-border: rgba(255, 255, 255, 0.07);
-	--rail-hover: rgba(255, 255, 255, 0.06);
-	--rail-active: rgba(255, 255, 255, 0.1);
-}
+/*
+ * The rail is where the theme lives.
+ *
+ * Two things were wrong with the previous treatment. It was the same near-black
+ * in both themes, so switching to light mode left a dark column down the side
+ * of a white page; and its background was a literal, so the accent reached only
+ * the active item and the chosen theme was invisible on the largest coloured
+ * surface in the console.
+ *
+ * Both are fixed by deriving the rail from `--accent` per theme. `--accent` is
+ * an inline custom property on <html>, and these rules match that same element,
+ * so saving an appearance repaints the rail with no reload and no JavaScript.
+ *
+ * Note the two text tokens: `--rail-text-strong` exists because the rules below
+ * used a hard-coded white for emphasis, which is invisible on a light rail.
+ */
 
 /* ============================================================
    BASE
@@ -209,7 +300,7 @@ body {
 
 .btn-primary {
 	background: var(--accent);
-	color: #fff;
+	color: var(--on-accent);
 	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
 }
 
@@ -305,10 +396,53 @@ select.input {
 /* ============================================================
    APP FRAME
    ============================================================ */
+/*
+ * The shell carries a soft light in the theme colour, and the rail is glass
+ * over it.
+ *
+ * A flat tint across the whole page was wrong — it is tiring under dense
+ * tables and it shifts the ground the status colours sit on. What reads as
+ * "themed" without doing either is a light: two wide, very low-alpha pools of
+ * the accent behind the chrome, strongest at the top-left where the rail is, so
+ * the colour is something you notice at the edges rather than something you
+ * read text on.
+ *
+ * `position: relative` and a pseudo-element rather than a background on the
+ * shell itself, because the rail's `backdrop-filter` needs something behind it
+ * to blur; a background on the same element would not be it.
+ */
 .shell {
 	display: flex;
 	min-height: 100vh;
 	background: var(--bg);
+	position: relative;
+	isolation: isolate;
+}
+
+.shell::before {
+	content: '';
+	position: fixed;
+	inset: 0;
+	z-index: -1;
+	pointer-events: none;
+	background:
+		radial-gradient(
+			90rem 60rem at -10% -15%,
+			color-mix(in srgb, var(--accent) var(--wash-near), transparent),
+			transparent 60%
+		),
+		radial-gradient(
+			70rem 50rem at 110% 0%,
+			color-mix(in srgb, var(--accent-2) var(--wash-far), transparent),
+			transparent 55%
+		);
+}
+
+/* A viewer who asked for less motion and less decoration gets the plain page. */
+@media (prefers-reduced-transparency: reduce) {
+	.shell::before {
+		display: none;
+	}
 }
 
 .rail {
@@ -316,13 +450,35 @@ select.input {
 	flex-shrink: 0;
 	display: flex;
 	flex-direction: column;
+	/* Translucent, so the light behind it shows through. */
 	background: var(--rail);
+	backdrop-filter: blur(20px) saturate(150%);
+	-webkit-backdrop-filter: blur(20px) saturate(150%);
 	border-right: 1px solid var(--rail-border);
 	position: sticky;
 	top: 0;
 	height: 100vh;
 	overflow: hidden;
 	transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/*
+ * Without backdrop-filter the rail would be a translucent panel over a gradient
+ * with nothing softening it, which reads as a mistake rather than as glass. The
+ * opaque fallback is the same colour at full strength.
+ */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+	.rail {
+		background: var(--rail-solid);
+	}
+}
+
+@media (prefers-reduced-transparency: reduce) {
+	.rail {
+		background: var(--rail-solid);
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
+	}
 }
 
 .shell.rail-collapsed {
@@ -344,7 +500,7 @@ select.input {
 	font-family: var(--font-display);
 	font-weight: 600;
 	font-size: 0.92rem;
-	color: #fff;
+	color: var(--rail-text-strong);
 	letter-spacing: -0.01em;
 	white-space: nowrap;
 	overflow: hidden;
@@ -370,7 +526,7 @@ select.input {
 
 .rail-toggle:hover {
 	background: transparent;
-	color: #fff;
+	color: var(--rail-text-strong);
 }
 
 .rail-nav {
@@ -382,7 +538,7 @@ select.input {
 	flex-direction: column;
 	gap: 1.1rem;
 	scrollbar-width: thin;
-	scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+	scrollbar-color: var(--rail-scroll) transparent;
 }
 
 .rail-group {
@@ -417,24 +573,28 @@ select.input {
 	padding: 0.35rem 0.15rem 0.45rem;
 	margin: 0 -0.15rem;
 	border-radius: 12px;
-	background: color-mix(in srgb, var(--rail-hover) 55%, transparent);
+	background: var(--rail-hover);
 }
 
 .rail-group-running .rail-group-label {
 	font-size: 0.6875rem;
 	font-weight: 750;
 	letter-spacing: 0.1em;
-	color: color-mix(in srgb, #fff 82%, var(--rail-text));
+	color: var(--rail-text);
 }
 
+/* Weight, not colour. The daily-ops cluster should read as primary without
+   competing with the active item for the eye. */
 .rail-group-running .rail-link {
 	font-weight: 650;
 	font-size: 0.84375rem;
-	color: #fff;
+	color: var(--rail-text-strong);
 }
 
 .rail-group-running .rail-link:hover {
-	background: color-mix(in srgb, var(--rail-hover) 140%, transparent);
+	/* Was a 140% color-mix, which is out of range — the whole declaration was
+	   invalid, so the daily-ops links had no hover state at all. */
+	background: var(--rail-active);
 }
 
 .rail-link {
@@ -454,17 +614,21 @@ select.input {
 
 .rail-link:hover {
 	background: var(--rail-hover);
-	color: #fff;
+	color: var(--rail-text-strong);
 }
 
+/*
+ * The active item is the only coloured thing in the rail.
+ *
+ * It was a two-stop gradient with a tinted border and a solid accent-filled
+ * icon box — three separate accent treatments on one row, which is what made a
+ * saturated theme look heavy. One flat tint and an accent glyph says the same
+ * thing and stays out of the way.
+ */
 .rail-link.active {
-	background: linear-gradient(
-		135deg,
-		color-mix(in srgb, var(--accent) 16%, transparent),
-		color-mix(in srgb, var(--info) 9%, transparent)
-	);
-	border-color: color-mix(in srgb, var(--accent) 22%, transparent);
-	color: var(--accent-2);
+	background: var(--rail-active);
+	border-color: transparent;
+	color: var(--rail-accent-text);
 	font-weight: 650;
 }
 
@@ -475,23 +639,23 @@ select.input {
 	flex: none;
 	display: grid;
 	place-items: center;
-	border: 1px solid var(--rail-border);
+	border: 1px solid transparent;
 	border-radius: 7px;
-	background: rgba(255, 255, 255, 0.04);
+	background: transparent;
 	color: var(--rail-text);
 	transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease,
 		box-shadow 0.15s ease;
 }
 
 .rail-link:hover .rail-link-icon {
-	color: #fff;
+	color: var(--rail-text-strong);
 }
 
 .rail-link.active .rail-link-icon {
-	background: var(--accent);
-	border-color: var(--accent);
-	color: #fff;
-	box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 26%, transparent);
+	background: transparent;
+	border-color: transparent;
+	color: var(--rail-accent-text);
+	box-shadow: none;
 }
 
 .rail-link-label {
@@ -568,8 +732,8 @@ select.input {
 	font-size: 0.68rem;
 	font-weight: 650;
 	letter-spacing: 0.02em;
-	background: rgba(255, 255, 255, 0.1);
-	color: #fff;
+	background: var(--rail-active);
+	color: var(--rail-text-strong);
 }
 
 .rail-user-caret {
@@ -586,7 +750,7 @@ select.input {
 }
 
 .rail-user-txt strong {
-	color: #fff;
+	color: var(--rail-text-strong);
 	font-size: 0.8rem;
 	font-weight: 500;
 	overflow: hidden;
@@ -752,8 +916,9 @@ select.input {
 }
 
 .crumb-current {
-	color: var(--text-2);
-	font-weight: 550;
+	color: var(--text);
+	font-weight: 600;
+	font-size: 0.82rem;
 	padding: 0 0.15rem;
 }
 
@@ -820,7 +985,10 @@ select.input {
 }
 
 .content-wide {
-	max-width: 1400px;
+	max-width: none;
+	width: 100%;
+	padding-left: 1.5rem;
+	padding-right: 1.5rem;
 }
 
 .rail-overlay {
@@ -906,7 +1074,7 @@ select.input {
 	background: var(--surface);
 	border: 1px solid var(--border);
 	border-radius: var(--radius-lg);
-	padding: 1.15rem 1.25rem;
+	padding: 1rem 1.1rem;
 }
 
 .panel-flush {
@@ -916,7 +1084,7 @@ select.input {
 
 .panel-h {
 	font-family: var(--font-display);
-	font-size: 0.9rem;
+	font-size: 0.84rem;
 	font-weight: 600;
 	margin: 0 0 0.85rem;
 	color: var(--text);
@@ -955,11 +1123,11 @@ select.input {
 .stat-row {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 0.85rem;
+	gap: 0.75rem;
 	margin-bottom: 1.25rem;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
 	.stat-row {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
@@ -996,8 +1164,8 @@ select.input {
 	align-items: center;
 	justify-content: center;
 	border-radius: 6px;
-	background: var(--accent-soft);
-	color: var(--accent-dark);
+	background: var(--icon-bg);
+	color: var(--icon-fg);
 }
 
 .stat-label {
@@ -1075,11 +1243,13 @@ select.input {
 	grid-template-columns: 1fr;
 }
 
-@media (min-width: 1000px) {
+@media (min-width: 800px) {
 	.grid-2 {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
+}
 
+@media (min-width: 1000px) {
 	.grid-3 {
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
@@ -1236,8 +1406,8 @@ select.input {
 	justify-content: center;
 	font-size: 0.72rem;
 	font-weight: 650;
-	background: var(--accent-soft);
-	color: var(--accent-dark);
+	background: var(--icon-bg);
+	color: var(--icon-fg);
 }
 
 .cell-id-txt {
@@ -1872,19 +2042,49 @@ select.input {
    FILTER BAR
    ============================================================ */
 .filters {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: flex-end;
-	gap: 0.6rem;
+	display: grid;
+	grid-template-columns: minmax(10rem, 1.6fr) repeat(auto-fill, minmax(6.5rem, 1fr));
+	align-items: end;
+	gap: 0.45rem 0.5rem;
 }
 
 .filters .field {
-	min-width: 8.5rem;
+	min-width: 0;
 }
 
 .filters .field-grow {
-	flex: 1;
-	min-width: 12rem;
+	min-width: 0;
+	grid-column: 1;
+}
+
+.filters .field-label {
+	font-size: 0.65rem;
+	font-weight: 550;
+	letter-spacing: 0.01em;
+	margin: 0;
+}
+
+.filters .input,
+.filters select.input {
+	padding: 0.32rem 0.5rem;
+	font-size: 0.78rem;
+	border-radius: var(--radius-sm);
+}
+
+@media (max-width: 720px) {
+	.filters {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.filters .field-grow {
+		grid-column: 1 / -1;
+	}
+}
+
+@media (max-width: 420px) {
+	.filters {
+		grid-template-columns: 1fr;
+	}
 }
 
 /* ============================================================
@@ -1981,8 +2181,8 @@ select.input {
 	font-family: var(--font-display);
 	font-size: 1.05rem;
 	font-weight: 650;
-	background: var(--accent-soft);
-	color: var(--accent-dark);
+	background: var(--icon-bg);
+	color: var(--icon-fg);
 }
 
 .id-head h1 {
@@ -2013,17 +2213,26 @@ select.input {
 /* ============================================================
    ONBOARDING WIZARD
    ============================================================ */
+/* ============================================================
+   ONBOARDING WIZARD
+   A three-column frame: where you are, what you are filling in, and a
+   footer that never moves. The step rail is the navigation, so the form
+   panel carries no chrome of its own beyond its heading.
+   ============================================================ */
+
 .onboard {
 	display: grid;
-	gap: 1rem;
+	gap: 1.75rem;
 	align-items: start;
 }
 
 @media (min-width: 1120px) {
 	.onboard {
-		grid-template-columns: 210px minmax(0, 1fr) 270px;
+		grid-template-columns: 15rem minmax(0, 1fr);
 	}
 }
+
+/* ---------- step rail ---------- */
 
 .steps {
 	list-style: none;
@@ -2031,73 +2240,112 @@ select.input {
 	padding: 0;
 	display: flex;
 	flex-direction: column;
+	gap: 0.1rem;
+	position: relative;
+}
+
+@media (min-width: 1120px) {
+	.steps {
+		position: sticky;
+		top: calc(var(--topbar-h) + 1rem);
+	}
+
+	/* The line that makes a list of buttons read as a sequence. */
+	.steps::before {
+		content: '';
+		position: absolute;
+		left: 1.32rem;
+		top: 1.6rem;
+		bottom: 1.6rem;
+		width: 1.5px;
+		background: var(--border);
+		z-index: 0;
+	}
 }
 
 @media (max-width: 1119px) {
 	.steps {
 		flex-direction: row;
 		overflow-x: auto;
-		gap: 0.3rem;
-		padding-bottom: 0.25rem;
+		gap: 0.35rem;
+		padding-bottom: 0.35rem;
+		scrollbar-width: none;
+	}
+
+	.steps::-webkit-scrollbar {
+		display: none;
+	}
+
+	.steps-desc {
+		display: none;
 	}
 }
 
 .steps button {
 	position: relative;
+	z-index: 1;
 	width: 100%;
 	display: flex;
-	align-items: flex-start;
-	gap: 0.6rem;
-	padding: 0.55rem 0.6rem;
-	border: 1px solid transparent;
-	border-radius: var(--radius-sm);
+	align-items: center;
+	gap: 0.7rem;
+	padding: 0.6rem 0.65rem;
+	border: 0;
+	border-radius: 10px;
 	background: transparent;
 	color: var(--text-3);
 	font-family: inherit;
-	font-size: 0.83rem;
+	font-size: 0.85rem;
 	text-align: left;
+	white-space: nowrap;
 	cursor: pointer;
-	transition: background var(--tr), color var(--tr), border-color var(--tr);
+	transition:
+		background var(--tr),
+		color var(--tr);
 }
 
 .steps button:disabled {
 	cursor: default;
-	opacity: 0.55;
+	opacity: 0.6;
+}
+
+.steps button:not(:disabled):hover {
+	background: var(--surface-2);
+	color: var(--text-2);
 }
 
 .steps button.active {
-	background: var(--surface);
-	border-color: var(--border);
-	color: var(--text);
-	box-shadow: var(--shadow-sm);
+	background: var(--accent-soft);
+	color: var(--accent-dark);
 }
 
 .steps button.done:not(.active) {
 	color: var(--text-2);
 }
 
-.steps button.done:hover {
-	background: var(--surface-2);
-}
-
 .steps-num {
-	width: 1.25rem;
-	height: 1.25rem;
+	width: 1.6rem;
+	height: 1.6rem;
 	flex-shrink: 0;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	border-radius: 999px;
-	border: 1.5px solid currentColor;
-	font-size: 0.66rem;
+	border: 1.5px solid var(--border);
+	background: var(--bg);
+	font-size: 0.7rem;
 	font-weight: 650;
-	margin-top: 0.05rem;
+	font-variant-numeric: tabular-nums;
+	transition:
+		background var(--tr),
+		border-color var(--tr),
+		color var(--tr);
 }
 
 .steps button.active .steps-num {
 	background: var(--accent);
 	border-color: var(--accent);
-	color: #fff;
+	color: var(--on-accent);
+	box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .steps button.done .steps-num {
@@ -2114,79 +2362,101 @@ select.input {
 }
 
 .steps-txt strong {
-	font-weight: 550;
+	font-weight: 600;
+	letter-spacing: -0.005em;
 }
 
 .steps-desc {
-	font-size: 0.7rem;
+	font-size: 0.72rem;
 	color: var(--text-3);
-	line-height: 1.35;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
+.steps button.active .steps-desc {
+	color: color-mix(in srgb, var(--accent-dark) 70%, var(--text-3));
+}
+
+/* ---------- form panel ---------- */
+
 .wizard-panel {
-	display: flex;
-	flex-direction: column;
-	min-height: min(72vh, 660px);
 	background: var(--surface);
 	border: 1px solid var(--border);
 	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-sm);
 	overflow: hidden;
+	min-width: 0;
 }
 
 .wizard-body {
-	flex: 1;
-	padding: 1.25rem;
-	overflow-y: auto;
+	padding: 1.75rem;
+}
+
+@media (max-width: 640px) {
+	.wizard-body {
+		padding: 1.25rem;
+	}
+}
+
+/* The step heading. Larger than a panel title: it is the page's subject. */
+.wizard-body .panel-h {
+	font-family: var(--font-display);
+	font-size: 1.15rem;
+	font-weight: 600;
+	letter-spacing: -0.02em;
+	margin: 0 0 0.4rem;
+}
+
+.wizard-body .panel-note {
+	margin: 0 0 1.5rem;
+	font-size: 0.86rem;
+	line-height: 1.6;
+	color: var(--text-3);
+	max-width: 46rem;
 }
 
 .wizard-foot {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
-	justify-content: space-between;
 	gap: 0.75rem;
-	padding: 0.85rem 1.25rem;
-	border-top: 1px solid var(--border);
+	padding: 0.9rem 1.75rem;
 	background: var(--surface-2);
+	border-top: 1px solid var(--border-subtle);
+}
+
+@media (max-width: 640px) {
+	.wizard-foot {
+		padding: 0.85rem 1.25rem;
+	}
 }
 
 .wizard-progress {
 	font-size: 0.78rem;
+	font-weight: 550;
 	color: var(--text-3);
 }
 
 .wizard-foot-actions {
+	margin-left: auto;
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
-	margin-left: auto;
 }
 
-.wizard-preview {
-	position: sticky;
-	top: calc(var(--topbar-h) + 1rem);
-}
-
-@media (max-width: 1119px) {
-	.wizard-preview {
-		position: static;
-	}
+.wizard-foot-actions .btn {
+	min-height: 2.35rem;
+	padding-inline: 1.1rem;
 }
 
 .wizard-progress-inline {
 	display: none;
-	font-size: 0.8rem;
-	font-weight: 550;
-	color: var(--text-2);
-	margin-bottom: 0.85rem;
 }
 
-@media (min-width: 1120px) {
-	.wizard-progress-inline {
-		display: block;
-	}
+.wizard-preview {
+	display: none;
 }
 
-/* Slug availability */
 .slug-status {
 	display: inline-flex;
 	align-items: center;
@@ -2217,102 +2487,12 @@ select.input {
 /* ============================================================
    SETTINGS
    ============================================================ */
-.settings {
-	display: grid;
-	gap: 1.25rem;
-	align-items: start;
-}
-
-@media (min-width: 900px) {
-	.settings {
-		grid-template-columns: 190px minmax(0, 1fr);
-	}
-}
-
-.settings-nav {
-	display: flex;
-	flex-direction: column;
-	gap: 0.15rem;
-	position: sticky;
-	top: calc(var(--topbar-h) + 1rem);
-}
-
-@media (max-width: 899px) {
-	.settings-nav {
-		position: static;
-		flex-direction: row;
-		overflow-x: auto;
-		padding-bottom: 0.25rem;
-	}
-}
-
-.settings-nav button {
-	text-align: left;
-	padding: 0.45rem 0.6rem;
-	border: 0;
-	border-radius: 6px;
-	background: transparent;
-	color: var(--text-2);
-	font-family: inherit;
-	font-size: 0.85rem;
-	white-space: nowrap;
-	cursor: pointer;
-	transition: background var(--tr), color var(--tr);
-}
-
-.settings-nav button:hover {
-	background: var(--surface-2);
-	color: var(--text);
-}
-
-.settings-nav button.active {
-	background: var(--accent-soft);
-	color: var(--accent-dark);
-	font-weight: 550;
-}
-
-.settings-panel {
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: var(--radius-lg);
-	overflow: hidden;
-}
-
-.settings-panel-head {
-	padding: 1.15rem 1.25rem 0;
-}
-
-.settings-panel-head h2 {
-	font-family: var(--font-display);
-	font-size: 1rem;
-	font-weight: 600;
-	margin: 0 0 0.2rem;
-	color: var(--text);
-}
-
-.settings-panel-head p {
-	margin: 0;
-	font-size: 0.8rem;
-	color: var(--text-3);
-	line-height: 1.5;
-}
-
-.settings-panel-body {
-	padding: 1.15rem 1.25rem;
-}
-
-.settings-panel-foot {
-	padding: 0.9rem 1.25rem;
-	border-top: 1px solid var(--border);
-	background: var(--surface-2);
-	display: flex;
-	justify-content: flex-end;
-	gap: 0.5rem;
-}
-
 /* ============================================================
-   CREDENTIAL CARD (post-onboarding)
+   SETTINGS
+   Section layout lives in SettingsSection.svelte. What remains here is
+   only what the settings screens share with the rest of the console.
    ============================================================ */
+
 .credentials {
 	border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
 }
@@ -2391,8 +2571,8 @@ select.input {
 	width: 1.2rem;
 	height: 1.2rem;
 	border-radius: 999px;
-	background: var(--accent-soft);
-	color: var(--accent-dark);
+	background: var(--icon-bg);
+	color: var(--icon-fg);
 	font-size: 0.68rem;
 	font-weight: 650;
 	display: flex;
@@ -2480,8 +2660,8 @@ select.input {
 	inset: 0;
 	pointer-events: none;
 	background:
-		radial-gradient(520px 240px at 16% 0%, color-mix(in srgb, var(--accent) 11%, transparent) 0%, transparent 62%),
-		radial-gradient(380px 200px at 90% 20%, color-mix(in srgb, var(--info) 8%, transparent) 0%, transparent 60%);
+		radial-gradient(520px 240px at 16% 0%, color-mix(in srgb, var(--accent) 4%, transparent) 0%, transparent 62%),
+		radial-gradient(380px 200px at 90% 20%, color-mix(in srgb, var(--accent-2) 3%, transparent) 0%, transparent 60%);
 }
 
 .dash-hero-main {
@@ -2567,7 +2747,7 @@ select.input {
 	height: 132px;
 	border-radius: var(--radius);
 	background:
-		radial-gradient(280px 160px at 50% 35%, color-mix(in srgb, var(--accent) 15%, transparent) 0%, transparent 68%),
+		radial-gradient(280px 160px at 50% 35%, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 68%),
 		var(--surface-2);
 	border: 1px solid var(--border-subtle);
 	overflow: hidden;
@@ -2584,7 +2764,7 @@ select.input {
 .dash-ring-1 {
 	width: 78px;
 	height: 78px;
-	border-color: color-mix(in srgb, var(--accent) 24%, transparent);
+	border-color: color-mix(in srgb, var(--icon-fg) 24%, transparent);
 }
 
 .dash-ring-2 {
@@ -2607,9 +2787,9 @@ select.input {
 	border-radius: 999px;
 	display: grid;
 	place-items: center;
-	color: #fff;
-	background: linear-gradient(135deg, var(--accent), var(--accent-2));
-	box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 30%, transparent);
+	color: var(--surface);
+	background: var(--icon-fg);
+	box-shadow: 0 6px 18px color-mix(in srgb, var(--icon-fg) 22%, transparent);
 }
 
 .dash-orb {
@@ -2617,7 +2797,7 @@ select.input {
 	width: 7px;
 	height: 7px;
 	border-radius: 999px;
-	background: var(--accent);
+	background: var(--icon-fg);
 	box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
@@ -2667,9 +2847,15 @@ select.input {
 	grid-template-columns: 1fr;
 }
 
-@media (min-width: 1040px) {
+@media (min-width: 720px) {
 	.bento {
-		grid-template-columns: 1.4fr 1fr;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (min-width: 1100px) {
+	.bento {
+		grid-template-columns: 1.35fr 1fr;
 	}
 
 	.bento-wide {
@@ -2681,10 +2867,10 @@ select.input {
 	background: var(--surface);
 	border: 1px solid var(--border);
 	border-radius: var(--radius-lg);
-	padding: 1.1rem 1.25rem;
+	padding: 1rem 1.1rem;
 	box-shadow: var(--shadow-sm);
 	display: grid;
-	gap: 0.85rem;
+	gap: 0.75rem;
 	align-content: start;
 	min-width: 0;
 }
@@ -2693,28 +2879,34 @@ select.input {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 0.75rem;
+	gap: 0.5rem;
+	min-width: 0;
 }
 
 .bento-head h3 {
 	margin: 0;
-	font-size: 0.85rem;
+	font-size: 0.82rem;
 	font-weight: 650;
 	letter-spacing: -0.01em;
 	color: var(--text);
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .bento-pill {
-	font-size: 0.64rem;
-	font-weight: 650;
-	letter-spacing: 0.06em;
+	font-size: 0.6rem;
+	font-weight: 550;
+	letter-spacing: 0.03em;
 	text-transform: uppercase;
-	padding: 0.18rem 0.45rem;
-	border-radius: 999px;
+	padding: 0.12rem 0.38rem;
+	border-radius: var(--radius-sm);
 	background: var(--surface-3);
 	border: 1px solid var(--border);
 	color: var(--text-3);
 	white-space: nowrap;
+	text-decoration: none;
 }
 
 .bento-foot {
@@ -2752,7 +2944,7 @@ select.input {
 	flex: 1;
 	min-height: 4px;
 	border-radius: 7px 7px 3px 3px;
-	background: linear-gradient(180deg, var(--accent), var(--accent-2));
+	background: linear-gradient(180deg, var(--icon-fg), color-mix(in srgb, var(--icon-fg) 60%, transparent));
 	opacity: 0.9;
 }
 
@@ -2816,8 +3008,8 @@ select.input {
 	display: flex;
 	align-items: center;
 	gap: 0.6rem;
-	padding: 0.5rem 0.6rem;
-	border-radius: 10px;
+	padding: 0.45rem 0.55rem;
+	border-radius: var(--radius-sm);
 	background: var(--surface-2);
 	border: 1px solid var(--border-subtle);
 }
@@ -2846,7 +3038,7 @@ select.input {
 	width: 6px;
 	height: 6px;
 	border-radius: 999px;
-	background: var(--accent);
+	background: var(--icon-fg);
 	flex-shrink: 0;
 }
 
@@ -2860,13 +3052,13 @@ select.input {
 	display: flex;
 	align-items: center;
 	gap: 0.6rem;
-	padding: 0.55rem 0.65rem;
-	border-radius: 10px;
+	padding: 0.5rem 0.6rem;
+	border-radius: var(--radius-sm);
 	background: var(--surface-2);
 	border: 1px solid var(--border-subtle);
 	color: var(--text);
 	text-decoration: none;
-	font-size: 0.82rem;
+	font-size: 0.78rem;
 	font-weight: 500;
 	transition: background var(--tr), border-color var(--tr);
 }
@@ -3315,7 +3507,7 @@ select.input {
 	height: 2.4rem;
 	border-radius: 12px;
 	background: linear-gradient(135deg, var(--accent), var(--accent-2));
-	color: #fff;
+	color: var(--on-accent);
 	display: grid;
 	place-items: center;
 	font-family: var(--font-display);
@@ -3443,7 +3635,7 @@ select.input {
 	padding: 0 0.35rem;
 	border-radius: 999px;
 	background: var(--accent);
-	color: #fff;
+	color: var(--on-accent);
 	font-size: 0.66rem;
 	font-weight: 700;
 	display: grid;
@@ -3802,7 +3994,7 @@ select.input {
 .os-tab.active {
 	background: var(--accent);
 	border-color: var(--accent);
-	color: #fff;
+	color: var(--on-accent);
 }
 
 .os-tab-count {
@@ -3819,8 +4011,8 @@ select.input {
 }
 
 .os-tab.active .os-tab-count {
-	background: rgba(255, 255, 255, 0.24);
-	color: #fff;
+	background: color-mix(in srgb, var(--on-accent) 24%, transparent);
+	color: var(--on-accent);
 }
 
 /* ---------- Order card ---------- */
@@ -3952,7 +4144,7 @@ select.input {
 }
 
 .osstat.accent .osstat-value {
-	color: var(--accent-dark);
+	color: var(--icon-fg);
 }
 
 .osstat-hint {
@@ -3982,8 +4174,8 @@ select.input {
 }
 
 .osh-banner.update {
-	background: var(--accent-soft);
-	color: var(--accent-dark);
+	background: var(--info-bg);
+	color: var(--info);
 }
 
 .osh-banner-spacer {
@@ -4173,7 +4365,7 @@ select.input {
 
 .sfctl-link.active .sfctl-icon {
 	background: var(--accent);
-	color: #fff;
+	color: var(--on-accent);
 }
 
 .sfctl-txt {

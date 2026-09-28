@@ -13,6 +13,8 @@
 	import Check from '@lucide/svelte/icons/check';
 	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 	import type { StudioDraftStore } from '$lib/storefront/studioDraft.svelte';
+	import type { ConfigControl, Terminology } from '$lib/admin/businessTypes';
+	import type { StudioSectionId } from '$lib/storefront/studioSections';
 	import {
 		THEME_PRESETS,
 		FONT_OPTIONS,
@@ -29,22 +31,22 @@
 		PAYMENT_TIMINGS
 	} from '$lib/storefront/admin';
 
-	let { store }: { store: StudioDraftStore } = $props();
-
-	type TabId = 'style' | 'branding' | 'homepage' | 'menu' | 'customer' | 'checkout';
-	let activeTab = $state<TabId>('style');
+	let {
+		store,
+		section = 'style',
+		terms,
+		allowed
+	}: {
+		store: StudioDraftStore;
+		/** Which section to render. The rail lives in the shell, not in here. */
+		section?: StudioSectionId;
+		/** The business type's words for its own catalogue. */
+		terms: Terminology;
+		/** Controls this business type actually uses. */
+		allowed: ReadonlySet<ConfigControl>;
+	} = $props();
 
 	const draft = $derived(store.draft);
-
-	const BUSINESS_TYPES = [
-		{ value: 'RESTAURANT', label: 'Restaurant', icon: '🍽️' },
-		{ value: 'CAFE', label: 'Cafe & Coffee', icon: '☕' },
-		{ value: 'BAKERY', label: 'Bakery & Sweets', icon: '🥐' },
-		{ value: 'JUICE_BAR', label: 'Juice & Smoothies', icon: '🥤' },
-		{ value: 'RETAIL', label: 'Retail & Boutique', icon: '🛍️' },
-		{ value: 'SERVICE', label: 'Service & Studio', icon: '✂️' },
-		{ value: 'OTHER', label: 'Small Business', icon: '🏢' }
-	];
 
 	const SWATCH_PALETTES = [
 		{ label: 'Modern Indigo', primary: '#5b4bdb', secondary: '#8b5cf6', accent: '#06b6d4' },
@@ -114,67 +116,9 @@
 </script>
 
 <div class="studio-controls-container">
-	<!-- Workspace Tabs -->
-	<nav class="studio-tabs" aria-label="Storefront Studio sections">
-		<button
-			type="button"
-			class="studio-tab-btn"
-			class:active={activeTab === 'style'}
-			onclick={() => (activeTab = 'style')}
-		>
-			<Palette size={16} strokeWidth={2} />
-			<span>Style</span>
-		</button>
-		<button
-			type="button"
-			class="studio-tab-btn"
-			class:active={activeTab === 'branding'}
-			onclick={() => (activeTab = 'branding')}
-		>
-			<Image size={16} strokeWidth={2} />
-			<span>Branding</span>
-		</button>
-		<button
-			type="button"
-			class="studio-tab-btn"
-			class:active={activeTab === 'homepage'}
-			onclick={() => (activeTab = 'homepage')}
-		>
-			<LayoutTemplate size={16} strokeWidth={2} />
-			<span>Homepage</span>
-		</button>
-		<button
-			type="button"
-			class="studio-tab-btn"
-			class:active={activeTab === 'menu'}
-			onclick={() => (activeTab = 'menu')}
-		>
-			<UtensilsCrossed size={16} strokeWidth={2} />
-			<span>Menu</span>
-		</button>
-		<button
-			type="button"
-			class="studio-tab-btn"
-			class:active={activeTab === 'customer'}
-			onclick={() => (activeTab = 'customer')}
-		>
-			<Users size={16} strokeWidth={2} />
-			<span>Customer</span>
-		</button>
-		<button
-			type="button"
-			class="studio-tab-btn"
-			class:active={activeTab === 'checkout'}
-			onclick={() => (activeTab = 'checkout')}
-		>
-			<CreditCard size={16} strokeWidth={2} />
-			<span>Checkout</span>
-		</button>
-	</nav>
-
 	<div class="studio-tab-content">
 		<!-- 1. STYLE TAB -->
-		{#if activeTab === 'style'}
+		{#if section === 'style'}
 			<div class="studio-section">
 				<div class="studio-section-header">
 					<h3>Design Presets</h3>
@@ -310,7 +254,7 @@
 		{/if}
 
 		<!-- 2. BRANDING TAB -->
-		{#if activeTab === 'branding'}
+		{#if section === 'branding'}
 			<div class="studio-section">
 				<div class="studio-section-header">
 					<h3>Business Profile</h3>
@@ -339,25 +283,6 @@
 						oninput={(e) => store.mutate((d) => (d.store.tagline = e.currentTarget.value))}
 						placeholder="e.g. Artisan Breads, Coffee & Good Vibes"
 					/>
-				</div>
-
-				<div class="studio-form-group">
-					<label class="studio-label" for="sf-business-type">Business Type</label>
-					<div class="studio-select-wrap">
-						<select
-							id="sf-business-type"
-							class="studio-select"
-							value={draft.store.business_type || 'RESTAURANT'}
-							onchange={(e) => store.mutate((d) => (d.store.business_type = e.currentTarget.value))}
-						>
-							{#each BUSINESS_TYPES as b (b.value)}
-								<option value={b.value}>{b.icon} {b.label}</option>
-							{/each}
-						</select>
-					</div>
-					<span class="studio-hint">
-						Adapts customer badge labels (e.g. Verified Kitchen vs Verified Store) and category icon treatments.
-					</span>
 				</div>
 
 				<div class="studio-form-group">
@@ -490,7 +415,7 @@
 		{/if}
 
 		<!-- 3. HOMEPAGE TAB -->
-		{#if activeTab === 'homepage'}
+		{#if section === 'homepage'}
 			<div class="studio-section">
 				<div class="studio-section-header">
 					<h3>Hero Banner</h3>
@@ -652,7 +577,7 @@
 		{/if}
 
 		<!-- 4. MENU APPEARANCE TAB -->
-		{#if activeTab === 'menu'}
+		{#if section === 'menu'}
 			<div class="studio-section">
 				<div class="studio-section-header">
 					<h3>Product Grid vs List</h3>
@@ -715,7 +640,7 @@
 		{/if}
 
 		<!-- 5. CUSTOMER EXPERIENCE TAB -->
-		{#if activeTab === 'customer'}
+		{#if section === 'customer'}
 			<div class="studio-section">
 				<div class="studio-section-header">
 					<h3>Guest Ordering</h3>
@@ -782,7 +707,7 @@
 		{/if}
 
 		<!-- 6. CHECKOUT TAB -->
-		{#if activeTab === 'checkout'}
+		{#if section === 'checkout'}
 			<div class="studio-section">
 				<div class="studio-section-header">
 					<h3>Payment Methods</h3>
@@ -896,41 +821,9 @@
 		border-right: 1px solid var(--border);
 	}
 
-	.studio-tabs {
-		display: flex;
-		overflow-x: auto;
-		border-bottom: 1px solid var(--border);
-		background: var(--surface-2);
-		padding: 4px 6px 0;
-		gap: 2px;
-	}
 
-	.studio-tab-btn {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		padding: 8px 12px;
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: var(--text-2);
-		background: transparent;
-		border: none;
-		border-bottom: 2px solid transparent;
-		cursor: pointer;
-		white-space: nowrap;
-		transition: all 0.15s ease;
-	}
 
-	.studio-tab-btn:hover {
-		color: var(--text);
-		background: color-mix(in srgb, var(--accent) 5%, transparent);
-	}
 
-	.studio-tab-btn.active {
-		color: var(--accent);
-		border-bottom-color: var(--accent);
-		background: var(--surface);
-	}
 
 	.studio-tab-content {
 		flex: 1;
@@ -1030,7 +923,7 @@
 		width: 18px;
 		height: 18px;
 		background: var(--accent);
-		color: #fff;
+		color: var(--on-accent);
 		border-radius: 50%;
 		display: grid;
 		place-items: center;
@@ -1061,7 +954,7 @@
 
 	.studio-choice-pill.active {
 		background: var(--accent);
-		color: #ffffff;
+		color: var(--on-accent);
 		border-color: var(--accent);
 	}
 

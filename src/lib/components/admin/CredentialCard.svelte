@@ -240,8 +240,8 @@
 		width: 1.2rem;
 		height: 1.2rem;
 		border-radius: 999px;
-		background: var(--accent-soft);
-		color: var(--accent-dark);
+		background: var(--icon-bg);
+		color: var(--icon-fg);
 		display: flex;
 		align-items: center;
 		justify-content: center;

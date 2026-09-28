@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import type { Crumb } from '$lib/admin/routeMeta';
+	import type { AdminCrumb as Crumb } from '$lib/admin/nav';
 	import ThemeToggle from './ThemeToggle.svelte';
 
 	let {
@@ -31,7 +31,9 @@
 				{/each}
 			</nav>
 		{/if}
-		<h2 class="topbar-title">{title}</h2>
+		{#if title?.trim()}
+			<h2 class="topbar-title">{title}</h2>
+		{/if}
 	</div>
 
 	<div class="topbar-actions">

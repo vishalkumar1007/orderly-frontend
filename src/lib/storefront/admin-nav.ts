@@ -9,7 +9,8 @@ import Store from '@lucide/svelte/icons/store';
  * Storefront Customize navigation.
  *
  * Preview and QR live on the tenant rail as their own destinations.
- * Organization screens (hours, payments, workflow) live under /shop/organization.
+ * Opening hours, QR and Preview live under /shop/storefront; payments has its
+ * own destination and order workflow is a section of Settings.
  * This list is only the Customize hub: look, homepage, and customer login.
  */
 export type StorefrontNavItem = {

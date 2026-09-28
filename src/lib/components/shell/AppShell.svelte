@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, type Component, type Snippet } from 'svelte';
-	import type { Crumb } from '$lib/admin/routeMeta';
+	import type { AdminCrumb as Crumb } from '$lib/admin/nav';
 	import Menu from '@lucide/svelte/icons/menu';
 	import SidebarNavLink from '$lib/components/admin/SidebarNavLink.svelte';
 	import AdminTopbar from '$lib/components/admin/AdminTopbar.svelte';
@@ -58,6 +58,10 @@
 		showProfile = true,
 		/** Settings link in the account menu — portal-specific. */
 		settingsHref = '/superadmin/settings',
+		/** The signed-in person's own account screen, shown in that same menu. */
+		profileHref = '',
+		/** The signed-in person's own console theme, shown in that same menu. */
+		appearanceHref = '',
 		/** Mobile bar shortcuts (e.g. Selling + Kitchen). */
 		quickLinks = [] as ShellQuickLink[],
 		onSignOut,
@@ -78,6 +82,8 @@
 		wideContent?: boolean;
 		showProfile?: boolean;
 		settingsHref?: string;
+		profileHref?: string;
+		appearanceHref?: string;
 		quickLinks?: ShellQuickLink[];
 		onSignOut?: () => void;
 		actions?: Snippet;
@@ -201,6 +207,8 @@
 					{role}
 					collapsed={railCompact}
 					{settingsHref}
+					{profileHref}
+					{appearanceHref}
 					onNavigate={closeDrawer}
 					{onSignOut}
 				/>

@@ -30,10 +30,28 @@ export type DashboardStoreLink = {
 	status_message: string;
 };
 
+/**
+ * The launch checklist, as the API reports it.
+ *
+ * Every step is derived from real state on the server — there are no
+ * optimistic defaults here. `required` lists the steps the product treats as
+ * the minimum to launch, so the console can disable Publish rather than let an
+ * owner put an empty shop in front of a customer.
+ */
+export type SetupStepKey =
+	| 'business_info'
+	| 'menu'
+	| 'payment'
+	| 'hours'
+	| 'storefront'
+	| 'staff'
+	| 'launch';
+
 export type DashboardSetup = {
 	setup_status: string;
 	is_published: boolean;
-	steps: { business_info: boolean; menu: boolean; payment: boolean; qr: boolean; launch: boolean };
+	steps: Record<SetupStepKey, boolean>;
+	required: SetupStepKey[];
 };
 
 export type DashboardSnapshot = {

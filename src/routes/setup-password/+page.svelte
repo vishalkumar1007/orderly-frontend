@@ -44,18 +44,32 @@
 	});
 
 	onMount(() => {
-		// Apply the tenant's brand theme (colors, fonts, radii) to this page
+		/*
+		 * The business's brand, on the very first page its owner ever opens.
+		 *
+		 * `/api/v1/public/theme` and not `/api/v1/tenant/theme`: whoever is
+		 * setting a password has no token yet by definition, so the
+		 * authenticated route answered 401 and this page fell back to the
+		 * built-in indigo — the one screen where the brand matters most was the
+		 * one screen that never showed it. The public route is the same handler
+		 * on the same host-resolved tenant, and the payload is presentation
+		 * only.
+		 */
 		if (hostKind === 'tenant') {
-			api<BrandTheme>('/api/v1/tenant/theme')
+			const storeConfig = ($page.data as {
+				config?: { store?: { name?: string; logo_url?: string } };
+			}).config;
+			if (storeConfig?.store?.name) storeName = storeConfig.store.name;
+			if (storeConfig?.store?.logo_url) storeLogo = storeConfig.store.logo_url;
+
+			api<BrandTheme>('/api/v1/public/theme')
 				.then((theme) => {
 					brandTheme = theme;
 					applyBrandTheme(theme);
 				})
 				.catch(() => {
-					// Fallback to storefront config if the shop API is unavailable
-					const config = ($page.data as { config?: { store?: { name?: string; logo_url?: string } } }).config;
-					if (config?.store?.name) storeName = config.store.name;
-					if (config?.store?.logo_url) storeLogo = config.store.logo_url;
+					// Unreachable or unthemed: the storefront name and logo above
+					// still identify the shop, which is the point of this page.
 				});
 		}
 
@@ -229,7 +243,7 @@
 		height: 32px;
 		border-radius: 8px;
 		background: var(--accent);
-		color: #fff;
+		color: var(--on-accent);
 		font-weight: 700;
 		font-size: 0.95rem;
 		flex-shrink: 0;
@@ -264,8 +278,8 @@
 		height: 44px;
 		margin-bottom: 1rem;
 		border-radius: 12px;
-		background: var(--accent-soft);
-		color: var(--accent);
+		background: var(--icon-bg);
+		color: var(--icon-fg);
 	}
 
 	.setup-heading h1 {

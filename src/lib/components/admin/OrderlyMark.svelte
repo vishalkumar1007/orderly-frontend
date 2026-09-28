@@ -28,9 +28,11 @@
 		fill="#fff"
 	/>
 	<defs>
+		<!-- The mark carries whatever theme is in force. The literals are the
+		     built-in accents, used only until a theme has been applied. -->
 		<linearGradient id="orderly-mark-grad" x1="4" y1="4" x2="28" y2="28">
-			<stop stop-color="#6366f1" />
-			<stop offset="1" stop-color="#8b5cf6" />
+			<stop stop-color="var(--accent, #6366f1)" />
+			<stop offset="1" stop-color="var(--accent-2, #8b5cf6)" />
 		</linearGradient>
 	</defs>
 </svg>

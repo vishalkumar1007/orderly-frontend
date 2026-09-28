@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { Plus, X } from '@lucide/svelte/icons';
 	import type { MenuCategory } from '$lib/tenant/menu';
+	import { terms } from '$lib/tenant/businessType.svelte';
+
+	// The catalogue's nouns come from the business type, not from this form.
+	const t = $derived(terms());
 
 	let {
 		categories,
@@ -19,7 +23,7 @@
 	} = $props();
 </script>
 
-<div class="cat-tabs" role="tablist" aria-label="Categories">
+<div class="cat-tabs" role="tablist" aria-label={t.groups}>
 	<button
 		class="cat-tab"
 		class:active={active === ''}
@@ -45,7 +49,7 @@
 				class="cat-tab-delete"
 				role="button"
 				aria-label={`Delete ${c.name}`}
-				title="Delete category"
+				title={`Delete ${t.group.toLowerCase()}`}
 				onclick={(e) => {
 					e.stopPropagation();
 					ondelete(c.id, c.name);
@@ -112,7 +116,7 @@
 	}
 	.cat-tab.active .cat-tab-count {
 		background: var(--accent);
-		color: #fff;
+		color: var(--on-accent);
 	}
 	.cat-tab-delete {
 		display: none;

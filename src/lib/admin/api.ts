@@ -2,12 +2,18 @@ import { api } from '$lib/api/client';
 import type { BrandTheme, ThemePreset } from '$lib/brandTheme';
 import type {
 	AuditLog,
+	AwaitingSetup,
 	CreateTenantPayload,
 	CreatedTenant,
 	DashboardData,
+	ExpiringSubscription,
+	Plan,
+	PlanWritePayload,
 	PlatformSettings,
 	PlatformUser,
 	PlanOption,
+	Subscription,
+	SystemHealth,
 	UserInviteResult,
 	Tenant,
 	TenantAdmin,
@@ -29,6 +35,8 @@ type AdminDashboardResponse = {
 	orders_by_day: { day: string; order_count: number; revenue: string }[];
 	tenants_by_week: { week_start: string; tenant_count: number }[];
 	recent_activity: AuditLog[];
+	expiring_subscriptions: ExpiringSubscription[];
+	awaiting_setup: AwaitingSetup[];
 };
 
 function tenantActivityFromList(tenants: Tenant[]): DashboardData['recently_created'] {
@@ -69,7 +77,10 @@ export async function fetchDashboard(): Promise<DashboardData & AdminDashboardRe
 		recently_active: tenantActivityFromList(active),
 		recently_suspended: tenantActivityFromList(suspended),
 		platform_events: live.recent_activity,
-		system_health: []
+		system_health: [],
+		expiring_subscriptions: live.expiring_subscriptions ?? [],
+		awaiting_setup: live.awaiting_setup ?? [],
+		suspended: tenantActivityFromList(suspended)
 	};
 }
 
@@ -82,17 +93,6 @@ export async function fetchTenant(id: string): Promise<Tenant> {
 	return api<Tenant>(`/api/v1/admin/tenants/${id}`);
 }
 
-export async function fetchTenantAdmins(id: string): Promise<TenantAdmin[]> {
-	const data = await api<{ admins: TenantAdmin[] }>(`/api/v1/admin/tenants/${id}/admins`);
-	return data.admins;
-}
-
-/** Every user on a tenant, admins and staff. */
-export async function fetchTenantUsers(id: string): Promise<TenantAdmin[]> {
-	const data = await api<{ users: TenantAdmin[] }>(`/api/v1/admin/tenants/${id}/users`);
-	return data.users;
-}
-
 export type CreateUserPayload = {
 	name: string;
 	email: string;
@@ -100,54 +100,12 @@ export type CreateUserPayload = {
 	role: 'TENANT_ADMIN' | 'STAFF';
 };
 
-export async function createTenantUser(
-	tenantId: string,
-	payload: CreateUserPayload
-): Promise<UserInviteResult> {
-	return api<UserInviteResult>(`/api/v1/admin/tenants/${tenantId}/users`, {
-		method: 'POST',
-		body: JSON.stringify(payload)
-	});
-}
-
 export type UpdateUserPayload = {
 	name?: string;
 	phone?: string;
 	role?: 'TENANT_ADMIN' | 'STAFF';
 	status?: 'ACTIVE' | 'DISABLED';
 };
-
-export async function updateTenantUser(
-	tenantId: string,
-	userId: string,
-	payload: UpdateUserPayload
-): Promise<TenantAdmin> {
-	return api<TenantAdmin>(`/api/v1/admin/tenants/${tenantId}/users/${userId}`, {
-		method: 'PATCH',
-		body: JSON.stringify(payload)
-	});
-}
-
-/** Force a new password and revoke every session the user holds. */
-export async function resetUserAccess(
-	tenantId: string,
-	userId: string
-): Promise<UserInviteResult> {
-	return api<UserInviteResult>(
-		`/api/v1/admin/tenants/${tenantId}/users/${userId}/reset-access`,
-		{ method: 'POST' }
-	);
-}
-
-export async function resendUserInvite(
-	tenantId: string,
-	userId: string
-): Promise<UserInviteResult> {
-	return api<UserInviteResult>(
-		`/api/v1/admin/tenants/${tenantId}/users/${userId}/resend-invite`,
-		{ method: 'POST' }
-	);
-}
 
 export async function fetchTenantMetrics(id: string): Promise<TenantMetrics> {
 	return api<TenantMetrics>(`/api/v1/admin/tenants/${id}/metrics`);
@@ -179,33 +137,196 @@ export async function updateTenantLocal(id: string, patch: Partial<Tenant>): Pro
 	});
 }
 
-export async function fetchUsers(): Promise<PlatformUser[]> {
-	const data = await api<{ users: PlatformUser[] }>('/api/v1/admin/users');
-	return data.users;
+/* ------------------------------------------------------------------ *
+ * Plans, subscriptions and monitoring
+ * ------------------------------------------------------------------ */
+
+/** Every plan, including withdrawn ones, with how many businesses use them. */
+export async function fetchPlans(): Promise<Plan[]> {
+	const data = await api<{ plans: Plan[] }>('/api/v1/admin/plans');
+	return data.plans.map(normalizePlan);
 }
 
-type ApiPlan = {
-	id: string;
-	name: string;
-	description?: string;
-	price: number;
-	max_staff?: number;
-	max_products?: number;
-};
+/**
+ * Plans as the onboarding picker wants them.
+ *
+ * Withdrawn plans are dropped here rather than in the wizard: a plan that is
+ * off is not an offer, and the one place that decides that should be the one
+ * place that knows what "off" means.
+ */
+export async function fetchPlanOptions(businessType?: string): Promise<PlanOption[]> {
+	const plans = await fetchPlans();
+	return plans.filter((p) => p.is_active).filter((p) => offeredTo(p, businessType)).map(toPlanOption);
+}
 
-/** Plans the platform currently offers, cheapest first (backend orders by price). */
-export async function fetchPlans(): Promise<PlanOption[]> {
-	const data = await api<{ plans: ApiPlan[] }>('/api/v1/admin/plans');
-	return data.plans.map((p) => ({
+/** A plan with no business types listed is offered to every business type. */
+export function offeredTo(plan: Plan, businessType?: string): boolean {
+	if (!businessType || plan.business_types.length === 0) return true;
+	return plan.business_types.includes(businessType.toUpperCase());
+}
+
+/** Fill in anything an older stored plan document does not carry. */
+function normalizePlan(p: Plan): Plan {
+	return {
+		...p,
+		price: Number(p.price) || 0,
+		features: Array.isArray(p.features) ? p.features : [],
+		business_types: Array.isArray(p.business_types) ? p.business_types : [],
+		trial_days: Number(p.trial_days) || 0,
+		billing_period: p.billing_period || 'monthly'
+	};
+}
+
+/** One plan, in the shape the picker renders. */
+export function toPlanOption(p: Plan): PlanOption {
+	return {
 		id: p.id,
 		// The backend matches on the exact upper-case name — send `code`, never `name`.
 		code: p.name.toUpperCase(),
 		label: p.name.charAt(0) + p.name.slice(1).toLowerCase(),
 		description: p.description ?? '',
-		price: Number(p.price) || 0,
+		price: p.price,
 		maxStaff: p.max_staff ?? null,
-		maxProducts: p.max_products ?? null
-	}));
+		maxProducts: p.max_products ?? null,
+		billingPeriod: p.billing_period,
+		trialDays: p.trial_days,
+		features: p.features,
+		businessTypes: p.business_types,
+		isActive: p.is_active
+	};
+}
+
+export async function createPlan(payload: PlanWritePayload): Promise<Plan> {
+	return normalizePlan(
+		await api<Plan>('/api/v1/admin/plans', { method: 'POST', body: JSON.stringify(payload) })
+	);
+}
+
+export async function updatePlan(id: string, payload: PlanWritePayload): Promise<Plan> {
+	return normalizePlan(
+		await api<Plan>(`/api/v1/admin/plans/${id}`, { method: 'PATCH', body: JSON.stringify(payload) })
+	);
+}
+
+/** Every subscription, one row per business. */
+export async function fetchSubscriptions(): Promise<Subscription[]> {
+	const data = await api<{ subscriptions: Subscription[] }>('/api/v1/admin/subscriptions');
+	return data.subscriptions;
+}
+
+/**
+ * Move a business onto another plan.
+ *
+ * This is the one commercial control the console holds over a live business:
+ * what it is provisioned for. It never touches the shop itself.
+ */
+export async function changeTenantPlan(tenantId: string, plan: string): Promise<Tenant> {
+	return api<Tenant>(`/api/v1/admin/tenants/${tenantId}/change-plan`, {
+		method: 'POST',
+		body: JSON.stringify({ plan })
+	});
+}
+
+/** Live component status: API, database and every configured provider. */
+export async function fetchSystemHealth(): Promise<SystemHealth> {
+	return api<SystemHealth>('/api/v1/admin/system-health');
+}
+
+/* ------------------------------------------------------------------ *
+ * Console access
+ *
+ * Who can reach this console. Business staff are not here and cannot be
+ * created from here: they are invited inside their own business, by someone
+ * who works there.
+ * ------------------------------------------------------------------ */
+
+export type ConsoleRole = 'SUPER_ADMIN' | 'PLATFORM_ADMIN' | 'SUPPORT';
+
+export type ConsolePermission =
+	| 'platform_businesses'
+	| 'platform_plans'
+	| 'platform_providers'
+	| 'platform_iam'
+	| 'platform_settings'
+	| 'platform_monitoring';
+
+export type ConsolePermissionInfo = {
+	key: ConsolePermission;
+	label: string;
+	group: string;
+	description: string;
+};
+
+export type ConsoleRoleInfo = {
+	key: ConsoleRole | string;
+	label: string;
+	description: string;
+	permissions: ConsolePermission[];
+	assignable: boolean;
+};
+
+export type ConsoleUser = {
+	id: string;
+	name: string;
+	email: string;
+	phone: string;
+	role: ConsoleRole | string;
+	role_label: string;
+	status: 'ACTIVE' | 'INVITED' | 'DISABLED' | string;
+	must_set_password: boolean;
+	permissions: ConsolePermission[];
+	active_sessions: number;
+	created_at: string;
+	last_activity: string | null;
+	/** True for the signed-in account, which cannot change its own access. */
+	is_self: boolean;
+	/** True for the one owner account, which cannot be demoted or disabled. */
+	is_owner: boolean;
+};
+
+export type ConsoleAccess = {
+	users: ConsoleUser[];
+	roles: ConsoleRoleInfo[];
+	permissions: ConsolePermissionInfo[];
+	summary: { owners: number; admins: number; support: number; total: number };
+};
+
+/** The result of inviting someone, or reissuing their invitation. */
+export type ConsoleInviteResult = {
+	user: ConsoleUser;
+	setup_url: string;
+	email_sent: boolean;
+	email_error: string;
+};
+
+export async function fetchConsoleAccess(): Promise<ConsoleAccess> {
+	return api<ConsoleAccess>('/api/v1/admin/users');
+}
+
+export async function inviteConsoleUser(payload: {
+	name: string;
+	email: string;
+	phone?: string;
+	role: 'PLATFORM_ADMIN' | 'SUPPORT';
+}): Promise<ConsoleInviteResult> {
+	return api<ConsoleInviteResult>('/api/v1/admin/users', {
+		method: 'POST',
+		body: JSON.stringify(payload)
+	});
+}
+
+export async function updateConsoleUser(
+	id: string,
+	payload: { name?: string; phone?: string; role?: 'PLATFORM_ADMIN' | 'SUPPORT'; status?: 'ACTIVE' | 'DISABLED' }
+): Promise<ConsoleUser> {
+	return api<ConsoleUser>(`/api/v1/admin/users/${id}`, {
+		method: 'PATCH',
+		body: JSON.stringify(payload)
+	});
+}
+
+export async function resendConsoleInvite(id: string): Promise<ConsoleInviteResult> {
+	return api<ConsoleInviteResult>(`/api/v1/admin/users/${id}/resend-invite`, { method: 'POST' });
 }
 
 export async function fetchAuditLogs(
@@ -226,6 +347,8 @@ export async function fetchSettings(): Promise<PlatformSettings> {
 
 export type SettingsPatch = {
 	general?: Partial<PlatformSettings['general']>;
+	/** `reset: true` puts the console theme back to a fresh install's, server-side. */
+	branding?: Partial<PlatformSettings['branding']> & { reset?: boolean };
 	security?: Partial<PlatformSettings['security']>;
 	platform?: Partial<Pick<PlatformSettings['platform'], 'allow_self_serve' | 'maintenance_mode'>>;
 };
@@ -283,16 +406,6 @@ export async function updateTenantType(
 	payload: { label?: string; active?: boolean; sort_order?: number }
 ): Promise<TenantType> {
 	return api<TenantType>(`/api/v1/admin/tenant-types/${encodeURIComponent(code)}`, {
-		method: 'PATCH',
-		body: JSON.stringify(payload)
-	});
-}
-
-export async function updateTenantTheme(
-	id: string,
-	payload: { theme_preset_id: string; theme_color_mode: string; theme_overrides?: { accent?: string } }
-): Promise<Tenant> {
-	return api<Tenant>(`/api/v1/admin/tenants/${id}/theme`, {
 		method: 'PATCH',
 		body: JSON.stringify(payload)
 	});

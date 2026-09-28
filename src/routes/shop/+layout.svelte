@@ -6,9 +6,12 @@
 	import ClipboardList from '@lucide/svelte/icons/clipboard-list';
 	import { getAccessToken } from '$lib/api/client';
 	import { api } from '$lib/api/client';
-	import { logout, me, type User } from '$lib/auth';
+	import { termsFor } from '$lib/admin/businessTypes';
+	import { setBusinessType } from '$lib/tenant/businessType.svelte';
+	import { logout, meWithTenant, type HostTenant, type User } from '$lib/auth';
 	import {
 		STAFF_OPS_HREFS,
+		visibleGroups,
 		TENANT_NAV,
 		isOpsFullscreenPath,
 		tenantCrumbs,
@@ -19,6 +22,7 @@
 	import { invalidateMenuSnapshot } from '$lib/tenant/menuCache.svelte';
 	import { invalidateStorefrontAdmin } from '$lib/storefront/adminCache.svelte';
 	import { clearBrandTheme, invalidateBrandThemeCache } from '$lib/brandTheme';
+	import { forgetAppearance } from '$lib/appearance.svelte';
 	import { activateUpdate, onUpdateAvailable } from '$lib/pwa.svelte';
 	import AdminShellSkeleton from '$lib/components/admin/AdminShellSkeleton.svelte';
 	import Toaster from '$lib/components/admin/Toaster.svelte';
@@ -65,26 +69,46 @@
 	 * re-run `me()` on every navigation (that was the permanent loading loop).
 	 */
 	let resolvedSide = $state<'public' | 'protected' | null>(null);
+	let hostTenant = $state<HostTenant | null>(null);
+
+	/** The roles that belong to a business. Platform roles are refused here. */
+	const BUSINESS_ROLES = new Set(['TENANT_ADMIN', 'MANAGER', 'STAFF']);
+
+	/**
+	 * What kind of business this is. It decides the console's vocabulary and
+	 * which operational screens exist, so it is resolved with the identity
+	 * rather than fetched afterwards.
+	 */
+	const businessType = $derived(hostTenant?.business_type ?? '');
 
 	const isAdmin = $derived(user?.role === 'TENANT_ADMIN');
 
 	/**
-	 * Tenant Admin sees the full IA. Staff only get RUNNING ops — Selling and
-	 * Kitchen — until fine-grained IAM exists.
+	 * The rail shows exactly what this person's role may reach.
+	 *
+	 * The permission list arrives with the identity, so the rail and the API
+	 * agree by construction: an owner sees everything, a manager sees the shop
+	 * but not its configuration, and staff see the two running screens. A
+	 * session issued before permissions existed falls back to the old
+	 * role-based split rather than rendering an empty rail.
 	 */
-	const navGroups = $derived(
-		TENANT_NAV.map((group) => ({
+	const navGroups = $derived.by(() => {
+		const permissions = user?.permissions;
+		if (permissions && permissions.length > 0) {
+			return visibleGroups(TENANT_NAV, permissions, user?.role, businessType);
+		}
+		return TENANT_NAV.map((group) => ({
 			...group,
 			items: group.items.filter((item) => {
 				if (isAdmin) return true;
 				return group.label === 'Running' && STAFF_OPS_HREFS.has(item.href);
 			})
-		})).filter((group) => group.items.length > 0)
-	);
+		})).filter((group) => group.items.length > 0);
+	});
 
 	const quickLinks = $derived([
 		{ href: '/shop/orders', label: 'Selling', icon: ClipboardList },
-		{ href: '/shop/kitchen', label: 'Kitchen', icon: ChefHat }
+		{ href: '/shop/kitchen', label: termsFor(businessType).station, icon: ChefHat }
 	]);
 
 	const isFullscreen = $derived(
@@ -110,14 +134,23 @@
 		}
 
 		try {
-			const me_ = await me();
+			// One call for both: the rail's labels come from the business type,
+			// so the shell must not render before it knows what kind of
+			// business this is.
+			const resolved = await meWithTenant();
 			if (gen !== authGen) return;
-			if (me_.role !== 'TENANT_ADMIN' && me_.role !== 'STAFF') {
+			// Every business role, including manager. What each may reach is
+			// decided by their permissions, not by this list.
+			if (!BUSINESS_ROLES.has(resolved.user.role)) {
 				status = 'anon';
 				goto('/shop/login', { replaceState: true });
 				return;
 			}
-			user = me_;
+			user = resolved.user;
+			hostTenant = resolved.tenant;
+			// Publish it before the first child renders, so no screen has to
+			// paint generic wording and then correct itself.
+			setBusinessType(resolved.tenant?.business_type);
 			status = 'ready';
 		} catch {
 			if (gen !== authGen) return;
@@ -154,8 +187,8 @@
 		};
 	});
 
-	const crumbs = $derived(tenantCrumbs($page.url.pathname));
-	const title = $derived(tenantTitle($page.url.pathname));
+	const crumbs = $derived(tenantCrumbs($page.url.pathname, businessType));
+	const title = $derived(tenantTitle($page.url.pathname, businessType));
 	const railName = $derived(shopName || data.tenantSlug || 'Your shop');
 
 	/** Orders needing attention, surfaced in the topbar. */
@@ -196,6 +229,9 @@
 		invalidateStorefrontAdmin();
 		invalidateBrandThemeCache();
 		clearBrandTheme();
+		// The next person to sign in on this browser is not this person, so the
+		// remembered theme must not outlive the session that chose it.
+		forgetAppearance(data.tenantSlug ?? 'tenant');
 		// Force a fresh resolve when signing back in (public → protected).
 		resolvedSide = null;
 		goto('/shop/login', { replaceState: true });
@@ -223,6 +259,7 @@
 			{quickLinks}
 			storageKey="orderly-shop-rail"
 			settingsHref="/shop/settings"
+			appearanceHref="/shop/settings?section=appearance"
 			onSignOut={signOut}
 		>
 			{#snippet actions()}

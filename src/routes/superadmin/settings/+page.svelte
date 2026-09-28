@@ -1,388 +1,281 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import {
-		createTenantType,
-		fetchSettings,
-		fetchTenantTypes,
-		updateSettings,
-		updateTenantType,
-		type SettingsPatch
-	} from '$lib/admin/api';
-	import type { PlatformSettings, TenantType } from '$lib/admin/types';
-	import { changePassword, me, type User } from '$lib/auth';
-	import { getConfig, preloadAllConfigs } from '$lib/admin/configCache.svelte';
-	import FormField from '$lib/components/admin/FormField.svelte';
-	import ServiceConfigPanel from './ServiceConfigPanel.svelte';
-	import TenantConfigTable from './tenant-access/+page.svelte';
-	import SettingsNav from '$lib/components/admin/SettingsNav.svelte';
-	import SettingsPanel from '$lib/components/admin/SettingsPanel.svelte';
-	import Skeleton from '$lib/components/admin/Skeleton.svelte';
-	import StatusBadge from '$lib/components/admin/StatusBadge.svelte';
-	import Switch from '$lib/components/admin/Switch.svelte';
-	import TextInput from '$lib/components/admin/TextInput.svelte';
-	import { toast } from '$lib/components/admin/toast';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
+	import type { Component } from 'svelte';
+	import Building2 from '@lucide/svelte/icons/building-2';
+	import Shapes from '@lucide/svelte/icons/shapes';
+	import ShieldCheck from '@lucide/svelte/icons/shield-check';
+	import UserRound from '@lucide/svelte/icons/user-round';
+	import Palette from '@lucide/svelte/icons/palette';
+	import { me, type User } from '$lib/auth';
+	import AppearancePanel from '$lib/components/tenant/settings/AppearancePanel.svelte';
+	import BusinessTypesPanel from '$lib/components/admin/settings/BusinessTypesPanel.svelte';
+	import GeneralPanel from '$lib/components/admin/settings/GeneralPanel.svelte';
+	import ProfilePanel from '$lib/components/admin/settings/ProfilePanel.svelte';
+	import SecurityPanel from '$lib/components/admin/settings/SecurityPanel.svelte';
 
-	const tabs = [
-		{ id: 'general', label: 'General' },
-		{ id: 'email', label: 'Email' },
-		{ id: 'storage', label: 'Storage' },
-		{ id: 'ai', label: 'AI' },
-		{ id: 'tenant-access', label: 'Organizations' },
-		{ id: 'types', label: 'Tenant types' },
-		{ id: 'security', label: 'Security' },
-		{ id: 'platform', label: 'Platform' },
-		{ id: 'profile', label: 'Admin profile' }
+	/**
+	 * Settings.
+	 *
+	 * One destination with a section rail inside it, rather than five entries in
+	 * the navigation. Settings are a place you go to change one thing and leave;
+	 * spreading them across the main rail made the console's top-level
+	 * navigation mostly about configuration, which is not what an operator
+	 * spends their day on.
+	 *
+	 * The tab lives in the query string so a link can point at a section, the
+	 * back button works, and a reload stays where you were.
+	 */
+
+	type Section = {
+		id: string;
+		label: string;
+		icon: Component;
+		group: 'Platform' | 'Your account';
+		/** Capability the API requires. Sections you cannot use are not shown. */
+		requires?: string;
+		lede: string;
+	};
+
+	const SECTIONS: Section[] = [
+		{
+			id: 'general',
+			label: 'General',
+			icon: Building2,
+			group: 'Platform',
+			requires: 'platform_settings',
+			lede: 'How the platform identifies itself, and the defaults every new business starts from.'
+		},
+		{
+			id: 'business-types',
+			label: 'Business types',
+			icon: Shapes,
+			group: 'Platform',
+			requires: 'platform_settings',
+			lede: 'What a business can be. The type chosen at onboarding sets its theme, layout, terminology and order workflow.'
+		},
+		{
+			id: 'security',
+			label: 'Security',
+			icon: ShieldCheck,
+			group: 'Platform',
+			requires: 'platform_settings',
+			lede: 'Password rules, session lifetime and invite expiry, applied across every business.'
+		},
+		{
+			id: 'profile',
+			label: 'Profile',
+			icon: UserRound,
+			group: 'Your account',
+			lede: 'Your own account and password.'
+		},
+		{
+			id: 'appearance',
+			label: 'Appearance',
+			icon: Palette,
+			group: 'Your account',
+			lede: 'How this console looks to you. Your choice follows your account and changes nothing for anyone else who signs in here — and, if you may change platform settings, what everyone starts from.'
+		}
 	];
 
-	let settings = $state<PlatformSettings | null>(null);
-	let profile = $state<User | null>(null);
-	let types = $state<TenantType[]>([]);
-	let loading = $state(true);
-	let saving = $state(false);
-	let error = $state('');
-	let tab = $state('general');
+	let user = $state<User | null>(null);
 
-	let newCode = $state('');
-	let newLabel = $state('');
-
-	let currentPassword = $state('');
-	let newPassword = $state('');
-	let confirmPassword = $state('');
-	let passwordSaving = $state(false);
-
-	async function load() {
-		loading = true;
-		error = '';
+	onMount(async () => {
 		try {
-			[settings, profile, types] = await Promise.all([fetchSettings(), me(), fetchTenantTypes()]);
-			// Pre-fetch all service configs in the background so tab switches are instant.
-			preloadAllConfigs();
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to load settings';
-		} finally {
-			loading = false;
+			user = await me();
+		} catch {
+			// The shell already guards this route; without permissions we simply
+			// fall back to showing everything the API will answer for anyway.
 		}
-	}
+	});
 
-	onMount(load);
+	/** Sections this account may actually use. */
+	const visible = $derived(
+		SECTIONS.filter((section) => {
+			if (!section.requires) return true;
+			const held = user?.permissions;
+			if (!held || held.length === 0) return true;
+			return held.includes(section.requires);
+		})
+	);
 
-	async function save(patch: SettingsPatch) {
-		if (!settings) return;
-		saving = true;
-		try {
-			settings = await updateSettings(patch);
-			toast.success('Settings saved');
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Save failed');
-		} finally {
-			saving = false;
-		}
-	}
+	const groups = $derived(
+		(['Platform', 'Your account'] as const)
+			.map((label) => ({ label, items: visible.filter((s) => s.group === label) }))
+			.filter((group) => group.items.length > 0)
+	);
 
-	const saveGeneral = () =>
-		settings &&
-		save({
-			general: {
-				platform_name: settings.general.platform_name,
-				support_email: settings.general.support_email,
-				timezone: settings.general.timezone,
-				default_locale: settings.general.default_locale
-			}
-		});
+	/** Only an operator who may write platform settings can move the default. */
+	const canWritePlatformSettings = $derived(
+		(user?.permissions ?? []).includes('platform_settings') ||
+			(user?.permissions ?? []).length === 0
+	);
 
-	const saveSecurity = () =>
-		settings &&
-		save({
-			security: {
-				session_timeout_minutes: settings.security.session_timeout_minutes,
-				password_min_length: settings.security.password_min_length,
-				invite_expiry_hours: settings.security.invite_expiry_hours,
-				require_mfa_for_admins: settings.security.require_mfa_for_admins
-			}
-		});
+	const requested = $derived($page.url.searchParams.get('section') ?? 'general');
+	const active = $derived(
+		visible.find((s) => s.id === requested) ?? visible[0] ?? SECTIONS[0]
+	);
 
-	const savePlatform = () =>
-		settings &&
-		save({
-			platform: {
-				allow_self_serve: settings.platform.allow_self_serve,
-				maintenance_mode: settings.platform.maintenance_mode
-			}
-		});
-
-
-
-	async function addType() {
-		saving = true;
-		try {
-			const created = await createTenantType({ code: newCode, label: newLabel, active: true });
-			types = [...types, created].sort(
-				(a, b) => a.sort_order - b.sort_order || a.label.localeCompare(b.label)
-			);
-			newCode = '';
-			newLabel = '';
-			toast.success('Type added');
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Could not add type');
-		} finally {
-			saving = false;
-		}
-	}
-
-	async function saveType(row: TenantType) {
-		try {
-			const updated = await updateTenantType(row.code, {
-				label: row.label,
-				active: row.active,
-				sort_order: row.sort_order
-			});
-			types = types.map((t) => (t.code === updated.code ? updated : t));
-			toast.success(`${updated.label} saved`);
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Could not update type');
-		}
-	}
-
-	async function submitPassword(e: Event) {
-		e.preventDefault();
-		if (newPassword !== confirmPassword) {
-			toast.error('Passwords do not match');
-			return;
-		}
-		passwordSaving = true;
-		try {
-			await changePassword(currentPassword, newPassword);
-			currentPassword = '';
-			newPassword = '';
-			confirmPassword = '';
-			toast.success('Password updated');
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Password change failed');
-		} finally {
-			passwordSaving = false;
-		}
+	function select(id: string) {
+		goto(`?section=${id}`, { replaceState: true, keepFocus: true, noScroll: true });
 	}
 </script>
 
-<div class="settings">
-	<SettingsNav {tabs} active={tab} onSelect={(id) => (tab = id)} />
-
-	<div>
-		{#if error}
-			<div class="alert alert-danger" style="margin-bottom:0.85rem;">{error}</div>
-		{/if}
-
-		{#if loading || !settings}
-			<div style="display:flex;flex-direction:column;gap:0.85rem;">
-				<Skeleton height="12rem" />
-				<Skeleton height="24rem" />
-			</div>
-		{:else if tab === 'general'}
-			<SettingsPanel title="General" description="Name and support details shown across the console.">
-				<div style="display:flex;flex-direction:column;gap:0.9rem;max-width:32rem;">
-					<FormField label="Platform name" htmlFor="set-name">
-						<TextInput id="set-name" bind:value={settings.general.platform_name} />
-					</FormField>
-					<FormField label="Support email" htmlFor="set-email">
-						<TextInput id="set-email" type="email" bind:value={settings.general.support_email} />
-					</FormField>
-					<FormField label="Timezone" htmlFor="set-tz" hint="Used for daily order and revenue cut-offs.">
-						<TextInput id="set-tz" bind:value={settings.general.timezone} />
-					</FormField>
-					<FormField label="Default locale" htmlFor="set-locale">
-						<TextInput id="set-locale" bind:value={settings.general.default_locale} />
-					</FormField>
-				</div>
-				{#snippet footer()}
-					<button type="button" class="btn btn-primary" disabled={saving} onclick={saveGeneral}>
-						{saving ? 'Saving…' : 'Save changes'}
-					</button>
-				{/snippet}
-			</SettingsPanel>
-		{:else if tab === 'email'}
-			<ServiceConfigPanel service="SMTP" initialView={getConfig('SMTP')} />
-		{:else if tab === 'storage'}
-			<ServiceConfigPanel service="STORAGE" initialView={getConfig('STORAGE')} />
-		{:else if tab === 'ai'}
-			<ServiceConfigPanel service="AI" initialView={getConfig('AI')} />
-		{:else if tab === 'tenant-access'}
-			<TenantConfigTable />
-		{:else if tab === 'types'}
-			<SettingsPanel
-				title="Tenant types"
-				description="Business categories offered when onboarding. Deactivated types stay on existing tenants."
-			>
-				<div class="table-wrap">
-					<table class="table">
-						<thead>
-							<tr>
-								<th>Code</th>
-								<th>Label</th>
-								<th>Order</th>
-								<th>Status</th>
-								<th style="width:1%;"></th>
-							</tr>
-						</thead>
-						<tbody>
-							{#each types as row (row.code)}
-								<tr>
-									<td><code class="mono">{row.code}</code></td>
-									<td>
-										<input
-											class="input"
-											style="max-width:14rem;"
-											bind:value={row.label}
-											aria-label="Label for {row.code}"
-										/>
-									</td>
-									<td class="num muted">{row.sort_order}</td>
-									<td>
-										<StatusBadge status={row.active ? 'ACTIVE' : 'INACTIVE'} />
-									</td>
-									<td>
-										<div style="display:flex;align-items:center;gap:0.5rem;">
-											<Switch bind:checked={row.active} label="" />
-											<button
-												type="button"
-												class="btn btn-ghost btn-sm"
-												onclick={() => saveType(row)}
-											>
-												Save
-											</button>
-										</div>
-									</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
-
-				<div
-					style="display:grid;gap:0.6rem;grid-template-columns:minmax(6rem,9rem) minmax(0,1fr) auto;align-items:end;margin-top:1.1rem;padding-top:1.1rem;border-top:1px solid var(--border);"
+<div class="set-shell">
+	<nav class="set-rail" aria-label="Settings sections">
+		{#each groups as group (group.label)}
+			<p class="set-rail-label">{group.label}</p>
+			{#each group.items as section (section.id)}
+				<button
+					type="button"
+					class={['set-rail-link', active.id === section.id ? 'active' : ''].join(' ')}
+					aria-current={active.id === section.id ? 'page' : undefined}
+					onclick={() => select(section.id)}
 				>
-					<FormField label="Code" htmlFor="nt-code">
-						<TextInput id="nt-code" bind:value={newCode} placeholder="MOMO" />
-					</FormField>
-					<FormField label="Label" htmlFor="nt-label">
-						<TextInput id="nt-label" bind:value={newLabel} placeholder="Momo" />
-					</FormField>
-					<button
-						type="button"
-						class="btn btn-primary"
-						disabled={saving || !newCode.trim() || !newLabel.trim()}
-						onclick={addType}
-					>
-						Add type
-					</button>
-				</div>
-			</SettingsPanel>
-		{:else if tab === 'security'}
-			<SettingsPanel title="Security" description="Password policy and session defaults for the whole platform.">
-				<div style="display:flex;flex-direction:column;gap:0.9rem;max-width:30rem;">
-					<FormField
-						label="Minimum password length"
-						htmlFor="set-pw-min"
-						hint="Applies to tenant admins and staff when they set a password."
-					>
-						<input
-							id="set-pw-min"
-							class="input"
-							type="number"
-							min="6"
-							bind:value={settings.security.password_min_length}
-						/>
-					</FormField>
-					<FormField
-						label="Invite link expiry (hours)"
-						htmlFor="set-invite"
-						hint="Setup links stop working after this period."
-					>
-						<input
-							id="set-invite"
-							class="input"
-							type="number"
-							min="1"
-							bind:value={settings.security.invite_expiry_hours}
-						/>
-					</FormField>
-					<FormField label="Session timeout (minutes)" htmlFor="set-session">
-						<input
-							id="set-session"
-							class="input"
-							type="number"
-							min="5"
-							bind:value={settings.security.session_timeout_minutes}
-						/>
-					</FormField>
-					<Switch
-						bind:checked={settings.security.require_mfa_for_admins}
-						label="Require MFA for admins"
-						hint="Enforcement is not wired up yet — this records the intent only."
-					/>
-				</div>
-				{#snippet footer()}
-					<button type="button" class="btn btn-primary" disabled={saving} onclick={saveSecurity}>
-						{saving ? 'Saving…' : 'Save changes'}
-					</button>
-				{/snippet}
-			</SettingsPanel>
-		{:else if tab === 'platform'}
-			<SettingsPanel
-				title="Platform"
-				description="Runtime flags. Domain and port are read from the environment."
-			>
-				<dl class="dl" style="max-width:32rem;margin-bottom:1.1rem;">
-					<div><dt>Base domain</dt><dd class="mono">{settings.platform.base_domain}</dd></div>
-					<div><dt>Frontend port</dt><dd class="mono">{settings.platform.frontend_port ?? '—'}</dd></div>
-					<div><dt>Environment</dt><dd>{settings.app_env || '—'}</dd></div>
-				</dl>
+					<section.icon size={15} strokeWidth={1.9} />
+					{section.label}
+				</button>
+			{/each}
+		{/each}
+	</nav>
 
-				<div style="display:flex;flex-direction:column;gap:0.85rem;max-width:32rem;">
-					<Switch
-						bind:checked={settings.platform.allow_self_serve}
-						label="Allow self-serve tenant signup"
-						hint="Lets businesses create their own account without a Super Admin."
-					/>
-					<Switch
-						bind:checked={settings.platform.maintenance_mode}
-						label="Maintenance mode"
-						hint="Hides tenant storefronts while you make platform changes."
-					/>
-				</div>
-				{#snippet footer()}
-					<button type="button" class="btn btn-primary" disabled={saving} onclick={savePlatform}>
-						{saving ? 'Saving…' : 'Save changes'}
-					</button>
-				{/snippet}
-			</SettingsPanel>
+	<div class="set-main">
+		<header class="set-page-head">
+			<h1 class="set-page-title">{active.label}</h1>
+			<p class="set-lede">{active.lede}</p>
+		</header>
+
+		{#if active.id === 'general'}
+			<GeneralPanel />
+		{:else if active.id === 'business-types'}
+			<BusinessTypesPanel />
+		{:else if active.id === 'security'}
+			<SecurityPanel />
+		{:else if active.id === 'appearance'}
+			<AppearancePanel kind="platform" canSetBusinessDefault={canWritePlatformSettings} />
 		{:else}
-			<SettingsPanel title="Admin profile" description="Your Super Admin account and credentials.">
-				<dl class="dl" style="max-width:32rem;margin-bottom:1.25rem;">
-					<div><dt>Name</dt><dd>{profile?.name ?? '—'}</dd></div>
-					<div><dt>Email</dt><dd>{profile?.email ?? '—'}</dd></div>
-					<div><dt>Role</dt><dd>Super Admin</dd></div>
-				</dl>
-
-				<form style="max-width:22rem;" onsubmit={submitPassword}>
-					<p class="field-label" style="margin:0 0 0.6rem;">Change password</p>
-					<div style="display:flex;flex-direction:column;gap:0.85rem;">
-						<FormField label="Current password" htmlFor="cur-pw">
-							<TextInput id="cur-pw" type="password" bind:value={currentPassword} required />
-						</FormField>
-						<FormField label="New password" htmlFor="new-pw">
-							<TextInput id="new-pw" type="password" bind:value={newPassword} required />
-						</FormField>
-						<FormField label="Confirm new password" htmlFor="conf-pw">
-							<TextInput id="conf-pw" type="password" bind:value={confirmPassword} required />
-						</FormField>
-						<div>
-							<button type="submit" class="btn btn-primary" disabled={passwordSaving}>
-								{passwordSaving ? 'Updating…' : 'Update password'}
-							</button>
-						</div>
-					</div>
-				</form>
-			</SettingsPanel>
+			<ProfilePanel />
 		{/if}
 	</div>
 </div>
+
+<style>
+	.set-shell {
+		display: grid;
+		gap: 1.75rem;
+		align-items: start;
+	}
+
+	@media (min-width: 1000px) {
+		.set-shell {
+			grid-template-columns: 12.5rem minmax(0, 1fr);
+			gap: 2rem;
+		}
+	}
+
+	.set-rail {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		padding: 0.35rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-lg);
+		background: var(--surface);
+	}
+
+	@media (min-width: 1000px) {
+		.set-rail {
+			position: sticky;
+			top: calc(var(--topbar-h) + 1rem);
+		}
+	}
+
+	@media (max-width: 999px) {
+		/* A column of section links above a form reads as part of the form on a
+		   phone, so it becomes a scrolling row instead. */
+		.set-rail {
+			flex-direction: row;
+			overflow-x: auto;
+			padding: 0.35rem;
+			gap: 0.25rem;
+		}
+
+		.set-rail-label {
+			display: none;
+		}
+	}
+
+	.set-rail-label {
+		margin: 0.65rem 0 0.2rem;
+		padding: 0 0.55rem;
+		font-size: 0.65rem;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-3);
+	}
+
+	.set-rail-label:first-child {
+		margin-top: 0.15rem;
+	}
+
+	.set-rail-link {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.45rem 0.55rem;
+		border: 0;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		color: var(--text-2);
+		font-family: inherit;
+		font-size: 0.82rem;
+		font-weight: 500;
+		text-align: left;
+		white-space: nowrap;
+		cursor: pointer;
+		transition:
+			background var(--tr),
+			color var(--tr);
+	}
+
+	.set-rail-link:hover {
+		background: var(--surface-2);
+		color: var(--text);
+	}
+
+	.set-rail-link.active {
+		background: var(--accent-soft);
+		color: var(--accent-dark);
+		font-weight: 600;
+	}
+
+	.set-main {
+		min-width: 0;
+	}
+
+	.set-page-head {
+		margin-bottom: 0.35rem;
+		padding-bottom: 1.15rem;
+		border-bottom: 1px solid var(--border-subtle);
+	}
+
+	.set-page-title {
+		margin: 0;
+		font-family: var(--font-display);
+		font-size: 1.35rem;
+		font-weight: 650;
+		letter-spacing: -0.025em;
+		color: var(--text);
+		line-height: 1.2;
+	}
+
+	.set-lede {
+		margin: 0.4rem 0 0;
+		font-size: 0.86rem;
+		line-height: 1.55;
+		color: var(--text-3);
+		max-width: 42rem;
+	}
+</style>

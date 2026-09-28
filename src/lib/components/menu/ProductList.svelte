@@ -12,6 +12,10 @@
 	import Switch from '$lib/components/admin/Switch.svelte';
 	import { formatCurrency } from '$lib/admin/format';
 	import { productHasOptions, type MenuProduct } from '$lib/tenant/menu';
+	import { terms } from '$lib/tenant/businessType.svelte';
+
+	// The catalogue's nouns come from the business type, not from this form.
+	const t = $derived(terms());
 
 	let {
 		products,
@@ -53,8 +57,8 @@
 		<thead>
 			<tr>
 				<th style="width:3.5rem;"></th>
-				<th>Product</th>
-				<th>Category</th>
+				<th>{t.item}</th>
+				<th>{t.group}</th>
 				<th>Price</th>
 				<th>Status</th>
 				<th style="width:3rem;"></th>
@@ -91,7 +95,7 @@
 						/>
 					</td>
 					<td>
-						<Menu items={actions(p)} label="Product actions" />
+						<Menu items={actions(p)} label={`${t.item} actions`} />
 					</td>
 				</tr>
 			{/each}
@@ -134,7 +138,7 @@
 					<button type="button" class="icon-btn" aria-label="Move down" onclick={() => onreorder(p, 1)}>
 						<ChevronDown size={15} />
 					</button>
-					<button type="button" class="icon-btn" aria-label="Move category" onclick={() => onmove(p)}>
+					<button type="button" class="icon-btn" aria-label={`Move ${t.group.toLowerCase()}`} onclick={() => onmove(p)}>
 						<FolderInput size={15} />
 					</button>
 					<button type="button" class="icon-btn danger" aria-label="Delete" onclick={() => ondelete(p)}>

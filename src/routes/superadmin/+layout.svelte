@@ -2,135 +2,84 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import type { Component } from 'svelte';
-	import Activity from '@lucide/svelte/icons/activity';
-	import Building2 from '@lucide/svelte/icons/building-2';
-	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 	import Plus from '@lucide/svelte/icons/plus';
-	import Settings from '@lucide/svelte/icons/settings';
-	import Users from '@lucide/svelte/icons/users';
 	import { getAccessToken } from '$lib/api/client';
 	import { logout, me, type User } from '$lib/auth';
 	import { fetchSettings, fetchTenants } from '$lib/admin/api';
 	import {
-		breadcrumbsFor,
-		isTenantCreatePage,
-		isTenantSection,
-		metaForPath,
-		type Crumb
-	} from '$lib/admin/routeMeta';
+		SUPERADMIN_NAV,
+		adminCrumbs,
+		isBusinessSection,
+		isOnboardingPage,
+		type AdminCrumb
+	} from '$lib/admin/nav';
 	import AdminShellSkeleton from '$lib/components/admin/AdminShellSkeleton.svelte';
 	import Toaster from '$lib/components/admin/Toaster.svelte';
-	import AppShell, {
-		type ShellNavGroup,
-		type ShellNavItem
-	} from '$lib/components/shell/AppShell.svelte';
+	import AppShell from '$lib/components/shell/AppShell.svelte';
 
 	let { children } = $props();
 
-	type NavItem = ShellNavItem;
-	type NavGroup = ShellNavGroup;
-	type TenantHit = { id: string; name: string; slug: string; owner_name?: string };
+	type BusinessHit = { id: string; name: string };
 
 	/**
-	 * Tri-state, mirroring Orbit: we never render the shell until the role is
-	 * known, so nav items can't appear and then vanish on a permission change.
+	 * Tri-state: the shell never renders until the role is known, so nav items
+	 * cannot appear and then vanish when identity resolves.
 	 */
 	type Status = 'loading' | 'authenticated' | 'unauthenticated';
 
 	let status = $state<Status>('loading');
 	let user = $state<User | null>(null);
 	let platformName = $state('Orderly');
-	let tenants = $state<TenantHit[]>([]);
+	let businesses = $state<BusinessHit[]>([]);
 
 	const isPublicRoute = $derived(
 		$page.url.pathname === '/superadmin/login' || $page.url.pathname === '/superadmin/setup'
 	);
 
 	/**
-	 * Which side of the login wall the current `status` describes. This layout is
-	 * reused across client-side navigations within /superadmin/*, so it must not
-	 * resolve identity only once in onMount — that left `user` null after an
+	 * Which side of the login wall the current `status` describes. This layout
+	 * is reused across client-side navigations within /superadmin/*, so it must
+	 * not resolve identity only once in onMount — that left `user` null after an
 	 * in-app login and rendered the blank branch. Tracking the side lets us
-	 * re-resolve on the login <-> app crossing while still holding the resolved
-	 * user across normal in-app navigation, so the shell never flashes back to
-	 * the skeleton.
+	 * re-resolve on the login <-> app crossing while holding the resolved user
+	 * across ordinary navigation, so the shell never flashes back to a skeleton.
 	 */
 	let resolvedSide = $state<'public' | 'protected' | null>(null);
 
-	const NAV: NavGroup[] = [
-		{
-			label: 'Overview',
-			// Exact: the dashboard must not stay lit while browsing tenants.
-			items: [{ href: '/superadmin', label: 'Dashboard', icon: LayoutDashboard, exact: true }]
-		},
-		{
-			label: 'Tenants',
-			items: [
-				{
-					href: '/superadmin/tenants',
-					label: 'All tenants',
-					icon: Building2,
-					// The create form is its own destination.
-					exclude: ['/superadmin/tenants/new']
-				}
-			]
-		},
-		{
-			label: 'Platform',
-			items: [
-				{ href: '/superadmin/users', label: 'Users', icon: Users },
-				{ href: '/superadmin/activity', label: 'Activity', icon: Activity }
-			]
-		},
-		{
-			label: 'System',
-			items: [{ href: '/superadmin/settings', label: 'Settings', icon: Settings }]
-		}
-	];
-
-	/** Drop nav entries the resolved role cannot open, and any group left empty. */
-	const navGroups = $derived.by<ShellNavGroup[]>(() => {
-		const role = user?.role;
-		return NAV.map((group) => ({
-			...group,
-			items: group.items.filter((item) => !item.roles || (role ? item.roles.includes(role) : false))
-		})).filter((group) => group.items.length > 0);
-	});
-
-	const routeMeta = $derived(metaForPath($page.url.pathname, tenants));
-	const crumbs = $derived<Crumb[]>(breadcrumbsFor($page.url.pathname, $page.url.search, tenants));
-	const contentWide = $derived(isTenantCreatePage($page.url.pathname));
-	/** Onboarding actions belong to the Tenants section only. */
-	const showTenantAction = $derived(
-		isTenantSection($page.url.pathname) && !isTenantCreatePage($page.url.pathname)
+	const tab = $derived($page.url.searchParams.get('tab'));
+	const navContext = $derived({ businesses, tab });
+	const crumbs = $derived<AdminCrumb[]>(adminCrumbs($page.url.pathname, navContext));
+	/** Super Admin dashboards use the full shell width — no centered content cap. */
+	const contentWide = true;
+	/** Onboarding belongs to the Businesses section, and not to its own page. */
+	const showOnboardAction = $derived(
+		isBusinessSection($page.url.pathname) && !isOnboardingPage($page.url.pathname)
 	);
 
 	onMount(() => {
-		// The brand name and the breadcrumb's tenant lookup both need the
-		// platform's own data, so they load here and feed the shell as props
-		// rather than the shell fetching for itself.
+		// The rail's brand name and the trail's id → name lookup both need
+		// platform data, so the shell loads it once and feeds it down rather
+		// than every page fetching its own copy.
 		fetchSettings()
 			.then((s) => {
 				if (s.general.platform_name?.trim()) platformName = s.general.platform_name.trim();
 			})
-			.catch(() => {});
+			.catch(() => {
+				/* the rail falls back to "Orderly" — not worth an error state */
+			});
 		fetchTenants()
 			.then((rows) => {
-				tenants = rows.map((t) => ({
-					id: t.id,
-					name: t.name,
-					slug: t.slug,
-					owner_name: t.owner_name
-				}));
+				businesses = rows.map((t) => ({ id: t.id, name: t.name }));
 			})
-			.catch(() => {});
+			.catch(() => {
+				/* the trail falls back to showing the id */
+			});
 	});
 
 	/** Resolve identity for the side of the login wall we are currently on. */
 	async function resolve(side: 'public' | 'protected') {
 		if (side === 'public') {
-			// Login/setup render their own screens, so no shell and no identity needed.
+			// Login and setup render their own screens: no shell, no identity.
 			status = 'authenticated';
 			return;
 		}
@@ -184,19 +133,20 @@
 		role={user.role}
 		pathname={$page.url.pathname}
 		{crumbs}
-		title={routeMeta.title}
+		title=""
 		navLabel="Super Admin"
-		groups={navGroups}
+		groups={SUPERADMIN_NAV}
 		wideContent={contentWide}
 		storageKey="orderly-sidebar"
 		settingsHref="/superadmin/settings"
+		profileHref="/superadmin/settings?section=profile"
 		onSignOut={signOut}
 	>
 		{#snippet actions()}
-			{#if showTenantAction}
-				<a class="btn btn-primary btn-sm" href="/superadmin/tenants/new">
+			{#if showOnboardAction}
+				<a class="btn btn-primary btn-sm" href="/superadmin/businesses/new">
 					<Plus size={15} strokeWidth={2.2} />
-					<span>New tenant</span>
+					<span>Onboard business</span>
 				</a>
 			{/if}
 		{/snippet}
@@ -205,7 +155,7 @@
 	</AppShell>
 	<Toaster />
 {:else if status === 'loading'}
-	<!-- Shell-shaped so the frame doesn't jump when identity resolves. -->
+	<!-- Shell-shaped so the frame does not jump when identity resolves. -->
 	<AdminShellSkeleton />
 {:else}
 	<!-- Unauthenticated: render nothing while the redirect lands. -->

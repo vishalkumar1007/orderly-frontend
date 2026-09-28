@@ -1,8 +1,26 @@
 export type TenantStatus = 'ACTIVE' | 'SUSPENDED' | 'TRIAL' | 'CREATED' | 'SETUP' | 'READY';
 export type SetupStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
 export type PlanCode = 'TRIAL' | 'STARTER' | 'BUSINESS';
-export type BusinessType = 'MOMO' | 'MANCHURIAN' | 'FAST_FOOD' | 'ROLLS' | 'TEA' | 'OTHER';
-export type UserRole = 'SUPER_ADMIN' | 'TENANT_ADMIN' | 'STAFF';
+/**
+ * A business-type code. The set is open on purpose — an operator can add one
+ * under Settings — so this is a string with the built-in shapes documented
+ * rather than a closed union. `lib/admin/businessTypes.ts` owns what each code
+ * means.
+ */
+export type BusinessType =
+	| 'FOOD_SHOP'
+	| 'GROCERY'
+	| 'CAFE'
+	| 'RESTAURANT'
+	| 'HOTEL'
+	| 'OTHER'
+	| (string & {});
+/**
+ * Roles the platform knows. MANAGER sits between owner and staff: it runs the
+ * shop day to day without being able to reconfigure it. `pkg/identity` decides
+ * what each one may reach, and the API sends that list with the identity.
+ */
+export type UserRole = 'SUPER_ADMIN' | 'TENANT_ADMIN' | 'MANAGER' | 'STAFF';
 export type UserStatus = 'ACTIVE' | 'DISABLED' | 'INVITED';
 export type SubscriptionStatus = 'TRIAL' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
 export type AuditResult = 'SUCCESS' | 'FAILURE' | 'DENIED';
@@ -87,6 +105,42 @@ export type CreateTenantPayload = {
 	store_status?: 'OPEN' | 'BUSY' | 'AWAY' | 'CLOSED';
 	status_message?: string;
 	store_name?: string;
+	/**
+	 * The business-type template, applied to the new tenant's storefront in the
+	 * same transaction that creates it. Shapes mirror the storefront API, so
+	 * the wizard sends what it built rather than a translated copy.
+	 */
+	configuration?: TenantConfigurationPayload;
+};
+
+export type TenantConfigurationPayload = {
+	theme_preset?: string;
+	theme_mode?: string;
+	primary_color?: string;
+	secondary_color?: string;
+	accent_color?: string;
+	product_layout?: string;
+	filter_style?: string;
+	hero_style?: string;
+	font_family?: string;
+	radius?: string;
+	card_style?: string;
+	button_style?: string;
+	ordering_enabled?: boolean;
+	customer_login_mode?: string;
+	prep_time_minutes?: number;
+	payments?: {
+		online_payment_enabled: boolean;
+		cash_enabled: boolean;
+		pay_at_pickup_enabled: boolean;
+		default_payment_method: string;
+	};
+	workflow?: {
+		acceptance_mode: string;
+		payment_requirement: string;
+		ready_notification: boolean;
+		auto_complete: boolean;
+	};
 };
 
 export type CreatedTenant = {
@@ -216,32 +270,66 @@ export type DashboardData = {
 	system_health: SystemHealthItem[];
 	orders_by_day?: ChartPoint[];
 	tenants_by_week?: ChartPoint[];
+	/** Everything the "Needs attention" panel is built from. */
+	expiring_subscriptions: ExpiringSubscription[];
+	awaiting_setup: AwaitingSetup[];
+	suspended: TenantActivityItem[];
 };
 
 export type PlatformUser = {
 	id: string;
 	name: string;
 	email: string;
+	phone?: string;
 	tenant_id: string | null;
 	tenant_name: string | null;
+	tenant_slug?: string;
+	tenant_status?: string;
 	role: UserRole | string;
 	status: UserStatus | string;
+	/**
+	 * PLATFORM for the console owner, TENANT for everyone else. The two are
+	 * never mixed: a platform role grants nothing inside a business, and a
+	 * business role grants nothing on the platform.
+	 */
+	scope?: 'PLATFORM' | 'TENANT';
 	last_activity: string | null;
 	created_at: string;
 };
 
+export type BillingPeriod = 'trial' | 'monthly' | 'yearly' | 'one_time';
+
+/** A plan exactly as `GET /admin/plans` returns it. */
 export type Plan = {
 	id: string;
-	code: PlanCode | string;
 	name: string;
+	description: string;
 	price: number;
-	currency: string;
-	billing_period: 'trial' | 'monthly' | 'yearly' | string;
-	duration_label: string;
+	max_staff: number;
+	max_products: number;
+	is_active: boolean;
+	billing_period: BillingPeriod | string;
+	trial_days: number;
+	/** What the plan includes, in the operator's own words. */
 	features: string[];
-	status: 'ACTIVE' | 'INACTIVE' | string;
+	/** Business types the plan is offered to. Empty means all of them. */
+	business_types: string[];
+	/** Present on the list endpoint only. */
+	tenant_count?: number;
+	active_subscriptions?: number;
+};
+
+export type PlanWritePayload = {
+	name?: string;
+	description?: string;
+	price?: number;
 	max_staff?: number;
 	max_products?: number;
+	is_active?: boolean;
+	billing_period?: string;
+	trial_days?: number;
+	features?: string[];
+	business_types?: string[];
 };
 
 /** A plan as offered during tenant onboarding (mirrors GET /admin/plans). */
@@ -255,6 +343,12 @@ export type PlanOption = {
 	price: number;
 	maxStaff: number | null;
 	maxProducts: number | null;
+	billingPeriod: BillingPeriod | string;
+	trialDays: number;
+	features: string[];
+	/** Empty means the plan is offered to every business type. */
+	businessTypes: string[];
+	isActive: boolean;
 };
 
 export type Subscription = {
@@ -267,6 +361,51 @@ export type Subscription = {
 	trial_end: string | null;
 	start_date: string;
 	renewal_date: string | null;
+	price?: number;
+};
+
+/* ------------------------------------------------------------------ *
+ * Monitoring
+ * ------------------------------------------------------------------ */
+
+export type ComponentHealth = 'HEALTHY' | 'WARNING' | 'ERROR' | 'UNAVAILABLE';
+
+export type HealthComponent = {
+	id: string;
+	name: string;
+	group: string;
+	status: ComponentHealth | string;
+	detail: string;
+	latency_ms?: number;
+	/** True when a Super Admin can act on the component from the console. */
+	managed?: boolean;
+	href?: string;
+};
+
+export type SystemHealth = {
+	status: ComponentHealth | string;
+	checked_at: string;
+	components: HealthComponent[];
+};
+
+/** A subscription approaching its trial or term end. */
+export type ExpiringSubscription = {
+	subscription_id: string;
+	tenant_id: string;
+	tenant_name: string;
+	tenant_slug: string;
+	plan: string;
+	status: string;
+	ends_at: string;
+};
+
+/** A business whose administrator has never signed in. */
+export type AwaitingSetup = {
+	tenant_id: string;
+	tenant_name: string;
+	tenant_slug: string;
+	status: string;
+	created_at: string;
 };
 
 export type AuditLog = {
@@ -298,6 +437,15 @@ export type PlatformSettings = {
 		support_email: string;
 		timezone: string;
 		default_locale: string;
+		default_currency: string;
+	};
+	/** The console's own theme, never a tenant's. */
+	branding: {
+		primary_color: string;
+		secondary_color: string;
+		/** The console theme everyone starts from, before their own choice. */
+		preset_id: string;
+		color_mode: 'light' | 'dark' | 'system';
 	};
 	security: {
 		session_timeout_minutes: number;
@@ -322,12 +470,16 @@ export type PlatformSettings = {
 	app_env?: string;
 };
 
+/**
+ * The built-in shapes. The live catalogue comes from `GET /admin/tenant-types`
+ * — this is only the fallback used before it loads.
+ */
 export const BUSINESS_TYPES: BusinessType[] = [
-	'MOMO',
-	'MANCHURIAN',
-	'FAST_FOOD',
-	'ROLLS',
-	'TEA',
+	'FOOD_SHOP',
+	'GROCERY',
+	'CAFE',
+	'RESTAURANT',
+	'HOTEL',
 	'OTHER'
 ];
 

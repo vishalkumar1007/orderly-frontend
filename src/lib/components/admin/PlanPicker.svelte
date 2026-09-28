@@ -20,15 +20,30 @@
 		const out: string[] = [];
 		if (p.maxStaff != null) out.push(`${p.maxStaff} staff`);
 		if (p.maxProducts != null) out.push(`${p.maxProducts} products`);
+		// A trial is a limit like any other: it is how long this plan lasts.
+		if (p.trialDays > 0) out.push(`${p.trialDays}-day trial`);
 		return out;
 	}
 
-	const isTrial = (p: PlanOption) => p.code === 'TRIAL';
+	/** How the price reads. A plan that only exists as a trial has no period. */
+	function period(p: PlanOption): string {
+		switch (p.billingPeriod) {
+			case 'monthly':
+				return '/month';
+			case 'yearly':
+				return '/year';
+			case 'trial':
+				return 'trial';
+			default:
+				return '';
+		}
+	}
 </script>
 
 {#if plans.length === 0}
 	<p class="muted" style="font-size:0.85rem;margin:0;">
-		No plans are active. Add one under Settings → Tenant types, or ask an operator to enable plans.
+		No plan is on offer. Create or activate one under
+		<a href="/superadmin/plans" style="color:var(--accent-dark);">Plans &amp; subscriptions</a>.
 	</p>
 {:else}
 	<div class="plan-grid" role="radiogroup" aria-label="Plan">
@@ -60,7 +75,7 @@
 						<span class="plan-amount">Free</span>
 					{:else}
 						<span class="plan-amount">₹{plan.price.toLocaleString('en-IN')}</span>
-						<span class="plan-per">/month</span>
+						<span class="plan-per">{period(plan)}</span>
 					{/if}
 				</div>
 
@@ -73,7 +88,17 @@
 						{#each limits(plan) as l (l)}
 							<li>{l}</li>
 						{/each}
-						{#if isTrial(plan)}<li>14-day trial</li>{/if}
+					</ul>
+				{/if}
+
+				{#if plan.features.length > 0}
+					<ul class="plan-features">
+						{#each plan.features.slice(0, 3) as feature (feature)}
+							<li>{feature}</li>
+						{/each}
+						{#if plan.features.length > 3}
+							<li class="more">+{plan.features.length - 3} more</li>
+						{/if}
 					</ul>
 				{/if}
 			</button>
@@ -154,7 +179,7 @@
 		place-items: center;
 		border-radius: 999px;
 		background: var(--accent);
-		color: #fff;
+		color: var(--on-accent);
 	}
 
 	.plan-price {
@@ -199,5 +224,40 @@
 		color: var(--text-2);
 		font-size: 0.68rem;
 		font-weight: 550;
+	}
+
+	.plan-features {
+		list-style: none;
+		margin: 0.35rem 0 0;
+		padding: 0;
+		display: grid;
+		gap: 0.18rem;
+	}
+
+	.plan-features li {
+		position: relative;
+		padding-left: 0.8rem;
+		font-size: 0.72rem;
+		line-height: 1.4;
+		color: var(--text-2);
+	}
+
+	.plan-features li::before {
+		content: '';
+		position: absolute;
+		left: 0.15rem;
+		top: 0.45rem;
+		width: 0.25rem;
+		height: 0.25rem;
+		border-radius: 999px;
+		background: var(--success);
+	}
+
+	.plan-features li.more {
+		color: var(--text-3);
+	}
+
+	.plan-features li.more::before {
+		background: var(--text-3);
 	}
 </style>
