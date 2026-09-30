@@ -5,6 +5,7 @@
 	import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
 	import Users from '@lucide/svelte/icons/users';
 	import CreditCard from '@lucide/svelte/icons/credit-card';
+	import OpeningHoursForm from '$lib/components/storefront/OpeningHoursForm.svelte';
 	import ArrowUp from '@lucide/svelte/icons/arrow-up';
 	import ArrowDown from '@lucide/svelte/icons/arrow-down';
 	import Sparkles from '@lucide/svelte/icons/sparkles';
@@ -27,9 +28,11 @@
 		FILTER_OPTIONS,
 		LOGIN_MODE_OPTIONS,
 		MODE_OPTIONS,
+		STORE_STATUS_OPTIONS,
 		ACCEPTANCE_MODES,
 		PAYMENT_TIMINGS
 	} from '$lib/storefront/admin';
+	import { toast } from '$lib/components/admin/toast';
 
 	let {
 		store,
@@ -83,11 +86,12 @@
 		});
 	}
 
-	function moveSection(index: number, direction: 'up' | 'down') {
-		const targetIndex = direction === 'up' ? index - 1 : index + 1;
-		const sections = draft.homepage.sections;
-		if (targetIndex < 0 || targetIndex >= sections.length) return;
+	function moveSection(id: string, direction: 'up' | 'down') {
 		store.mutate((d) => {
+			const index = d.homepage.sections.findIndex((s) => s.id === id);
+			if (index < 0) return;
+			const targetIndex = direction === 'up' ? index - 1 : index + 1;
+			if (targetIndex < 0 || targetIndex >= d.homepage.sections.length) return;
 			const item = d.homepage.sections.splice(index, 1)[0];
 			d.homepage.sections.splice(targetIndex, 0, item);
 		});
@@ -112,7 +116,67 @@
 		});
 	}
 
-	const announcementSection = $derived(draft.homepage.sections.find((s) => s.type === 'ANNOUNCEMENT'));
+	const heroSection = $derived(draft.homepage.sections.find((s) => s.type === 'HERO'));
+	let showHeroAdvanced = $state(false);
+
+	type BroadcastType = 'alert' | 'msg' | 'offer' | 'others';
+	let bannerType = $state<BroadcastType>('offer');
+	let bannerText = $state('');
+
+	function parseBroadcast(msg: string): { type: BroadcastType; text: string } {
+		if (!msg) return { type: 'msg', text: '' };
+		const match = msg.match(/^\[(alert|msg|offer|others)\]\s*(.*)$/i);
+		if (match) return { type: match[1].toLowerCase() as BroadcastType, text: match[2] };
+		return { type: 'msg', text: msg };
+	}
+
+	function formatBroadcast(type: BroadcastType, text: string): string {
+		const clean = text.trim();
+		return clean ? `[${type}] ${clean}` : '';
+	}
+
+	let bannerSaving = $state(false);
+	let statusSaving = $state(false);
+
+	$effect(() => {
+		if (section !== 'homepage') return;
+		const parsed = parseBroadcast(draft.behaviour.status_message || '');
+		bannerType = parsed.text ? parsed.type : bannerType;
+		bannerText = parsed.text;
+	});
+
+	async function saveBanner() {
+		if (bannerSaving) return;
+		bannerSaving = true;
+		const payload = formatBroadcast(bannerType, bannerText);
+		const ok = await store.saveStatusMessage(payload);
+		bannerSaving = false;
+		if (ok) toast.success(payload ? 'Banner published' : 'Banner removed');
+		else toast.error(store.error || 'Could not save banner');
+	}
+
+	async function clearBanner() {
+		bannerText = '';
+		bannerType = 'msg';
+		if (bannerSaving) return;
+		bannerSaving = true;
+		const ok = await store.saveStatusMessage('');
+		bannerSaving = false;
+		if (ok) toast.success('Banner removed');
+		else toast.error(store.error || 'Could not clear banner');
+	}
+
+	async function pickStatus(status: string) {
+		if (statusSaving || (draft.behaviour.store_status || 'OPEN') === status) return;
+		statusSaving = true;
+		const ok = await store.saveStoreStatus(status);
+		statusSaving = false;
+		if (ok) {
+			toast.success(
+				`Store is now ${STORE_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status}`
+			);
+		} else toast.error(store.error || 'Could not update store status');
+	}
 </script>
 
 <div class="studio-controls-container">
@@ -224,29 +288,6 @@
 							onclick={() => store.mutate((d) => (d.theme.card = opt.value as any))}
 						>
 							{opt.label}
-						</button>
-					{/each}
-				</div>
-			</div>
-
-			<div class="studio-section">
-				<div class="studio-section-header">
-					<h3>Menu Layout</h3>
-					<p>Choose between list rows, visual grid tiles, or compact scanning view.</p>
-				</div>
-				<div class="studio-options-list">
-					{#each LAYOUT_OPTIONS as opt (opt.value)}
-						<button
-							type="button"
-							class="studio-option-row"
-							class:active={draft.theme.product_layout === opt.value}
-							onclick={() => store.mutate((d) => (d.theme.product_layout = opt.value as any))}
-						>
-							<div class="studio-option-label">
-								<span class="studio-option-title">{opt.label}</span>
-								<span class="studio-option-hint">{opt.hint}</span>
-							</div>
-							<span class="studio-radio-circle"></span>
 						</button>
 					{/each}
 				</div>
@@ -396,8 +437,8 @@
 
 			<div class="studio-section">
 				<div class="studio-section-header">
-					<h3>Color Mode</h3>
-					<p>Choose default mode or let the customer's device decide.</p>
+					<h3>Default theme</h3>
+					<p>First visit uses this mode; system follows the device when selected.</p>
 				</div>
 				<div class="studio-pill-group">
 					{#each MODE_OPTIONS as opt (opt.value)}
@@ -412,6 +453,25 @@
 					{/each}
 				</div>
 			</div>
+
+			<div class="studio-section">
+				<div class="studio-section-header">
+					<h3>Customer theme switch</h3>
+					<p>When on, shoppers can switch light and dark; the default still applies on first visit.</p>
+				</div>
+				<div class="studio-switch-row">
+					<div>
+						<span class="studio-switch-title">Show theme toggle on storefront</span>
+					</div>
+					<input
+						type="checkbox"
+						class="studio-toggle"
+						checked={Boolean(draft.theme.customer_mode_switch_enabled)}
+						onchange={(e) =>
+							store.mutate((d) => (d.theme.customer_mode_switch_enabled = e.currentTarget.checked))}
+					/>
+				</div>
+			</div>
 		{/if}
 
 		<!-- 3. HOMEPAGE TAB -->
@@ -419,7 +479,7 @@
 			<div class="studio-section">
 				<div class="studio-section-header">
 					<h3>Hero Banner</h3>
-					<p>Visual welcome banner shown at the top of your homepage.</p>
+					<p>Cover style at the top of the homepage.</p>
 				</div>
 
 				<div class="studio-pill-group">
@@ -436,7 +496,7 @@
 				</div>
 
 				{#if draft.theme.hero === 'image'}
-					<div class="studio-form-group" style="margin-top:0.8rem;">
+					<div class="studio-form-group">
 						<label class="studio-label" for="sf-hero-image">Hero Cover Photo URL</label>
 						<input
 							id="sf-hero-image"
@@ -446,80 +506,116 @@
 							oninput={(e) => store.mutate((d) => (d.theme.hero_image_url = e.currentTarget.value))}
 							placeholder="https://images.unsplash.com/photo-..."
 						/>
+						{#if !(draft.theme.hero_image_url || '').trim()}
+							<p class="studio-hint">Paste an image URL to show a photo cover. Until then the brand gradient is used.</p>
+						{/if}
 					</div>
 				{/if}
-			</div>
 
-			<div class="studio-section">
-				<div class="studio-section-header">
-					<h3>Announcement Banner</h3>
-					<p>Highlighted notice bar pinned at the top for deals, promotions, or alerts.</p>
-				</div>
+				<button
+					type="button"
+					class="studio-advanced-toggle"
+					onclick={() => (showHeroAdvanced = !showHeroAdvanced)}
+				>
+					{showHeroAdvanced ? 'Hide' : 'Show'} title &amp; subtitle
+				</button>
 
-				<div class="studio-switch-row">
-					<label class="studio-toggle-label" for="sf-ann-toggle">Enable announcement bar</label>
-					<input
-						id="sf-ann-toggle"
-						type="checkbox"
-						class="studio-toggle"
-						checked={Boolean(announcementSection?.enabled)}
-						onchange={() => {
-							if (announcementSection) {
-								toggleSection(announcementSection.id);
-							} else {
-								store.mutate((d) => {
-									d.homepage.sections.unshift({
-										id: 'announcement',
-										type: 'ANNOUNCEMENT',
-										enabled: true,
-										content: { text: 'Free shipping on orders above ₹499!', tone: 'info' }
-									});
-								});
-							}
-						}}
-					/>
-				</div>
-
-				{#if announcementSection?.enabled}
-					<div class="studio-form-group" style="margin-top:0.6rem;">
-						<label class="studio-label" for="sf-ann-text">Announcement Message</label>
+				{#if showHeroAdvanced && heroSection}
+					<div class="studio-form-group">
+						<label class="studio-label" for="sf-hero-title">Hero title</label>
 						<input
-							id="sf-ann-text"
+							id="sf-hero-title"
 							type="text"
 							class="studio-input"
-							value={announcementSection.content?.text || ''}
-							oninput={(e) =>
-								updateSectionContent(announcementSection.id, 'text', e.currentTarget.value)}
-							placeholder="e.g. Flat 20% off all orders today! Use code TASTY20"
+							value={heroSection.content?.title || ''}
+							oninput={(e) => updateSectionContent(heroSection.id, 'title', e.currentTarget.value)}
+							placeholder={draft.store.name || 'Store name'}
 						/>
 					</div>
-
 					<div class="studio-form-group">
-						<label class="studio-label" for="sf-ann-tone">Tone / Color Style</label>
-						<div class="studio-pill-group">
-							{#each ['info', 'success', 'warn'] as tone}
-								<button
-									type="button"
-									class="studio-choice-pill"
-									class:active={(announcementSection.content?.tone || 'info') === tone}
-									onclick={() => updateSectionContent(announcementSection.id, 'tone', tone)}
-								>
-									{tone === 'info' ? 'Brand Blue' : tone === 'success' ? 'Green Deal' : 'Amber Alert'}
-								</button>
-							{/each}
-						</div>
+						<label class="studio-label" for="sf-hero-subtitle">Hero subtitle</label>
+						<input
+							id="sf-hero-subtitle"
+							type="text"
+							class="studio-input"
+							value={heroSection.content?.subtitle || ''}
+							oninput={(e) => updateSectionContent(heroSection.id, 'subtitle', e.currentTarget.value)}
+							placeholder={draft.store.tagline || 'Short tagline'}
+						/>
 					</div>
 				{/if}
 			</div>
 
 			<div class="studio-section">
 				<div class="studio-section-header">
-					<h3>Homepage Sections & Order</h3>
-					<p>Enable, disable, rename, and arrange sections on your storefront.</p>
+					<h3>Customer banner</h3>
+					<p>
+						Top-of-store notice for offers and alerts. Saves immediately — same as Storefront → Action.
+					</p>
+				</div>
+
+				<div class="studio-form-group">
+					<label class="studio-label">Announcement type</label>
+					<div class="studio-pill-group">
+						{#each [
+							{ value: 'offer', label: 'Offer' },
+							{ value: 'alert', label: 'Alert' },
+							{ value: 'msg', label: 'Message' },
+							{ value: 'others', label: 'Other' }
+						] as opt (opt.value)}
+							<button
+								type="button"
+								class="studio-choice-pill"
+								class:active={bannerType === opt.value}
+								onclick={() => (bannerType = opt.value as BroadcastType)}
+							>
+								{opt.label}
+							</button>
+						{/each}
+					</div>
+				</div>
+
+				<div class="studio-form-group">
+					<label class="studio-label" for="sf-banner-text">Banner text</label>
+					<textarea
+						id="sf-banner-text"
+						class="studio-input"
+						rows={3}
+						maxlength={200}
+						placeholder="Write an announcement…"
+						value={bannerText}
+						oninput={(e) => (bannerText = e.currentTarget.value)}
+					></textarea>
+				</div>
+
+				<div class="studio-banner-actions">
+					<button
+						type="button"
+						class="btn btn-primary btn-sm"
+						disabled={bannerSaving}
+						onclick={() => void saveBanner()}
+					>
+						{bannerSaving ? 'Saving…' : 'Publish banner'}
+					</button>
+					<button
+						type="button"
+						class="btn btn-ghost btn-sm"
+						disabled={bannerSaving || !draft.behaviour.status_message}
+						onclick={() => void clearBanner()}
+					>
+						Clear banner
+					</button>
+				</div>
+			</div>
+
+			<div class="studio-section">
+				<div class="studio-section-header">
+					<h3>Homepage Sections</h3>
+					<p>Toggle, rename, and reorder what customers see.</p>
 				</div>
 
 				<div class="studio-sections-list">
-					{#each draft.homepage.sections as section, i (section.id)}
+					{#each draft.homepage.sections.filter((s) => s.type !== 'ANNOUNCEMENT') as section (section.id)}
 						<div class="studio-section-item" class:disabled={!section.enabled}>
 							<div class="studio-section-item-left">
 								<button
@@ -537,14 +633,22 @@
 								</button>
 								<div class="studio-section-item-text">
 									<span class="studio-section-type">{section.type.replace(/_/g, ' ')}</span>
-									{#if section.content?.title !== undefined}
+									{#if section.type !== 'ANNOUNCEMENT' && section.type !== 'HERO'}
 										<input
 											type="text"
 											class="studio-inline-input"
-											value={section.content.title}
+											value={section.content?.title ?? ''}
 											oninput={(e) =>
 												updateSectionContent(section.id, 'title', e.currentTarget.value)}
 											placeholder="Section title"
+										/>
+										<input
+											type="text"
+											class="studio-inline-input studio-inline-input-sub"
+											value={section.content?.description ?? section.content?.subtitle ?? ''}
+											oninput={(e) =>
+												updateSectionContent(section.id, 'description', e.currentTarget.value)}
+											placeholder="Short description (optional)"
 										/>
 									{/if}
 								</div>
@@ -554,18 +658,21 @@
 								<button
 									type="button"
 									class="studio-icon-button"
-									disabled={i === 0}
+									disabled={draft.homepage.sections.findIndex((s) => s.id === section.id) === 0}
 									title="Move Up"
-									onclick={() => moveSection(i, 'up')}
+									onclick={() => moveSection(section.id, 'up')}
 								>
 									<ArrowUp size={14} strokeWidth={2.4} />
 								</button>
 								<button
 									type="button"
 									class="studio-icon-button"
-									disabled={i === draft.homepage.sections.length - 1}
+									disabled={
+										draft.homepage.sections.findIndex((s) => s.id === section.id) ===
+										draft.homepage.sections.length - 1
+									}
 									title="Move Down"
-									onclick={() => moveSection(i, 'down')}
+									onclick={() => moveSection(section.id, 'down')}
 								>
 									<ArrowDown size={14} strokeWidth={2.4} />
 								</button>
@@ -639,32 +746,134 @@
 			</div>
 		{/if}
 
-		<!-- 5. CUSTOMER EXPERIENCE TAB -->
-		{#if section === 'customer'}
+		<!-- ORDERING & STATUS -->
+		{#if section === 'ordering'}
 			<div class="studio-section">
 				<div class="studio-section-header">
-					<h3>Guest Ordering</h3>
-					<p>Allow any visitor to order immediately without signing in.</p>
+					<h3>Store status</h3>
+					<p>Shown on the customer storefront. Saves immediately — same as Storefront → Action.</p>
 				</div>
+				<div class="studio-pill-group">
+					{#each STORE_STATUS_OPTIONS as opt (opt.value)}
+						<button
+							type="button"
+							class="studio-choice-pill"
+							class:active={(draft.behaviour.store_status || 'OPEN') === opt.value}
+							disabled={statusSaving}
+							onclick={() => void pickStatus(opt.value)}
+						>
+							{opt.label}
+						</button>
+					{/each}
+				</div>
+			</div>
 
+			<div class="studio-section">
+				<div class="studio-section-header">
+					<h3>Accept orders</h3>
+					<p>When off, customers can browse but not check out.</p>
+				</div>
 				<div class="studio-switch-row">
 					<div>
-						<span class="studio-switch-title">Accept Guest Orders</span>
-						<span class="studio-switch-desc">Frictionless checkout without password or verification</span>
+						<span class="studio-switch-title">Ordering enabled</span>
 					</div>
 					<input
 						type="checkbox"
 						class="studio-toggle"
 						checked={draft.behaviour.ordering_enabled}
-						onchange={(e) => store.mutate((d) => (d.behaviour.ordering_enabled = e.currentTarget.checked))}
+						onchange={(e) =>
+							store.mutate((d) => (d.behaviour.ordering_enabled = e.currentTarget.checked))}
 					/>
 				</div>
 			</div>
 
 			<div class="studio-section">
 				<div class="studio-section-header">
-					<h3>Customer Phone Sign-In (OTP)</h3>
-					<p>Control whether customers can sign in with their phone number.</p>
+					<h3>Closed message</h3>
+					<p>Shown when ordering is unavailable.</p>
+				</div>
+				<input
+					type="text"
+					class="studio-input"
+					maxlength={200}
+					value={draft.behaviour.closed_message}
+					oninput={(e) =>
+						store.mutate((d) => (d.behaviour.closed_message = e.currentTarget.value))}
+				/>
+			</div>
+
+			<div class="studio-section">
+				<div class="studio-section-header">
+					<h3>Pricing &amp; prep time</h3>
+					<p>Applied on every order at checkout ({draft.store.currency}).</p>
+				</div>
+				<div class="studio-form-group">
+					<label class="studio-label" for="sf-prep-ordering">Preparation time (minutes)</label>
+					<input
+						id="sf-prep-ordering"
+						type="number"
+						class="studio-input"
+						min="0"
+						max="240"
+						value={draft.behaviour.prep_time_minutes}
+						oninput={(e) =>
+							store.mutate(
+								(d) => (d.behaviour.prep_time_minutes = parseInt(e.currentTarget.value) || 0)
+							)}
+					/>
+				</div>
+				<div class="studio-form-group">
+					<label class="studio-label" for="sf-tax">Tax (%)</label>
+					<input
+						id="sf-tax"
+						type="number"
+						class="studio-input"
+						min="0"
+						max="100"
+						step="0.01"
+						value={draft.behaviour.tax_percent}
+						oninput={(e) =>
+							store.mutate((d) => (d.behaviour.tax_percent = parseFloat(e.currentTarget.value) || 0))}
+					/>
+				</div>
+				<div class="studio-form-group">
+					<label class="studio-label" for="sf-fee">Packaging fee</label>
+					<input
+						id="sf-fee"
+						type="number"
+						class="studio-input"
+						min="0"
+						step="0.01"
+						value={draft.behaviour.packaging_fee}
+						oninput={(e) =>
+							store.mutate(
+								(d) => (d.behaviour.packaging_fee = parseFloat(e.currentTarget.value) || 0)
+							)}
+					/>
+				</div>
+			</div>
+
+			<div class="studio-section">
+				<div class="studio-section-header">
+					<h3>Opening hours</h3>
+					<p>When the store accepts orders by the clock. Saves immediately — same as Action.</p>
+				</div>
+				<OpeningHoursForm
+					studio={{
+						hours: draft.hours,
+						onChange: (patch) => store.previewHours(patch),
+						onSave: (patch) => store.saveHours(patch)
+					}}
+				/>
+			</div>
+		{/if}
+
+		<!-- CUSTOMERS -->
+		{#if section === 'customer'}
+			<div class="studio-section">
+				<div class="studio-section-header">
+					<h3>Phone sign-in (OTP)</h3>
+					<p>Phone OTP only today — email login is not available yet.</p>
 				</div>
 
 				<div class="studio-options-list">
@@ -673,7 +882,11 @@
 							type="button"
 							class="studio-option-row"
 							class:active={draft.behaviour.customer_login_mode === opt.value}
-							onclick={() => store.mutate((d) => (d.behaviour.customer_login_mode = opt.value))}
+							onclick={() =>
+								store.mutate((d) => {
+									d.behaviour.customer_login_mode = opt.value;
+									d.behaviour.customer_login_enabled = opt.value !== 'off';
+								})}
 						>
 							<div class="studio-option-label">
 								<span class="studio-option-title">{opt.label}</span>
@@ -682,26 +895,6 @@
 							<span class="studio-radio-circle"></span>
 						</button>
 					{/each}
-				</div>
-			</div>
-
-			<div class="studio-section">
-				<div class="studio-section-header">
-					<h3>Customer Perks & History</h3>
-					<p>Enable self-serve tracking and order history for returning customers.</p>
-				</div>
-
-				<div class="studio-switch-row">
-					<div>
-						<span class="studio-switch-title">Order Tracking Notifications</span>
-						<span class="studio-switch-desc">Send customer live order status updates</span>
-					</div>
-					<input
-						type="checkbox"
-						class="studio-toggle"
-						checked={draft.workflow.ready_notification}
-						onchange={(e) => store.mutate((d) => (d.workflow.ready_notification = e.currentTarget.checked))}
-					/>
 				</div>
 			</div>
 		{/if}
@@ -758,8 +951,8 @@
 
 			<div class="studio-section">
 				<div class="studio-section-header">
-					<h3>Checkout Behavior & Timing</h3>
-					<p>Operational workflow for order acceptance and preparation.</p>
+					<h3>Order flow</h3>
+					<p>How orders are accepted, paid, and completed.</p>
 				</div>
 
 				<div class="studio-form-group">
@@ -794,17 +987,31 @@
 					</div>
 				</div>
 
-				<div class="studio-form-group">
-					<label class="studio-label" for="sf-prep-time">Estimated Preparation Time (Minutes)</label>
+				<div class="studio-switch-row">
+					<div>
+						<span class="studio-switch-title">Ready notification</span>
+						<span class="studio-switch-desc">Notify customers when an order is ready</span>
+					</div>
 					<input
-						id="sf-prep-time"
-						type="number"
-						class="studio-input"
-						min="0"
-						max="240"
-						value={draft.behaviour.prep_time_minutes}
-						oninput={(e) =>
-							store.mutate((d) => (d.behaviour.prep_time_minutes = parseInt(e.currentTarget.value) || 20))}
+						type="checkbox"
+						class="studio-toggle"
+						checked={draft.workflow.ready_notification}
+						onchange={(e) =>
+							store.mutate((d) => (d.workflow.ready_notification = e.currentTarget.checked))}
+					/>
+				</div>
+
+				<div class="studio-switch-row">
+					<div>
+						<span class="studio-switch-title">Auto-complete orders</span>
+						<span class="studio-switch-desc">Mark orders complete when they reach Ready</span>
+					</div>
+					<input
+						type="checkbox"
+						class="studio-toggle"
+						checked={draft.workflow.auto_complete}
+						onchange={(e) =>
+							store.mutate((d) => (d.workflow.auto_complete = e.currentTarget.checked))}
 					/>
 				</div>
 			</div>
@@ -814,32 +1021,32 @@
 
 <style>
 	.studio-controls-container {
-		display: flex;
-		flex-direction: column;
-		height: 100%;
-		background: var(--surface);
-		border-right: 1px solid var(--border);
+		display: block;
+		min-height: 0;
+		background: transparent;
 	}
 
-
-
-
-
 	.studio-tab-content {
-		flex: 1;
-		overflow-y: auto;
-		padding: 1.25rem;
+		overflow: visible;
+		padding: 1rem 1.1rem 1.5rem;
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
+		gap: 1.15rem;
+		/* Sized to content; .studio-panel is the only scroll container */
+		height: auto;
 	}
 
 	.studio-section {
 		display: flex;
 		flex-direction: column;
-		gap: 0.8rem;
-		padding-bottom: 1.25rem;
-		border-bottom: 1px solid var(--border-soft, #f1f5f9);
+		gap: 0.75rem;
+		padding-bottom: 0;
+		border-bottom: none;
+	}
+
+	.studio-section + .studio-section {
+		padding-top: 1rem;
+		border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
 	}
 
 	.studio-section:last-child {
@@ -858,6 +1065,23 @@
 		font-size: var(--fs-code);
 		color: var(--text-3);
 		line-height: 1.4;
+	}
+
+	.studio-advanced-toggle {
+		align-self: flex-start;
+		margin-top: 0.15rem;
+		padding: 0;
+		border: none;
+		background: transparent;
+		color: var(--accent);
+		font: inherit;
+		font-size: var(--fs-meta);
+		font-weight: 650;
+		cursor: pointer;
+	}
+
+	.studio-advanced-toggle:hover {
+		text-decoration: underline;
 	}
 
 	.studio-presets-grid {
@@ -1021,6 +1245,14 @@
 		gap: 4px;
 	}
 
+	.studio-banner-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		align-items: center;
+		margin-top: 0.35rem;
+	}
+
 	.studio-label {
 		font-size: var(--fs-tab);
 		font-weight: 600;
@@ -1054,14 +1286,14 @@
 
 	.studio-color-pickers-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-		gap: 10px;
+		grid-template-columns: 1fr;
+		gap: 0.65rem;
 	}
 
 	.studio-color-field {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: 0.35rem;
 	}
 
 	.studio-color-label {
@@ -1073,28 +1305,48 @@
 	.studio-color-control {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: 0.5rem;
+		padding: 0.35rem 0.45rem;
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		background: var(--surface);
 	}
 
 	.studio-color-box {
-		width: 32px;
-		height: 32px;
+		flex: none;
+		width: 2rem;
+		height: 2rem;
 		padding: 0;
 		border: 1px solid var(--border);
-		border-radius: var(--radius-sm, 6px);
+		border-radius: 8px;
 		cursor: pointer;
 		background: transparent;
+		overflow: hidden;
+	}
+
+	.studio-color-box::-webkit-color-swatch-wrapper {
+		padding: 0;
+	}
+
+	.studio-color-box::-webkit-color-swatch {
+		border: none;
+		border-radius: 6px;
 	}
 
 	.studio-hex-input {
 		flex: 1;
-		padding: 5px 8px;
+		min-width: 0;
+		padding: 0.35rem 0.45rem;
 		font-size: var(--fs-tab);
-		font-family: monospace;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm, 6px);
-		background: var(--surface);
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		border: none;
+		border-radius: 6px;
+		background: transparent;
 		color: var(--text);
+	}
+
+	.studio-hex-input:focus {
+		outline: none;
 	}
 
 	.studio-color-presets {
@@ -1228,8 +1480,22 @@
 		border-radius: 4px;
 		background: var(--surface);
 		color: var(--text);
-		width: 180px;
-		max-width: 100%;
+		width: 100%;
+		max-width: 14rem;
+	}
+
+	.studio-inline-input-sub {
+		margin-top: 0.25rem;
+		color: var(--text-2);
+		font-weight: 500;
+	}
+
+	.studio-section-item-text {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		min-width: 0;
+		flex: 1;
 	}
 
 	.studio-section-reorder-btns {

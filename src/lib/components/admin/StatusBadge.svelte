@@ -12,7 +12,7 @@
 
 	const tone = $derived.by(() => {
 		if (kind !== 'auto') return kind;
-		const s = status.toUpperCase();
+		const s = String(status ?? '').toUpperCase();
 		if (['ACTIVE', 'SUCCESS', 'OPERATIONAL', 'COMPLETED', 'PUBLISHED'].includes(s)) return 'ok';
 		if (['TRIAL', 'INVITED', 'PENDING', 'IN_PROGRESS', 'DEGRADED', 'WARN'].includes(s))
 			return 'warn';
@@ -22,7 +22,7 @@
 		return 'neutral';
 	});
 
-	const label = $derived(status ? status.replaceAll('_', ' ') : '—');
+	const label = $derived(status ? String(status).replaceAll('_', ' ') : '—');
 </script>
 
 <span class={['badge', `badge-${tone}`, dot ? '' : 'badge-plain'].join(' ').trim()}>{label}</span>

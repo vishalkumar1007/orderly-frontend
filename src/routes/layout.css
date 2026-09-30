@@ -171,8 +171,8 @@
 	 */
 	--rail: transparent;
 	--rail-solid: transparent;
-	--wash-near: 3%;
-	--wash-far: 2.5%;
+	--wash-near: 5%;
+	--wash-far: 3.5%;
 
 	/* Text and icons are neutral, always. Legibility is not a brand decision. */
 	--rail-text: #5a6376;
@@ -244,8 +244,8 @@
 	/* Same restraint as light: a hint in the surface, neutral everywhere else. */
 	--rail: transparent;
 	--rail-solid: transparent;
-	--wash-near: 5%;
-	--wash-far: 3.5%;
+	--wash-near: 9%;
+	--wash-far: 6%;
 
 	--rail-text: #98a1b6;
 	--rail-text-strong: #ffffff;
@@ -277,18 +277,352 @@
 }
 
 /*
- * The rail is where the theme lives.
- *
- * Two things were wrong with the previous treatment. It was the same near-black
- * in both themes, so switching to light mode left a dark column down the side
- * of a white page; and its background was a literal, so the accent reached only
- * the active item and the chosen theme was invisible on the largest coloured
- * surface in the console.
- *
- * Both are fixed by deriving the rail from `--accent` per theme. `--accent` is
- * an inline custom property on <html>, and these rules match that same element,
- * so saving an appearance repaints the rail with no reload and no JavaScript.
- *
+ * Soft — lighter day look with a bit more page wash. Comfortable for long
+ * sessions without the stark white of classic Light.
+ */
+[data-theme='soft'] {
+	--bg: #f3f1ec;
+	--surface: #fffcf7;
+	--surface-2: #faf7f2;
+	--surface-3: #eeeae3;
+	--surface-card: #ffffff;
+	--surface-sunken: #ebe6de;
+	--surface-hover: rgba(28, 25, 23, 0.045);
+	--border: #e4ddd3;
+	--border-subtle: #ebe5db;
+	--text: #1c1917;
+	--text-2: #57534e;
+	--text-3: #8a847b;
+
+	--success: #15803d;
+	--success-bg: #e8f6ec;
+	--warn: #b45309;
+	--warn-bg: #fdf3e3;
+	--danger: #b42318;
+	--danger-bg: #fdeceb;
+	--info: #1d4ed8;
+	--info-bg: #eaf0fe;
+
+	--chart-grid: color-mix(in srgb, var(--border) 80%, transparent);
+
+	--rail: transparent;
+	--rail-solid: transparent;
+	--wash-near: 12%;
+	--wash-far: 8%;
+	--rail-text: #6b645c;
+	--rail-text-strong: #1c1917;
+	--rail-border: #e6dfd5;
+	--rail-hover: rgba(28, 25, 23, 0.05);
+	--rail-active: color-mix(in srgb, var(--accent) 12%, transparent);
+	--rail-icon-bg: rgba(28, 25, 23, 0.045);
+	--rail-scroll: rgba(28, 25, 23, 0.16);
+
+	--icon-bg: #ebe6de;
+	--icon-fg: #6b645c;
+	--rail-accent-text: color-mix(in srgb, var(--accent) 70%, #1c1917);
+
+	--ink: var(--text);
+	--paper: var(--bg);
+	--line: var(--border);
+	--muted: var(--text-2);
+	--ok: var(--success);
+	--ok-soft: var(--success-bg);
+	--warn-soft: var(--warn-bg);
+	--danger-soft: var(--danger-bg);
+	--info-soft: var(--info-bg);
+}
+
+/*
+ * Night — neutral charcoal dark (no blue cast). The comfortable dark console
+ * admins can pick from Appearance.
+ */
+[data-theme='night'] {
+	--bg: #0a0a0b;
+	--surface: #121214;
+	--surface-2: #18181b;
+	--surface-3: #222226;
+	--surface-card: #1c1c1f;
+	--surface-sunken: #0e0e10;
+	--surface-hover: rgba(255, 255, 255, 0.05);
+	--border: #2c2c31;
+	--border-subtle: #222226;
+	--text: #f2f2f3;
+	--text-2: #a1a1aa;
+	--text-3: #71717a;
+
+	--success: #4ade80;
+	--success-bg: rgba(34, 197, 94, 0.14);
+	--warn: #fbbf24;
+	--warn-bg: rgba(217, 119, 6, 0.15);
+	--danger: #f87171;
+	--danger-bg: rgba(220, 38, 38, 0.15);
+	--info: #a1a1aa;
+	--info-bg: rgba(161, 161, 170, 0.14);
+
+	--accent-soft: color-mix(in srgb, var(--accent) 18%, #121214);
+	--accent-dark: color-mix(in srgb, var(--accent) 70%, #ffffff);
+	--chart-grid: color-mix(in srgb, var(--border) 90%, transparent);
+
+	--rail: transparent;
+	--rail-solid: transparent;
+	--wash-near: 14%;
+	--wash-far: 9%;
+
+	--rail-text: #a1a1aa;
+	--rail-text-strong: #ffffff;
+	--rail-border: rgba(255, 255, 255, 0.08);
+	--rail-hover: rgba(255, 255, 255, 0.055);
+	--rail-active: color-mix(in srgb, var(--accent) 20%, transparent);
+	--rail-icon-bg: rgba(255, 255, 255, 0.05);
+	--rail-scroll: rgba(255, 255, 255, 0.14);
+
+	--icon-bg: rgba(255, 255, 255, 0.06);
+	--icon-fg: #a1a1aa;
+	--rail-accent-text: color-mix(in srgb, var(--accent-2) 72%, #ffffff);
+
+	--shadow-md: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+	--shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
+
+	--ink: var(--text);
+	--paper: var(--bg);
+	--line: var(--border);
+	--muted: var(--text-2);
+	--ok: var(--success);
+	--ok-soft: var(--success-bg);
+	--warn-soft: var(--warn-bg);
+	--danger-soft: var(--danger-bg);
+	--info-soft: var(--info-bg);
+}
+
+/*
+ * Mist — cool light grey (Lumora-style mist). Barely-noticeable accent wash.
+ */
+[data-theme='mist'] {
+	--bg: #f1f4f8;
+	--surface: #f8fafc;
+	--surface-2: #f1f5f9;
+	--surface-3: #e8eef5;
+	--surface-card: #ffffff;
+	--surface-sunken: #e4eaf1;
+	--surface-hover: rgba(15, 23, 42, 0.04);
+	--border: #dde3ec;
+	--border-subtle: #e8eef5;
+	--text: #0f172a;
+	--text-2: #475569;
+	--text-3: #94a3b8;
+
+	--success: #15803d;
+	--success-bg: #e8f6ec;
+	--warn: #b45309;
+	--warn-bg: #fdf3e3;
+	--danger: #b42318;
+	--danger-bg: #fdeceb;
+	--info: #1d4ed8;
+	--info-bg: #eaf0fe;
+
+	--chart-grid: color-mix(in srgb, var(--border) 80%, transparent);
+	--rail: transparent;
+	--rail-solid: transparent;
+	--wash-near: 3.5%;
+	--wash-far: 2%;
+
+	--rail-text: #64748b;
+	--rail-text-strong: #0f172a;
+	--rail-border: #e2e8f0;
+	--rail-hover: rgba(15, 23, 42, 0.045);
+	--rail-active: color-mix(in srgb, var(--accent) 12%, transparent);
+	--rail-icon-bg: rgba(15, 23, 42, 0.04);
+	--rail-scroll: rgba(15, 23, 42, 0.14);
+	--icon-bg: #e8eef5;
+	--icon-fg: #64748b;
+	--rail-accent-text: color-mix(in srgb, var(--accent) 70%, #0f172a);
+
+	--ink: var(--text);
+	--paper: var(--bg);
+	--line: var(--border);
+	--muted: var(--text-2);
+	--ok: var(--success);
+	--ok-soft: var(--success-bg);
+	--warn-soft: var(--warn-bg);
+	--danger-soft: var(--danger-bg);
+	--info-soft: var(--info-bg);
+}
+
+/*
+ * Graphite — flat charcoal dark with no accent page wash (Linear-like restraint).
+ */
+[data-theme='graphite'] {
+	--bg: #0c0c0e;
+	--surface: #141416;
+	--surface-2: #1a1a1d;
+	--surface-3: #232326;
+	--surface-card: #1c1c1f;
+	--surface-sunken: #0a0a0b;
+	--surface-hover: rgba(255, 255, 255, 0.045);
+	--border: #2a2a2e;
+	--border-subtle: #1f1f23;
+	--text: #f4f4f5;
+	--text-2: #a1a1aa;
+	--text-3: #71717a;
+
+	--success: #4ade80;
+	--success-bg: rgba(34, 197, 94, 0.14);
+	--warn: #fbbf24;
+	--warn-bg: rgba(217, 119, 6, 0.15);
+	--danger: #f87171;
+	--danger-bg: rgba(220, 38, 38, 0.15);
+	--info: #a1a1aa;
+	--info-bg: rgba(161, 161, 170, 0.12);
+
+	--accent-soft: color-mix(in srgb, var(--accent) 16%, #141416);
+	--accent-dark: color-mix(in srgb, var(--accent) 70%, #ffffff);
+	--chart-grid: color-mix(in srgb, var(--border) 90%, transparent);
+	--rail: transparent;
+	--rail-solid: transparent;
+	--wash-near: 0%;
+	--wash-far: 0%;
+
+	--rail-text: #a1a1aa;
+	--rail-text-strong: #ffffff;
+	--rail-border: rgba(255, 255, 255, 0.08);
+	--rail-hover: rgba(255, 255, 255, 0.05);
+	--rail-active: color-mix(in srgb, var(--accent) 18%, transparent);
+	--rail-icon-bg: rgba(255, 255, 255, 0.045);
+	--rail-scroll: rgba(255, 255, 255, 0.12);
+	--icon-bg: rgba(255, 255, 255, 0.055);
+	--icon-fg: #a1a1aa;
+	--rail-accent-text: color-mix(in srgb, var(--accent-2) 70%, #ffffff);
+
+	--shadow-md: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+	--shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
+	--ink: var(--text);
+	--paper: var(--bg);
+	--line: var(--border);
+	--muted: var(--text-2);
+	--ok: var(--success);
+	--ok-soft: var(--success-bg);
+	--warn-soft: var(--warn-bg);
+	--danger-soft: var(--danger-bg);
+	--info-soft: var(--info-bg);
+}
+
+/*
+ * Raw — near-true black OLED dark, no colour wash (Vercel/OLED-friendly).
+ */
+[data-theme='raw'] {
+	--bg: #000000;
+	--surface: #0a0a0a;
+	--surface-2: #111111;
+	--surface-3: #1a1a1a;
+	--surface-card: #0f0f0f;
+	--surface-sunken: #000000;
+	--surface-hover: rgba(255, 255, 255, 0.04);
+	--border: #222222;
+	--border-subtle: #161616;
+	--text: #fafafa;
+	--text-2: #a3a3a3;
+	--text-3: #737373;
+
+	--success: #4ade80;
+	--success-bg: rgba(34, 197, 94, 0.12);
+	--warn: #fbbf24;
+	--warn-bg: rgba(217, 119, 6, 0.12);
+	--danger: #f87171;
+	--danger-bg: rgba(220, 38, 38, 0.12);
+	--info: #a3a3a3;
+	--info-bg: rgba(163, 163, 163, 0.1);
+
+	--accent-soft: color-mix(in srgb, var(--accent) 14%, #0a0a0a);
+	--accent-dark: color-mix(in srgb, var(--accent) 75%, #ffffff);
+	--chart-grid: color-mix(in srgb, var(--border) 90%, transparent);
+	--rail: transparent;
+	--rail-solid: transparent;
+	--wash-near: 0%;
+	--wash-far: 0%;
+
+	--rail-text: #a3a3a3;
+	--rail-text-strong: #ffffff;
+	--rail-border: rgba(255, 255, 255, 0.07);
+	--rail-hover: rgba(255, 255, 255, 0.045);
+	--rail-active: color-mix(in srgb, var(--accent) 16%, transparent);
+	--rail-icon-bg: rgba(255, 255, 255, 0.04);
+	--rail-scroll: rgba(255, 255, 255, 0.12);
+	--icon-bg: rgba(255, 255, 255, 0.05);
+	--icon-fg: #a3a3a3;
+	--rail-accent-text: color-mix(in srgb, var(--accent-2) 72%, #ffffff);
+
+	--shadow-md: 0 12px 32px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.4);
+	--shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.75);
+	--ink: var(--text);
+	--paper: var(--bg);
+	--line: var(--border);
+	--muted: var(--text-2);
+	--ok: var(--success);
+	--ok-soft: var(--success-bg);
+	--warn-soft: var(--warn-bg);
+	--danger-soft: var(--danger-bg);
+	--info-soft: var(--info-bg);
+}
+
+/*
+ * Midnight — deep slate navy (#0f172a family) with a medium coloured wash.
+ */
+[data-theme='midnight'] {
+	--bg: #0b1220;
+	--surface: #0f172a;
+	--surface-2: #152033;
+	--surface-3: #1e293b;
+	--surface-card: #162033;
+	--surface-sunken: #080e1a;
+	--surface-hover: rgba(255, 255, 255, 0.045);
+	--border: #243044;
+	--border-subtle: #1a2536;
+	--text: #e2e8f0;
+	--text-2: #94a3b8;
+	--text-3: #64748b;
+
+	--success: #4ade80;
+	--success-bg: rgba(34, 197, 94, 0.14);
+	--warn: #fbbf24;
+	--warn-bg: rgba(217, 119, 6, 0.15);
+	--danger: #f87171;
+	--danger-bg: rgba(220, 38, 38, 0.15);
+	--info: #7dd3fc;
+	--info-bg: rgba(14, 165, 233, 0.14);
+
+	--accent-soft: color-mix(in srgb, var(--accent) 18%, #0f172a);
+	--accent-dark: color-mix(in srgb, var(--accent) 70%, #ffffff);
+	--chart-grid: color-mix(in srgb, var(--border) 90%, transparent);
+	--rail: transparent;
+	--rail-solid: transparent;
+	--wash-near: 11%;
+	--wash-far: 7%;
+
+	--rail-text: #94a3b8;
+	--rail-text-strong: #ffffff;
+	--rail-border: rgba(255, 255, 255, 0.08);
+	--rail-hover: rgba(255, 255, 255, 0.05);
+	--rail-active: color-mix(in srgb, var(--accent) 18%, transparent);
+	--rail-icon-bg: rgba(255, 255, 255, 0.045);
+	--rail-scroll: rgba(255, 255, 255, 0.14);
+	--icon-bg: rgba(255, 255, 255, 0.055);
+	--icon-fg: #94a3b8;
+	--rail-accent-text: color-mix(in srgb, var(--accent-2) 72%, #ffffff);
+
+	--shadow-md: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+	--shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
+	--ink: var(--text);
+	--paper: var(--bg);
+	--line: var(--border);
+	--muted: var(--text-2);
+	--ok: var(--success);
+	--ok-soft: var(--success-bg);
+	--warn-soft: var(--warn-bg);
+	--danger-soft: var(--danger-bg);
+	--info-soft: var(--info-bg);
+}
+
+/*
  * Note the two text tokens: `--rail-text-strong` exists because the rules below
  * used a hard-coded white for emphasis, which is invisible on a light rail.
  */
@@ -1016,7 +1350,7 @@ select.input {
 	flex-direction: column;
 }
 
-/* Topbar — full-bleed, sticky, blurred surface */
+/* Topbar — sticky glass so dashboard wash shows through */
 .topbar {
 	position: sticky;
 	top: 0;
@@ -1027,10 +1361,10 @@ select.input {
 	height: 64px;
 	min-height: 64px;
 	padding: 0 1.15rem;
-	background: color-mix(in srgb, var(--surface) 72%, transparent);
-	backdrop-filter: blur(12px) saturate(1.1);
-	-webkit-backdrop-filter: blur(12px) saturate(1.1);
-	border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+	background: color-mix(in srgb, var(--surface) 38%, transparent);
+	backdrop-filter: blur(18px) saturate(1.4);
+	-webkit-backdrop-filter: blur(18px) saturate(1.4);
+	border-bottom: 1px solid color-mix(in srgb, var(--border) 35%, transparent);
 }
 
 .topbar-left {
@@ -1148,6 +1482,37 @@ select.input {
 	width: 100%;
 	padding-left: 1.5rem;
 	padding-right: 1.5rem;
+}
+
+/* Edge-to-edge workspace (Storefront Studio). Parent .main is a flex column. */
+.content-flush {
+	max-width: none;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	flex: 1;
+	min-height: 0;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+/*
+ * Studio must own the viewport under the topbar. Without a hard shell height,
+ * min-height:100vh lets the page grow and free-scroll even when panes are empty.
+ */
+.shell:has(.content-flush) {
+	height: 100dvh;
+	max-height: 100dvh;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.shell:has(.content-flush) .main {
+	min-height: 0;
+	overflow: hidden;
+	height: 100%;
 }
 
 .rail-overlay {
@@ -4882,29 +5247,76 @@ select.input {
 	gap: 0.6rem;
 }
 
-/* Hours editor. */
+/* Hours editor. The form sits in the Studio column, which is a flex item.
+   Without a zero min-width the copy control's option text widens the column. */
+.sfhours-form {
+	min-width: 0;
+	max-width: 100%;
+}
+
+.sfhours.is-paused,
+.sfhours-head .is-paused {
+	opacity: 0.55;
+}
+
+.sfhours-head {
+	display: grid;
+	gap: 0.85rem;
+	margin-bottom: 0.9rem;
+	min-width: 0;
+}
+
+.sfhours-copy {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	min-width: 0;
+	max-width: 100%;
+}
+
+.sfhours-copy select.input {
+	width: 100%;
+	max-width: 100%;
+	min-width: 0;
+	height: 2.15rem;
+}
+
 .sfhours {
 	display: grid;
-	gap: 0.4rem;
+	gap: 0.15rem;
+	min-width: 0;
 }
 
 .sfhours-row {
-	display: grid;
-	grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
-	gap: 0.5rem;
-	padding: 0.35rem 0;
+	gap: 0.4rem 0.5rem;
+	padding: 0.4rem 0;
+	min-width: 0;
 }
 
 .sfhours-day {
+	flex: 0 0 auto;
+	min-width: 4.5rem;
 	font-size: var(--fs-body);
 	font-weight: 600;
+}
+
+.sfhours-row > .btn {
+	margin-left: auto;
+	flex: none;
 }
 
 .sfhours-shifts {
 	display: flex;
 	gap: 0.35rem;
+	flex: 1 1 8rem;
 	flex-wrap: wrap;
+	min-width: 0;
+}
+
+.sfhours-shifts:not(:has(.sfshift)) {
+	display: none;
 }
 
 .sfshift {
@@ -4918,7 +5330,10 @@ select.input {
 }
 
 .sfshift input {
-	width: 4.1rem;
+	width: 6.25rem;
+	max-width: 100%;
+	min-width: 0;
+	height: 1.75rem;
 	border: none;
 	background: transparent;
 	color: var(--text);
@@ -4926,6 +5341,14 @@ select.input {
 	font-size: var(--fs-code);
 	padding: 0.2rem;
 	text-align: center;
+}
+
+html[data-theme='dark'] .sfshift input,
+html[data-theme='night'] .sfshift input,
+html[data-theme='midnight'] .sfshift input,
+html[data-theme='graphite'] .sfshift input,
+html[data-theme='raw'] .sfshift input {
+	color-scheme: dark;
 }
 
 .sfshift input:focus {

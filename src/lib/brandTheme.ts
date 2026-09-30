@@ -1,4 +1,4 @@
-import { rememberTheme } from './theme';
+import { rememberTheme, type ThemeMode } from './theme';
 
 export type BrandTokens = {
 	accent: string;
@@ -13,7 +13,16 @@ export type BrandTokens = {
 export type BrandTheme = {
 	preset_id: string;
 	preset_name?: string;
-	color_mode: 'light' | 'dark' | 'system';
+	color_mode:
+		| 'light'
+		| 'soft'
+		| 'mist'
+		| 'dark'
+		| 'graphite'
+		| 'raw'
+		| 'night'
+		| 'midnight'
+		| 'system';
 	tokens: BrandTokens;
 };
 
@@ -136,14 +145,23 @@ export function applyBrandTheme(theme: BrandTheme) {
 		if (value === '' || value === undefined || value === null) continue;
 		root.style.setProperty(prop, value);
 	}
-	let mode: 'light' | 'dark' = theme.color_mode === 'dark' ? 'dark' : 'light';
+	const extended = new Set([
+		'light',
+		'soft',
+		'mist',
+		'dark',
+		'graphite',
+		'raw',
+		'night',
+		'midnight'
+	]);
+	let mode: ThemeMode = extended.has(theme.color_mode)
+		? (theme.color_mode as ThemeMode)
+		: 'light';
 	if (theme.color_mode === 'system') {
 		mode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 	}
 	root.dataset.theme = mode;
-	// Mirror it for the next first paint. Without this the inline bootstrap
-	// script keeps painting the previous mode until the account answers, which
-	// is exactly the flash the cache exists to prevent.
 	rememberTheme(mode);
 }
 

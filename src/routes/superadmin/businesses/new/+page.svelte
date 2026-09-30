@@ -37,7 +37,7 @@
 	import type { CapabilityRow, CreatedTenant, Plan, PlanOption, TenantType } from '$lib/admin/types';
 	import { THEME_PRESETS } from '$lib/storefront/admin';
 	import { api } from '$lib/api/client';
-	import { consoleAppearance } from '$lib/appearance.svelte';
+	import { consoleAppearance, isDarkFamily } from '$lib/appearance.svelte';
 	import { getCachedBrandTheme, type ThemePreset as ConsolePreset } from '$lib/brandTheme';
 	import FormField from '$lib/components/admin/FormField.svelte';
 	import PortalPreview from '$lib/components/admin/PortalPreview.svelte';
@@ -249,9 +249,14 @@
 
 	function getSuperAdminTheme() {
 		const appearanceTheme = consoleAppearance.appearance?.theme ?? getCachedBrandTheme('platform');
-		const mode: 'light' | 'dark' =
-			consoleAppearance.mode ||
-			(typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+		const mode: 'light' | 'dark' = isDarkFamily(consoleAppearance.mode)
+			? 'dark'
+			: typeof document !== 'undefined' &&
+				  ['dark', 'night', 'midnight', 'graphite', 'raw'].includes(
+						document.documentElement.dataset.theme ?? ''
+				  )
+				? 'dark'
+				: 'light';
 
 		const primary = appearanceTheme?.tokens?.accent || '#6366f1';
 		const secondary = appearanceTheme?.tokens?.accent2 || '#8b5cf6';
@@ -275,9 +280,14 @@
 
 	const currentPortalTheme = $derived.by(() => {
 		const appearanceTheme = consoleAppearance.appearance?.theme ?? getCachedBrandTheme('platform');
-		const mode: 'light' | 'dark' =
-			consoleAppearance.mode ||
-			(typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+		const mode: 'light' | 'dark' = isDarkFamily(consoleAppearance.mode)
+			? 'dark'
+			: typeof document !== 'undefined' &&
+				  ['dark', 'night', 'midnight', 'graphite', 'raw'].includes(
+						document.documentElement.dataset.theme ?? ''
+				  )
+				? 'dark'
+				: 'light';
 
 		const primary = appearanceTheme?.tokens?.accent || '#6366f1';
 		const secondary = appearanceTheme?.tokens?.accent2 || '#8b5cf6';

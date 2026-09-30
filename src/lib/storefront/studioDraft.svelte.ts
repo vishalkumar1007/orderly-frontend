@@ -1,7 +1,8 @@
 import { ApiClientError, api } from '$lib/api/client';
 import { setStorefrontAdmin } from './adminCache.svelte';
 import { computeClientThemeVars } from './theme';
-import type { AdminStorefront } from './admin';
+import { mergeAdminDraft, storefrontAdminApi, type AdminStorefront } from './admin';
+import { patchDashboardStoreStatus } from '$lib/tenant/dashboardCache.svelte';
 
 /**
  * The Studio's working copy.
@@ -69,7 +70,13 @@ const FIELDS: FieldSpec[] = [
 
 	// Look
 	{ category: 'Look', label: 'Theme preset', path: 'theme.preset' },
-	{ category: 'Look', label: 'Colour mode', path: 'theme.mode' },
+	{ category: 'Look', label: 'Default theme', path: 'theme.mode' },
+	{
+		category: 'Look',
+		label: 'Customer theme switch',
+		path: 'theme.customer_mode_switch_enabled',
+		format: asOnOff
+	},
 	{ category: 'Look', label: 'Primary colour', path: 'theme.primary' },
 	{ category: 'Look', label: 'Secondary colour', path: 'theme.secondary' },
 	{ category: 'Look', label: 'Accent colour', path: 'theme.accent' },
@@ -77,16 +84,17 @@ const FIELDS: FieldSpec[] = [
 	{ category: 'Look', label: 'Corner style', path: 'theme.radius' },
 	{ category: 'Look', label: 'Button style', path: 'theme.button' },
 	{ category: 'Look', label: 'Card style', path: 'theme.card' },
-	{ category: 'Look', label: 'Header style', path: 'theme.header' },
 	{ category: 'Look', label: 'Hero style', path: 'theme.hero' },
 	{ category: 'Look', label: 'Hero image', path: 'theme.hero_image_url', format: asPresence },
-	{ category: 'Look', label: 'Catalogue layout', path: 'theme.product_layout' },
-	{ category: 'Look', label: 'Filter style', path: 'theme.filter_style' },
+	{ category: 'Menu layout', label: 'Catalogue layout', path: 'theme.product_layout' },
+	{ category: 'Menu layout', label: 'Filter style', path: 'theme.filter_style' },
+	{ category: 'Menu layout', label: 'Header style', path: 'theme.header' },
 
-	// Ordering
+	// Ordering — store_status / status_message / hours are live ops (Action +
+	// Customize share the same APIs); they are never draft diffs.
 	{ category: 'Ordering', label: 'Accepting orders', path: 'behaviour.ordering_enabled', format: asOnOff },
 	{ category: 'Ordering', label: 'Closed message', path: 'behaviour.closed_message' },
-	{ category: 'Ordering', label: 'Customer login', path: 'behaviour.customer_login_mode' },
+	{ category: 'Customers', label: 'Phone sign-in', path: 'behaviour.customer_login_mode' },
 	{ category: 'Ordering', label: 'Preparation time', path: 'behaviour.prep_time_minutes' },
 	{ category: 'Ordering', label: 'Tax', path: 'behaviour.tax_percent', format: asMoney },
 	{ category: 'Ordering', label: 'Packaging fee', path: 'behaviour.packaging_fee', format: asMoney },
@@ -149,7 +157,43 @@ export function computeConfigDiff(
 			to: `${on(draft)} shown`
 		});
 	}
+
 	return diffs;
+}
+
+function copyLiveOps(target: AdminStorefront, live: AdminStorefront) {
+	target.behaviour.store_status = live.behaviour.store_status;
+	target.behaviour.status_message = live.behaviour.status_message;
+	target.behaviour.store_status_label = live.behaviour.store_status_label;
+	target.behaviour.status_message_display = live.behaviour.status_message_display;
+	target.hours = {
+		...target.hours,
+		always_open: live.hours.always_open,
+		timezone: live.hours.timezone,
+		schedule: live.hours.schedule,
+		is_open: live.hours.is_open,
+		label: live.hours.label,
+		detail: live.hours.detail
+	};
+	target.ordering_available_now = live.ordering_available_now;
+	target.closed_reason = live.closed_reason;
+}
+
+function liveOpsEqual(a: AdminStorefront, b: AdminStorefront): boolean {
+	if (String(a.behaviour.store_status ?? '') !== String(b.behaviour.store_status ?? '')) return false;
+	if (String(a.behaviour.status_message ?? '') !== String(b.behaviour.status_message ?? '')) return false;
+	return (
+		JSON.stringify({
+			always_open: a.hours?.always_open,
+			timezone: a.hours?.timezone,
+			schedule: a.hours?.schedule
+		}) ===
+		JSON.stringify({
+			always_open: b.hours?.always_open,
+			timezone: b.hours?.timezone,
+			schedule: b.hours?.schedule
+		})
+	);
 }
 
 type DraftEnvelope = {
@@ -201,6 +245,8 @@ export class StudioDraftStore {
 			if (env.draft) {
 				// A stored draft is a partial document: merge it over the live
 				// config so a field nobody touched keeps its published value.
+				// Live ops (status, banner, hours) always come from the live shop
+				// so Action and Customize stay aligned.
 				this.draft = cloneConfig(mergeDraft(live, env.draft));
 				this.savedAt = env.updated_at ?? '';
 				this.savedBy = env.updated_by ?? '';
@@ -223,13 +269,93 @@ export class StudioDraftStore {
 		}
 	}
 
+	/**
+	 * Keep Action and Customize in lockstep for operational fields.
+	 * Does not touch draft autosave or mark the theme draft dirty.
+	 */
+	applyLiveOps(live: AdminStorefront) {
+		if (!this.draft || !this.published) return;
+		if (liveOpsEqual(this.draft, live) && liveOpsEqual(this.published, live)) return;
+		const nextDraft = cloneConfig(this.draft);
+		const nextPublished = cloneConfig(this.published);
+		copyLiveOps(nextDraft, live);
+		copyLiveOps(nextPublished, live);
+		this.draft = nextDraft;
+		this.published = nextPublished;
+		setStorefrontAdmin(live);
+	}
+
+	/** Persist store status immediately (same API as Action). */
+	async saveStoreStatus(status: string): Promise<boolean> {
+		try {
+			const live = await storefrontAdminApi.saveBehaviour({ store_status: status });
+			this.applyLiveOps(live);
+			patchDashboardStoreStatus(live.behaviour.store_status || status, {
+				status_message: live.behaviour.status_message,
+				store_status_label: live.behaviour.store_status_label
+			});
+			this.error = '';
+			return true;
+		} catch (err) {
+			this.error = err instanceof Error ? err.message : 'Could not update store status';
+			return false;
+		}
+	}
+
+	/** Persist customer banner immediately (same API as Action). */
+	async saveStatusMessage(statusMessage: string): Promise<boolean> {
+		try {
+			const live = await storefrontAdminApi.saveBehaviour({ status_message: statusMessage });
+			this.applyLiveOps(live);
+			this.error = '';
+			return true;
+		} catch (err) {
+			this.error = err instanceof Error ? err.message : 'Could not update banner';
+			return false;
+		}
+	}
+
+	/** Persist opening hours immediately (same API as Action). */
+	async saveHours(payload: {
+		always_open: boolean;
+		timezone: string;
+		schedule: Record<string, string[]>;
+	}): Promise<boolean> {
+		try {
+			const live = await storefrontAdminApi.saveHours(payload);
+			this.applyLiveOps(live);
+			this.error = '';
+			return true;
+		} catch (err) {
+			this.error = err instanceof Error ? err.message : 'Could not save opening hours';
+			return false;
+		}
+	}
+
+	/** Local-only hours preview while editing before Save (does not autosave the draft). */
+	previewHours(patch: {
+		always_open: boolean;
+		timezone: string;
+		schedule: Record<string, string[]>;
+	}) {
+		const next = cloneConfig(this.draft);
+		next.hours.always_open = patch.always_open;
+		next.hours.timezone = patch.timezone;
+		next.hours.schedule = patch.schedule;
+		this.draft = next;
+	}
+
 	/** Apply a change, remember it for undo, and schedule the autosave. */
 	mutate(updater: (draft: AdminStorefront) => void) {
 		if (this.history.length >= 25) this.history.shift();
 		this.history.push(cloneConfig(this.draft));
 
-		updater(this.draft);
-		this.draft.theme.vars = computeClientThemeVars(this.draft.theme);
+		// Replace (don't mutate in place) so Studio preview and other
+		// consumers reliably see each edit without deep-proxy gymnastics.
+		const next = cloneConfig(this.draft);
+		updater(next);
+		next.theme.vars = computeClientThemeVars(next.theme);
+		this.draft = next;
 		this.scheduleSave();
 	}
 
@@ -371,7 +497,8 @@ export class StudioDraftStore {
 				primary: d.theme.primary,
 				secondary: d.theme.secondary,
 				accent: d.theme.accent,
-				hero_image_url: d.theme.hero_image_url
+				hero_image_url: d.theme.hero_image_url,
+				customer_mode_switch_enabled: d.theme.customer_mode_switch_enabled
 			},
 			behaviour: {
 				ordering_enabled: d.behaviour.ordering_enabled,
@@ -411,14 +538,12 @@ export class StudioDraftStore {
  * The draft carries only what the Studio can change, so everything else — the
  * catalogues the pickers render from, opening hours, the resolved public URL —
  * must come from the live document or the screen would render against holes.
+ *
+ * Store status, customer banner and opening hours are live ops shared with
+ * Action: even if an older draft still stores them, the live shop wins.
  */
 function mergeDraft(live: AdminStorefront, draft: Partial<AdminStorefront>): AdminStorefront {
-	const out: AdminStorefront = JSON.parse(JSON.stringify(live));
-	if (draft.store) Object.assign(out.store, draft.store);
-	if (draft.theme) Object.assign(out.theme, draft.theme);
-	if (draft.behaviour) Object.assign(out.behaviour, draft.behaviour);
-	if (draft.payments) Object.assign(out.payments, draft.payments);
-	if (draft.workflow) Object.assign(out.workflow, draft.workflow);
-	if (draft.homepage?.sections) out.homepage = { sections: draft.homepage.sections };
-	return out;
+	const merged = mergeAdminDraft(live, draft);
+	copyLiveOps(merged, live);
+	return merged;
 }

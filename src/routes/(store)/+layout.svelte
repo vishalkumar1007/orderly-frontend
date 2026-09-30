@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { onMount, untrack } from 'svelte';
 	import WifiOff from '@lucide/svelte/icons/wifi-off';
-	import AlertCircle from '@lucide/svelte/icons/alert-circle';
+	import AlertCircle from '@lucide/svelte/icons/circle-alert';
 	import Sparkles from '@lucide/svelte/icons/sparkles';
 	import Megaphone from '@lucide/svelte/icons/megaphone';
 	import Info from '@lucide/svelte/icons/info';

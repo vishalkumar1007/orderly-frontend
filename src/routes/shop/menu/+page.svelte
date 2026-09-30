@@ -416,7 +416,7 @@
 			<p class="menu-sub">Manage what customers can order</p>
 		</div>
 		<div class="menu-header-actions">
-			<a class="btn btn-ghost" href="/shop/storefront/launch">
+			<a class="btn btn-ghost" href="/shop/storefront/promote">
 				<Eye size={15} strokeWidth={2} /> Preview Store
 			</a>
 			<button class="btn btn-ghost" type="button" onclick={openAddCategory}>

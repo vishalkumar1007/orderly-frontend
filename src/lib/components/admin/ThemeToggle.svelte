@@ -1,20 +1,12 @@
 <script lang="ts">
-	import { consoleAppearance, setColorMode } from '$lib/appearance.svelte';
+	import { consoleAppearance, isDarkFamily, toggleColorMode } from '$lib/appearance.svelte';
 	import { resolveInitialTheme, type ThemeMode } from '$lib/theme';
 
 	/**
-	 * Light / dark.
+	 * Light / dark family toggle.
 	 *
-	 * This used to write `data-theme` and a `localStorage` key of its own, which
-	 * made it a second theme system: it disagreed with the colour mode saved on
-	 * the account the moment either changed, and which one you saw depended on
-	 * whether you had reloaded. It now sets the signed-in person's own
-	 * `color_mode`, so the toggle, the Appearance screen and the next sign-in
-	 * are the same setting.
-	 *
-	 * Signed out — the storefront, a sign-in page — there is no account to write
-	 * to, and `setColorMode` falls back to flipping the attribute for the
-	 * session.
+	 * Preserves Soft↔Night when those are selected in Appearance; otherwise
+	 * flips classic Light↔Dark. Writes the signed-in person's `color_mode`.
 	 */
 	let busy = $state(false);
 
@@ -22,12 +14,13 @@
 	const mode = $derived<ThemeMode>(
 		consoleAppearance.appearance ? consoleAppearance.mode : resolveInitialTheme()
 	);
+	const dark = $derived(isDarkFamily(mode));
 
 	async function onToggle() {
 		if (busy) return;
 		busy = true;
 		try {
-			await setColorMode(mode === 'light' ? 'dark' : 'light');
+			await toggleColorMode();
 		} finally {
 			busy = false;
 		}
@@ -37,12 +30,12 @@
 <button
 	type="button"
 	class="btn btn-ghost theme-toggle"
-	aria-label={mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-	aria-pressed={mode === 'dark'}
-	title={mode === 'light' ? 'Dark mode' : 'Light mode'}
+	aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+	aria-pressed={dark}
+	title={dark ? 'Light mode' : 'Dark mode'}
 	onclick={onToggle}
 >
-	{#if mode === 'light'}
+	{#if !dark}
 		<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
 			<path
 				d="M12 3v2m0 14v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M3 12h2m14 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"

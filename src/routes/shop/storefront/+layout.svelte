@@ -11,8 +11,7 @@
 	import type { Snippet } from 'svelte';
 
 	/**
-	 * The storefront screens that are not Customize: Preview, QR & Share and
-	 * Operating hours.
+	 * The storefront screens that are not Customize: Action and Publish & Marketing.
 	 *
 	 * They share one storefront document, loaded here once, so the preview and
 	 * the controls beside it can never describe different states of the same

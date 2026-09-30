@@ -275,7 +275,7 @@
 
 		<div class="sfctl-foot">
 			<span class="sfctl-foot-note">
-				Preview it on the <a href="/shop/storefront/launch" style="color:var(--accent);">Launch screen</a>.
+				Preview it on the <a href="/shop/storefront/promote" style="color:var(--accent);">Publish &amp; Marketing</a> screen.
 			</span>
 			<button class="btn btn-primary" type="submit" disabled={saving}>
 				{saving ? 'Saving…' : 'Save homepage'}

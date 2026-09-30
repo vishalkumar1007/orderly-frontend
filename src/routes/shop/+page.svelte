@@ -3,6 +3,8 @@
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import ClipboardList from '@lucide/svelte/icons/clipboard-list';
+	import Copy from '@lucide/svelte/icons/copy';
+	import Check from '@lucide/svelte/icons/check';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import ChefHat from '@lucide/svelte/icons/chef-hat';
 	import QrCode from '@lucide/svelte/icons/qr-code';
@@ -28,11 +30,14 @@
 	import {
 		getDashboardSnapshot,
 		loadDashboardSnapshot,
+		resolveStorefrontUrl,
 		setDashboardSnapshot,
+		storefrontUrlDisplay,
 		type DashboardSetup as Setup,
 		type DashboardStats as Stats,
 		type DashboardStoreLink as StoreLink
 	} from '$lib/tenant/dashboardCache.svelte';
+	import { STORE_STATUS_OPTIONS } from '$lib/storefront/admin';
 	import { quickActions, terms } from '$lib/tenant/businessType.svelte';
 
 	const t = $derived(terms());
@@ -46,19 +51,22 @@
 		'/shop/orders': ClipboardList,
 		'/shop/kitchen': ChefHat,
 		'/shop/menu': UtensilsCrossed,
-		'/shop/storefront/qr': QrCode
+		'/shop/storefront/promote': QrCode
 	};
 
 	/**
 	 * The dashboard's shortcuts, in the order this kind of business needs them:
-	 * a cafe opens the counter first, a grocer the packing queue. The QR code is
-	 * appended for everyone because sharing the store is not type-specific.
+	 * a cafe opens the counter first, a grocer the packing queue. Publish & Marketing
+	 * is appended for everyone because sharing the store is not type-specific.
 	 *
 	 * Live counts are layered on top, so the card says "3 active" rather than
 	 * repeating its own label.
 	 */
 	const quickLinks = $derived(
-		[...quickActions(), { label: 'QR code', href: '/shop/storefront/qr' }].map((a) => ({
+		[
+			...quickActions(),
+			{ label: 'QR & marketing', href: '/shop/storefront/promote?tab=marketing&asset=qr' }
+		].map((a) => ({
 			...a,
 			icon: ACTION_ICONS[a.href.split('?')[0]] ?? ArrowRight,
 			hint: hintFor(a.href)
@@ -73,7 +81,7 @@
 		}
 		if (href.startsWith('/shop/kitchen')) return `Prep ${t.ticket.toLowerCase()}s`;
 		if (href.startsWith('/shop/menu')) return `${t.items} & availability`;
-		if (href.startsWith('/shop/storefront/qr')) return 'Share your store';
+		if (href.startsWith('/shop/storefront/promote')) return 'Share your store';
 		return 'Open';
 	}
 	import {
@@ -82,13 +90,6 @@
 		type AnalyticsWindow,
 		type TenantAnalytics
 	} from '$lib/tenant/analytics';
-
-	const STORE_STATUSES = [
-		{ value: 'OPEN', label: 'Open' },
-		{ value: 'BUSY', label: 'Busy' },
-		{ value: 'AWAY', label: 'Away' },
-		{ value: 'CLOSED', label: 'Closed' }
-	] as const;
 
 	const WINDOWS: { v: AnalyticsWindow; l: string }[] = [
 		{ v: '7d', l: '7d' },
@@ -99,7 +100,7 @@
 
 	/**
 	 * The short form of the launch checklist. The full list, with its optional
-	 * steps, lives on /shop/storefront/launch — this is the nudge, not the workspace, so it
+	 * steps, lives on /shop/storefront/promote — this is the nudge, not the workspace, so it
 	 * carries only what stands between the shop and its first order.
 	 */
 	const tenantSlug = $derived(($page.data.tenantSlug as string) || '');
@@ -125,9 +126,9 @@
 		{ key: 'business_info', label: 'Complete your business details', href: '/shop/settings?section=business' },
 		{ key: 'menu', label: 'Add products to your menu', href: '/shop/menu' },
 		{ key: 'payment', label: 'Confirm payment methods', href: '/shop/payments' },
-		{ key: 'hours', label: 'Set your operating hours', href: '/shop/storefront/launch#hours' },
+		{ key: 'hours', label: 'Set your operating hours', href: '/shop/storefront/actions?section=hours' },
 		{ key: 'storefront', label: 'Set up your storefront', href: '/shop/customize' },
-		{ key: 'launch', label: 'Publish your store', href: '/shop/storefront/launch' }
+		{ key: 'launch', label: 'Publish your store', href: '/shop/storefront/promote' }
 	];
 
 	const seed = getDashboardSnapshot();
@@ -144,7 +145,16 @@
 
 	const money = (n: number) => formatCurrency(Math.round(Number(n) || 0), currency);
 
-	const statusLabel = (s: string) => STORE_STATUSES.find((x) => x.value === s)?.label ?? s;
+	const statusLabel = (s: string) =>
+		STORE_STATUS_OPTIONS.find((x) => x.value === s)?.label ?? s;
+
+	const currentStatus = $derived(store?.store_status || 'OPEN');
+	const currentStatusMeta = $derived(
+		STORE_STATUS_OPTIONS.find((x) => x.value === currentStatus) ?? STORE_STATUS_OPTIONS[0]
+	);
+	const orderingOpen = $derived(
+		store?.ordering_open ?? (currentStatus === 'OPEN' || currentStatus === 'BUSY')
+	);
 
 	const doneCount = $derived(
 		(policySigned ? 1 : 0) + (setup ? CHECKLIST.filter((c) => c.key !== 'policy' && setup!.steps[c.key as SetupStepKey]).length : 0)
@@ -214,9 +224,22 @@
 	const revenueSeries = $derived(analytics?.orders_by_day.map((d) => Number(d.revenue || 0)) ?? []);
 	const orderSeries = $derived(analytics?.orders_by_day.map((d) => Number(d.order_count || 0)) ?? []);
 
-	const storefrontUrl = $derived(
-		store ? `http://${store.public_host}${store.public_path}` : ''
-	);
+	const storefrontUrl = $derived(store ? resolveStorefrontUrl(store) : '');
+	const storefrontHostLabel = $derived(storefrontUrl ? storefrontUrlDisplay(storefrontUrl) : '');
+	let statusSaving = $state(false);
+	let copiedLink = $state(false);
+
+	async function copyStorefrontLink() {
+		if (!storefrontUrl) return;
+		try {
+			await navigator.clipboard.writeText(storefrontUrl);
+			copiedLink = true;
+			toast.success('Link copied');
+			setTimeout(() => (copiedLink = false), 2000);
+		} catch {
+			toast.error('Could not copy — select the link manually');
+		}
+	}
 
 	async function loadAnalytics(target: AnalyticsWindow) {
 		analyticsLoading = true;
@@ -258,17 +281,46 @@
 	}
 
 	async function setStoreStatus(status: string) {
-		if (!store || status === store.store_status) return;
+		if (!store || statusSaving || status === currentStatus) return;
+		statusSaving = true;
+		const previous = store;
+		// Optimistic: keep the hero chip and toggles in lockstep while the PUT is in flight.
+		store = {
+			...store,
+			store_status: status,
+			store_status_label: statusLabel(status),
+			ordering_open: status === 'OPEN' || status === 'BUSY'
+		};
+		syncDashboardCache();
 		try {
-			const res = await api<{ store_status?: string }>('/api/v1/tenant/storefront', {
+			const res = await api<{
+				behaviour?: {
+					store_status?: string;
+					status_message?: string;
+					store_status_label?: string;
+				};
+			}>('/api/v1/tenant/storefront', {
 				method: 'PUT',
 				body: JSON.stringify({ store_status: status })
 			});
-			store = { ...store, store_status: res.store_status ?? status };
+			const nextStatus = res.behaviour?.store_status ?? status;
+			store = {
+				...store,
+				store_status: nextStatus,
+				store_status_label:
+					res.behaviour?.store_status_label ?? statusLabel(nextStatus),
+				status_message:
+					res.behaviour?.status_message ?? store.status_message ?? '',
+				ordering_open: nextStatus === 'OPEN' || nextStatus === 'BUSY'
+			};
 			syncDashboardCache();
-			toast.success(`Store is now ${statusLabel(status)}`);
+			toast.success(`Store is now ${statusLabel(nextStatus)}`);
 		} catch (err) {
+			store = previous;
+			syncDashboardCache();
 			toast.error(err instanceof Error ? err.message : 'Could not update store status');
+		} finally {
+			statusSaving = false;
 		}
 	}
 </script>
@@ -290,23 +342,86 @@
 							Draft
 						{/if}
 					</span>
-					<span class="dash-chip muted">{statusLabel(store.store_status)}</span>
+					<span
+						class={[
+							'dash-chip',
+							'ordering',
+							orderingOpen ? 'ordering-open' : 'ordering-closed'
+						].join(' ')}
+					>
+						{orderingOpen ? 'Accepting orders' : 'Not accepting'}
+					</span>
+					<span
+						class={['dash-chip', 'status', `status-${currentStatus.toLowerCase()}`].join(' ')}
+						title={currentStatusMeta.desc}
+					>
+						<span class="dash-dot"></span>
+						{store.store_status_label || currentStatusMeta.label}
+					</span>
 				</div>
 				<h1 class="dash-title">{store.name}</h1>
 				{#if storefrontUrl}
-					<a class="dash-url" href={storefrontUrl} target="_blank" rel="noreferrer">
-						{storefrontUrl.replace(/^https?:\/\//, '')}
-						<ExternalLink size={12} strokeWidth={2} />
-					</a>
+					<div class="dash-link-bar">
+						<a
+							class="dash-link-url"
+							href={storefrontUrl}
+							target="_blank"
+							rel="noreferrer"
+							title={storefrontUrl}
+						>
+							{storefrontHostLabel}
+						</a>
+						<div class="dash-link-actions">
+							<button
+								type="button"
+								class="dash-link-btn"
+								onclick={copyStorefrontLink}
+								aria-label="Copy storefront link"
+							>
+								{#if copiedLink}
+									<Check size={14} strokeWidth={2.4} />
+									<span>Copied</span>
+								{:else}
+									<Copy size={14} strokeWidth={2} />
+									<span>Copy</span>
+								{/if}
+							</button>
+							<a
+								class="dash-link-btn"
+								href={storefrontUrl}
+								target="_blank"
+								rel="noreferrer"
+								aria-label="Open storefront"
+							>
+								<ExternalLink size={14} strokeWidth={2} />
+								<span>Open</span>
+							</a>
+							<a
+								class="dash-link-btn"
+								href="/shop/storefront/promote?tab=marketing&asset=qr"
+								aria-label="QR code and marketing"
+							>
+								<QrCode size={14} strokeWidth={2} />
+								<span>QR</span>
+							</a>
+						</div>
+					</div>
+					{#if !store.is_published}
+						<p class="dash-link-hint">Draft — not public yet. Publish when you’re ready.</p>
+					{/if}
 				{/if}
 			</div>
 			<div class="dash-hero-right">
+				<p class="dash-status-hint">Store status</p>
 				<div class="dash-status-row" role="group" aria-label="Store status">
-					{#each STORE_STATUSES as s (s.value)}
+					{#each STORE_STATUS_OPTIONS as s (s.value)}
 						<button
 							type="button"
-							class="dash-status"
-							class:active={store.store_status === s.value}
+							class={['dash-status', `status-${s.value.toLowerCase()}`].join(' ')}
+							class:active={currentStatus === s.value}
+							disabled={statusSaving}
+							aria-pressed={currentStatus === s.value}
+							title={s.desc}
 							onclick={() => setStoreStatus(s.value)}
 						>
 							{s.label}
@@ -391,7 +506,7 @@
 					<p>{doneCount} of {CHECKLIST.length} done · {progress}%</p>
 				</div>
 				{#if setup.steps.menu}
-					<a class="btn btn-primary btn-sm" href="/shop/storefront/launch">
+					<a class="btn btn-primary btn-sm" href="/shop/storefront/promote">
 						<Rocket size={14} strokeWidth={2} /> Go live
 					</a>
 				{/if}
@@ -594,7 +709,7 @@
 				description="Share your store link or QR code — new orders will show up here."
 			>
 				{#snippet action()}
-					<a class="btn btn-primary" href="/shop/storefront/qr">Open QR code</a>
+					<a class="btn btn-primary" href="/shop/storefront/promote?tab=marketing&asset=qr">Open marketing kit</a>
 				{/snippet}
 			</EmptyState>
 		</Reveal>
@@ -735,6 +850,44 @@
 		font-weight: 550;
 	}
 
+	.dash-chip.status-open {
+		background: color-mix(in srgb, var(--success) 12%, var(--surface));
+		border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+		color: var(--success);
+	}
+
+	.dash-chip.status-busy {
+		background: color-mix(in srgb, #f59e0b 14%, var(--surface));
+		border-color: color-mix(in srgb, #f59e0b 40%, var(--border));
+		color: color-mix(in srgb, #f59e0b 70%, var(--text));
+	}
+
+	.dash-chip.status-away {
+		background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+		border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+		color: var(--accent-dark);
+	}
+
+	.dash-chip.status-closed {
+		background: color-mix(in srgb, var(--danger) 12%, var(--surface));
+		border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+		color: var(--danger);
+	}
+
+	.dash-chip.ordering-open {
+		background: color-mix(in srgb, var(--success) 10%, var(--surface));
+		border-color: color-mix(in srgb, var(--success) 28%, var(--border));
+		color: var(--success);
+		font-weight: 550;
+	}
+
+	.dash-chip.ordering-closed {
+		background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+		border-color: color-mix(in srgb, var(--danger) 28%, var(--border));
+		color: var(--danger);
+		font-weight: 550;
+	}
+
 	.dash-dot {
 		width: 0.45rem;
 		height: 0.45rem;
@@ -753,23 +906,101 @@
 		overflow-wrap: anywhere;
 	}
 
-	.dash-url {
-		display: inline-flex;
+	.dash-link-bar {
+		display: flex;
 		align-items: center;
-		gap: 0.3rem;
-		margin-top: 0.35rem;
+		gap: 0.35rem;
+		margin-top: 0.55rem;
+		min-width: 0;
+		max-width: 100%;
+		padding: 0.28rem 0.35rem 0.28rem 0.7rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius, 8px);
+		background: var(--surface-2);
+	}
+
+	.dash-link-url {
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 		font-size: var(--fs-tab);
 		font-family: var(--font-mono);
 		color: var(--accent-dark);
 		text-decoration: none;
-		word-break: break-all;
+	}
+
+	.dash-link-url:hover {
+		text-decoration: underline;
+	}
+
+	.dash-link-actions {
+		display: flex;
+		align-items: center;
+		flex-shrink: 0;
+		gap: 0.15rem;
+	}
+
+	.dash-link-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		padding: 0.3rem 0.5rem;
+		border: none;
+		border-radius: calc(var(--radius, 8px) - 2px);
+		background: transparent;
+		color: var(--text-2);
+		font: inherit;
+		font-size: var(--fs-meta);
+		font-weight: 550;
+		text-decoration: none;
+		cursor: pointer;
+		white-space: nowrap;
+		transition: background var(--tr), color var(--tr);
+	}
+
+	.dash-link-btn:hover {
+		background: var(--surface);
+		color: var(--text);
+	}
+
+	.dash-link-hint {
+		margin: 0.4rem 0 0;
+		font-size: var(--fs-meta);
+		color: var(--text-3);
+	}
+
+	@media (max-width: 520px) {
+		.dash-link-bar {
+			flex-wrap: wrap;
+			padding: 0.35rem;
+		}
+
+		.dash-link-url {
+			flex: 1 1 100%;
+			padding: 0.2rem 0.35rem;
+		}
+
+		.dash-link-actions {
+			width: 100%;
+			justify-content: flex-end;
+		}
 	}
 
 	.dash-hero-right {
 		display: flex;
 		flex-direction: column;
-		gap: 0.65rem;
+		gap: 0.45rem;
 		align-items: stretch;
+	}
+
+	.dash-status-hint {
+		margin: 0;
+		font-size: var(--fs-meta);
+		font-weight: 550;
+		color: var(--text-3);
+		letter-spacing: 0.01em;
 	}
 
 	.dash-status-row {
@@ -779,7 +1010,7 @@
 	}
 
 	.dash-status {
-		padding: 0.35rem 0.7rem;
+		padding: 0.4rem 0.75rem;
 		border: 1px solid var(--border);
 		border-radius: 999px;
 		background: var(--surface);
@@ -788,13 +1019,43 @@
 		font-weight: 550;
 		font-family: inherit;
 		cursor: pointer;
-		transition: background var(--tr), border-color var(--tr), color var(--tr);
+		transition:
+			background var(--tr),
+			border-color var(--tr),
+			color var(--tr),
+			opacity var(--tr);
 	}
 
-	.dash-status.active {
-		background: var(--accent-soft);
-		border-color: var(--accent);
+	.dash-status:disabled {
+		opacity: 0.65;
+		cursor: wait;
+	}
+
+	.dash-status.active.status-open {
+		background: color-mix(in srgb, var(--success) 16%, var(--surface));
+		border-color: color-mix(in srgb, var(--success) 45%, var(--border));
+		color: var(--success);
+		font-weight: 650;
+	}
+
+	.dash-status.active.status-busy {
+		background: color-mix(in srgb, #f59e0b 18%, var(--surface));
+		border-color: color-mix(in srgb, #f59e0b 45%, var(--border));
+		color: color-mix(in srgb, #f59e0b 70%, var(--text));
+		font-weight: 650;
+	}
+
+	.dash-status.active.status-away {
+		background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
 		color: var(--accent-dark);
+		font-weight: 650;
+	}
+
+	.dash-status.active.status-closed {
+		background: color-mix(in srgb, var(--danger) 16%, var(--surface));
+		border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+		color: var(--danger);
 		font-weight: 650;
 	}
 

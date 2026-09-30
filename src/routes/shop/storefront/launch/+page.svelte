@@ -3,10 +3,8 @@
 	import { getDashboardSnapshot } from '$lib/tenant/dashboardCache.svelte';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import Rocket from '@lucide/svelte/icons/rocket';
-	import Clock from '@lucide/svelte/icons/clock';
-	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
-	import Megaphone from '@lucide/svelte/icons/megaphone';
 	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import Lock from '@lucide/svelte/icons/lock';
@@ -17,6 +15,7 @@
 	import { useStorefront, type StorefrontContext } from '$lib/storefront/admin-context';
 	import { toast } from '$lib/components/admin/toast';
 	import { policyStore, type PolicySignature } from '$lib/tenant/policyStore';
+	import { resolveStorefrontUrl } from '$lib/tenant/dashboardCache.svelte';
 	import LaunchReadiness from '$lib/components/storefront/launch/LaunchReadiness.svelte';
 	import {
 		resolveLaunchTab,
@@ -28,8 +27,6 @@
 
 	let sfProps: Partial<StorefrontContext> = $props();
 	const ctx = useStorefront(() => sfProps);
-	const config = $derived(ctx.config);
-	const save = (run: Parameters<StorefrontContext['save']>[0]) => ctx.save(run);
 
 	const cachedDash = typeof window !== 'undefined' ? getDashboardSnapshot() : null;
 	let setup = $state<Setup | null>(cachedDash?.setup ?? null);
@@ -82,6 +79,21 @@
 	}
 
 	onMount(() => {
+		// Legacy hash deep-links (#hours / #broadcast / #operations) → Action.
+		const hash = ($page.url.hash || '').replace(/^#/, '');
+		if (hash === 'hours') {
+			void goto('/shop/storefront/actions?section=hours', { replaceState: true });
+			return;
+		}
+		if (hash === 'broadcast') {
+			void goto('/shop/storefront/actions?section=banner', { replaceState: true });
+			return;
+		}
+		if (hash === 'operations') {
+			void goto('/shop/storefront/actions?section=status', { replaceState: true });
+			return;
+		}
+
 		activeTab = resolveLaunchTab($page.url.searchParams, $page.url.hash);
 
 		syncPolicyFromStore();
@@ -125,9 +137,7 @@
 			key: 'hours' as const,
 			label: 'Store Schedule & Hours',
 			hint: 'When customers can order',
-			href: '?tab=hours',
-			isTab: true,
-			tab: 'hours' as TabKey
+			href: '/shop/storefront/actions?section=hours'
 		},
 		{
 			key: 'storefront' as const,
@@ -147,31 +157,30 @@
 	const required = $derived<SetupStepKey[]>(
 		setup?.required ?? ['business_info', 'menu', 'payment', 'hours', 'storefront']
 	);
+	const steps = $derived(setup?.steps ?? null);
 	const countable = $derived(STEPS.filter((s) => !s.optional));
 	const done = $derived(
 		(policySigned ? 1 : 0) +
-			(setup
-				? countable.filter((s) => s.key !== 'policy' && setup!.steps[s.key as SetupStepKey]).length
+			(steps
+				? countable.filter((s) => s.key !== 'policy' && Boolean(steps[s.key as SetupStepKey])).length
 				: 0)
 	);
-	const progress = $derived(Math.round((done / countable.length) * 100) || 0);
+	const progress = $derived(
+		countable.length > 0 ? Math.round((done / countable.length) * 100) || 0 : 0
+	);
 	const missing = $derived.by(() => {
-		const base = setup ? required.filter((key) => !setup!.steps[key]) : [...required];
+		const base = steps ? required.filter((key) => !steps[key]) : [...required];
 		if (!policySigned) return ['policy', ...base];
 		return base;
 	});
-	const canPublish = $derived(Boolean(setup) && policySigned && missing.length === 0);
+	const canPublish = $derived(Boolean(setup) && Boolean(steps) && policySigned && missing.length === 0);
 
 	function stepLabel(key: string): string {
 		if (key === 'policy') return 'Merchant compliance policy';
 		return STEPS.find((s) => s.key === key)?.label ?? key;
 	}
 
-	const storefrontUrl = $derived(
-		store ? `http://${store.public_host}${store.public_path}` : ''
-	);
-	const currentStoreStatus = $derived(config.behaviour.store_status || 'OPEN');
-
+	const storefrontUrl = $derived(store ? resolveStorefrontUrl(store) : '');
 	async function loadSetup() {
 		setup = await api<Setup>('/api/v1/tenant/setup');
 		await ctx.refresh();
@@ -243,9 +252,7 @@
 	<div class="studio-header-main">
 		<div class="studio-header-titles">
 			<h1 class="studio-title">Storefront Launch</h1>
-			<p class="studio-subtitle">
-				Go-live checklist, hours, status, customer banner, and policy.
-			</p>
+			<p class="studio-subtitle">Go-live checklist and merchant policy. Day-to-day controls live under Action.</p>
 		</div>
 
 		<div class="studio-header-pills">
@@ -260,10 +267,7 @@
 					Policy Required
 				</span>
 			{:else}
-				<span class="live-status-pill draft">
-					<Clock size={13} strokeWidth={2} />
-					Draft
-				</span>
+				<span class="live-status-pill draft">Draft</span>
 			{/if}
 
 			{#if storefrontUrl && setup?.is_published}
@@ -290,37 +294,6 @@
 			<Rocket size={17} strokeWidth={activeTab === 'readiness' ? 2.2 : 1.75} />
 			<span>Readiness</span>
 			<span class="studio-tab-badge" class:done={canPublish}>{progress}%</span>
-		</button>
-		<button
-			type="button"
-			class="studio-tab-btn"
-			class:active={activeTab === 'hours'}
-			onclick={() => setTab('hours')}
-		>
-			<Clock size={17} strokeWidth={activeTab === 'hours' ? 2.2 : 1.75} />
-			<span>Hours</span>
-		</button>
-		<button
-			type="button"
-			class="studio-tab-btn"
-			class:active={activeTab === 'operations'}
-			onclick={() => setTab('operations')}
-		>
-			<SlidersHorizontal size={17} strokeWidth={activeTab === 'operations' ? 2.2 : 1.75} />
-			<span>Status</span>
-			<span class="studio-tab-dot {currentStoreStatus.toLowerCase()}"></span>
-		</button>
-		<button
-			type="button"
-			class="studio-tab-btn"
-			class:active={activeTab === 'broadcast'}
-			onclick={() => setTab('broadcast')}
-		>
-			<Megaphone size={17} strokeWidth={activeTab === 'broadcast' ? 2.2 : 1.75} />
-			<span>Banner</span>
-			{#if config.behaviour.status_message}
-				<span class="studio-tab-chip active">On</span>
-			{/if}
 		</button>
 		<button
 			type="button"
@@ -363,30 +336,6 @@
 		onRetry={fetchLaunchData}
 		{stepLabel}
 	/>
-{:else if activeTab === 'hours'}
-	{#await import('$lib/components/storefront/launch/LaunchHours.svelte')}
-		<div class="studio-loading"><Skeleton height="12rem" /></div>
-	{:then m}
-		<m.default {sfProps} onsaved={loadSetup} />
-	{:catch}
-		<ErrorState message="Could not load hours" onretry={() => setTab('hours')} />
-	{/await}
-{:else if activeTab === 'operations'}
-	{#await import('$lib/components/storefront/launch/LaunchOperations.svelte')}
-		<div class="studio-loading"><Skeleton height="12rem" /></div>
-	{:then m}
-		<m.default {config} {save} />
-	{:catch}
-		<ErrorState message="Could not load status controls" />
-	{/await}
-{:else if activeTab === 'broadcast'}
-	{#await import('$lib/components/storefront/launch/LaunchBroadcast.svelte')}
-		<div class="studio-loading"><Skeleton height="12rem" /></div>
-	{:then m}
-		<m.default {config} {save} publicHost={store?.public_host || ''} />
-	{:catch}
-		<ErrorState message="Could not load banner editor" />
-	{/await}
 {:else if activeTab === 'compliance'}
 	{#await import('$lib/components/storefront/launch/LaunchCompliance.svelte')}
 		<div class="studio-loading"><Skeleton height="12rem" /></div>
@@ -510,7 +459,7 @@
 		left: 0.45rem;
 		right: 0.45rem;
 		height: 2px;
-		background: var(--primary, #3b82f6);
+		background: var(--accent);
 		border-radius: 999px;
 	}
 	.studio-tab-badge {

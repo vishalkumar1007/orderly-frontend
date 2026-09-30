@@ -3,9 +3,14 @@
 	import Rocket from '@lucide/svelte/icons/rocket';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
-	import AlertCircle from '@lucide/svelte/icons/alert-circle';
+	import AlertCircle from '@lucide/svelte/icons/circle-alert';
 	import CheckCircle2 from '@lucide/svelte/icons/check-circle-2';
 	import type { StudioDraftStore } from '$lib/storefront/studioDraft.svelte';
+	import {
+		STUDIO_GROUP_LABELS,
+		studioGroupForCategory,
+		type StudioSectionGroup
+	} from '$lib/storefront/studioSections';
 
 	let {
 		store,
@@ -26,6 +31,19 @@
 	} = $props();
 
 	const diffs = $derived(store.diffs);
+
+	const diffsByGroup = $derived.by(() => {
+		const groups: StudioSectionGroup[] = ['appearance', 'operations'];
+		const buckets = new Map<StudioSectionGroup, typeof diffs>();
+		for (const g of groups) buckets.set(g, []);
+		for (const d of diffs) {
+			const g = studioGroupForCategory(d.category);
+			buckets.get(g)?.push(d);
+		}
+		return groups
+			.map((group) => ({ group, label: STUDIO_GROUP_LABELS[group], items: buckets.get(group) ?? [] }))
+			.filter((g) => g.items.length > 0);
+	});
 </script>
 
 {#if open}
@@ -73,18 +91,21 @@
 					</div>
 
 					<div class="review-diff-list">
-						{#each diffs as diff}
-							<div class="review-diff-item">
-								<div class="review-diff-meta">
-									<span class="review-diff-cat">{diff.category}</span>
-									<span class="review-diff-label">{diff.label}</span>
+						{#each diffsByGroup as group (group.group)}
+							<h3 class="review-group-label">{group.label}</h3>
+							{#each group.items as diff (diff.category + diff.label)}
+								<div class="review-diff-item">
+									<div class="review-diff-meta">
+										<span class="review-diff-cat">{diff.category}</span>
+										<span class="review-diff-label">{diff.label}</span>
+									</div>
+									<div class="review-diff-comparison">
+										<span class="review-diff-from">{diff.from}</span>
+										<ArrowRight size={13} strokeWidth={2.4} class="review-diff-arrow" />
+										<span class="review-diff-to">{diff.to}</span>
+									</div>
 								</div>
-								<div class="review-diff-comparison">
-									<span class="review-diff-from">{diff.from}</span>
-									<ArrowRight size={13} strokeWidth={2.4} class="review-diff-arrow" />
-									<span class="review-diff-to">{diff.to}</span>
-								</div>
-							</div>
+							{/each}
 						{/each}
 					</div>
 				{/if}
@@ -237,6 +258,18 @@
 		background: var(--surface-3);
 		padding: 2px 8px;
 		border-radius: 999px;
+	}
+
+	.review-group-label {
+		margin: 1rem 0 0.35rem;
+		font-size: 0.72rem;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-3, #64748b);
+	}
+	.review-group-label:first-child {
+		margin-top: 0;
 	}
 
 	.review-diff-list {

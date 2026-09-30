@@ -7,18 +7,38 @@
 	import {
 		DAYS,
 		DAY_LABELS,
-		emptySchedule,
 		storefrontAdminApi,
+		type AdminStorefront
 	} from '$lib/storefront/admin';
 	import { seed, useStorefront, type StorefrontContext } from '$lib/storefront/admin-context';
 	import { toast } from '$lib/components/admin/toast';
 
 	let {
 		onsaved,
+		studio,
 		...ctxProps
-	}: Partial<StorefrontContext> & { onsaved?: () => void | Promise<void> } = $props();
+	}: Partial<StorefrontContext> & {
+		onsaved?: () => void | Promise<void>;
+		/**
+		 * Studio mode: keep the editor in sync with the working copy.
+		 * When `onSave` is set, the form saves via the same live hours API as Action.
+		 */
+		studio?: {
+			hours: AdminStorefront['hours'];
+			onChange: (patch: {
+				always_open: boolean;
+				timezone: string;
+				schedule: Record<string, string[]>;
+			}) => void;
+			onSave?: (patch: {
+				always_open: boolean;
+				timezone: string;
+				schedule: Record<string, string[]>;
+			}) => Promise<boolean>;
+		};
+	} = $props();
 	const ctx = useStorefront(() => ctxProps);
-	const config = $derived(ctx.config);
+	const config = $derived(studio ? { hours: studio.hours } : ctx.config);
 	const save = (run: Parameters<StorefrontContext['save']>[0]) => ctx.save(run);
 
 	const TIMEZONES = [
@@ -30,12 +50,28 @@
 		{ value: 'UTC', label: 'UTC' }
 	];
 
-	let alwaysOpen = $state(seed(() => ctx.config.hours.always_open));
-	let timezone = $state(seed(() => ctx.config.hours.timezone || 'Asia/Kolkata'));
+	let alwaysOpen = $state(seed(() => config.hours.always_open));
+	let timezone = $state(seed(() => config.hours.timezone || 'Asia/Kolkata'));
 	let schedule = $state<Record<string, string[]>>(
-		seed(() => flattenSchedule(ctx.config.hours.schedule))
+		seed(() => flattenSchedule(config.hours.schedule))
 	);
 	let saving = $state(false);
+
+	$effect(() => {
+		if (!studio) return;
+		alwaysOpen = studio.hours.always_open;
+		timezone = studio.hours.timezone || 'Asia/Kolkata';
+		schedule = flattenSchedule(studio.hours.schedule);
+	});
+
+	function pushStudioHours() {
+		if (!studio) return;
+		studio.onChange({
+			always_open: alwaysOpen,
+			timezone,
+			schedule
+		});
+	}
 
 	/** API returns nested [[open,close],…] or legacy flat [open,close,…]; editor stores flat. */
 	function flattenSchedule(raw: Record<string, unknown> | undefined | null): Record<string, string[]> {
@@ -66,6 +102,7 @@
 		const flat: string[] = [];
 		for (const pair of pairs) flat.push(pair[0], pair[1]);
 		schedule = { ...schedule, [day]: flat };
+		pushStudioHours();
 	}
 
 	function addShift(day: string) {
@@ -92,6 +129,7 @@
 			next[day] = source.flatMap((pair) => [...pair]);
 		}
 		schedule = next;
+		pushStudioHours();
 	}
 
 	const totalShifts = $derived(
@@ -114,14 +152,24 @@
 				}
 			}
 		}
+		const patch = {
+			always_open: alwaysOpen,
+			timezone,
+			schedule
+		};
+		if (studio?.onSave) {
+			saving = true;
+			const ok = await studio.onSave(patch);
+			saving = false;
+			if (ok) {
+				toast.success('Opening hours saved');
+				await onsaved?.();
+			} else toast.error('Could not save your opening hours');
+			return;
+		}
+		if (studio) return;
 		saving = true;
-		const ok = await save(() =>
-			storefrontAdminApi.saveHours({
-				always_open: alwaysOpen,
-				timezone,
-				schedule: alwaysOpen ? emptySchedule() : schedule
-			})
-		);
+		const ok = await save(() => storefrontAdminApi.saveHours(patch));
 		saving = false;
 		if (ok) {
 			toast.success('Opening hours saved');
@@ -130,7 +178,7 @@
 	}
 </script>
 
-<form onsubmit={submit}>
+<form class="sfhours-form" onsubmit={submit}>
 	<div class="sfctl-section">
 		<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
 			<div>
@@ -149,91 +197,121 @@
 		</div>
 
 		<div style="margin-top:1rem;display:grid;gap:0.8rem;">
-			<Switch bind:checked={alwaysOpen} label="Always open" hint="Skip the schedule entirely. Useful for a kiosk or a 24-hour kitchen." />
+			<Switch
+				bind:checked={alwaysOpen}
+				label="Always open"
+				hint="Ignore the weekly schedule. Useful for a kiosk or a 24-hour kitchen."
+				onchange={() => pushStudioHours()}
+			/>
 
 			<FormField label="Timezone" hint="Your hours are evaluated in this timezone, not the customer's.">
-				<Select bind:value={timezone} allLabel="" options={TIMEZONES} />
+				<Select bind:value={timezone} allLabel="" options={TIMEZONES} onchange={() => pushStudioHours()} />
 			</FormField>
 		</div>
 	</div>
 
-	{#if !alwaysOpen}
-		<div class="sfctl-section">
-			<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:0.9rem;">
-				<div>
-					<h2 style="margin:0;">Weekly schedule</h2>
-					<p class="sfctl-note" style="margin:0.2rem 0 0;">
-						A day with no shifts is closed. Add a second shift for a lunch break.
-					</p>
-				</div>
-				<Select
-					inline
-					allLabel=""
-					ariaLabel="Copy these hours to every day"
-					options={DAYS.map((day) => ({ value: day, label: 'Copy ' + DAY_LABELS[day] + ' hours to every day' }))}
-					onchange={(day) => day && applyToAll(day)}
-				/>
+	<div class="sfctl-section">
+		<div class="sfhours-head">
+			<div>
+				<h2 style="margin:0;">Weekly schedule</h2>
+				<p class="sfctl-note" style="margin:0.2rem 0 0;">
+					{alwaysOpen
+						? 'Always open is on, so these hours are kept but not used.'
+						: 'A day with no shifts is closed. Add a second shift for a lunch break.'}
+				</p>
 			</div>
-
-			<div class="sfhours">
-				{#each DAYS as day (day)}
-					<div class="sfhours-row">
-						<span class="sfhours-day">{DAY_LABELS[day]}</span>
-						<div class="sfhours-shifts">
-							{#each shiftsFor(day) as pair, index (index)}
-								<span class="sfshift">
-									<input
-										type="time"
-										value={pair[0]}
-										aria-label={`${DAY_LABELS[day]} opening time`}
-										onchange={(e) =>
-											updateShift(day, index, 0, (e.currentTarget as HTMLInputElement).value)}
-									/>
-									<span aria-hidden="true">–</span>
-									<input
-										type="time"
-										value={pair[1]}
-										aria-label={`${DAY_LABELS[day]} closing time`}
-										onchange={(e) =>
-											updateShift(day, index, 1, (e.currentTarget as HTMLInputElement).value)}
-									/>
-									<button
-										type="button"
-										aria-label={`Remove shift on ${DAY_LABELS[day]}`}
-										onclick={() => removeShift(day, index)}
-									>
-										<X size={12} strokeWidth={2.2} />
-									</button>
-								</span>
-							{/each}
-						</div>
-						<button
-							class="btn btn-secondary btn-sm"
-							type="button"
-							onclick={() => addShift(day)}
-							aria-label={'Add a shift on ' + DAY_LABELS[day]}
+			<div class:is-paused={alwaysOpen}>
+				<FormField label="Copy a day to every day" hint="Replaces every day's shifts with the day you pick.">
+					<div class="sfhours-copy">
+						<select
+							class="input"
+							aria-label="Copy these hours to every day"
+							disabled={alwaysOpen}
+							onchange={(e) => {
+								const el = e.currentTarget as HTMLSelectElement;
+								const day = el.value;
+								el.value = '';
+								if (day) applyToAll(day);
+							}}
 						>
-							<Plus size={13} strokeWidth={2.2} /> Shift
-						</button>
+							<option value="">Choose a day</option>
+							{#each DAYS as day (day)}
+								<option value={day}>{DAY_LABELS[day]}</option>
+							{/each}
+						</select>
 					</div>
-				{/each}
+				</FormField>
 			</div>
-
-			{#if totalShifts === 0}
-				<div class="alert alert-warn" style="margin-top:0.9rem;">
-					No shifts are set, so the store is treated as always open. A store with no hours
-					would be unorderable, which is never what someone means.
-				</div>
-			{/if}
 		</div>
-	{/if}
 
-	<div class="sfctl-foot">
-		<span class="sfctl-foot-note">
-			{alwaysOpen ? 'Always open — no schedule is stored.' : `${totalShifts} shift${totalShifts === 1 ? '' : 's'} set this week.`}
-		</span>
-		<button class="btn btn-primary" type="submit" disabled={saving}>
-			{saving ? 'Saving…' : 'Save opening hours'}
-		</button>
+		<div class="sfhours" class:is-paused={alwaysOpen}>
+			{#each DAYS as day (day)}
+				<div class="sfhours-row">
+					<span class="sfhours-day">{DAY_LABELS[day]}</span>
+					<div class="sfhours-shifts">
+						{#each shiftsFor(day) as pair, index (index)}
+							<span class="sfshift">
+								<input
+									type="time"
+									value={pair[0]}
+									disabled={alwaysOpen}
+									aria-label={`${DAY_LABELS[day]} opening time`}
+									onchange={(e) =>
+										updateShift(day, index, 0, (e.currentTarget as HTMLInputElement).value)}
+								/>
+								<span aria-hidden="true">–</span>
+								<input
+									type="time"
+									value={pair[1]}
+									disabled={alwaysOpen}
+									aria-label={`${DAY_LABELS[day]} closing time`}
+									onchange={(e) =>
+										updateShift(day, index, 1, (e.currentTarget as HTMLInputElement).value)}
+								/>
+								<button
+									type="button"
+									disabled={alwaysOpen}
+									aria-label={`Remove shift on ${DAY_LABELS[day]}`}
+									onclick={() => removeShift(day, index)}
+								>
+									<X size={12} strokeWidth={2.2} />
+								</button>
+							</span>
+						{/each}
+					</div>
+					<button
+						class="btn btn-secondary btn-sm"
+						type="button"
+						disabled={alwaysOpen}
+						onclick={() => addShift(day)}
+						aria-label={'Add a shift on ' + DAY_LABELS[day]}
+					>
+						<Plus size={13} strokeWidth={2.2} /> Shift
+					</button>
+				</div>
+			{/each}
+		</div>
+
+		{#if !alwaysOpen && totalShifts === 0}
+			<div class="alert alert-warn" style="margin-top:0.9rem;">
+				No shifts are set, so the store is treated as always open. A store with no hours
+				would be unorderable, which is never what someone means.
+			</div>
+		{/if}
 	</div>
+
+	{#if !studio || studio.onSave}
+		<div class="sfctl-foot">
+			<span class="sfctl-foot-note">
+				{alwaysOpen ? 'Always open — no schedule is stored.' : `${totalShifts} shift${totalShifts === 1 ? '' : 's'} set this week.`}
+			</span>
+			<button class="btn btn-primary" type="submit" disabled={saving}>
+				{saving ? 'Saving…' : 'Save opening hours'}
+			</button>
+		</div>
+	{:else}
+		<p class="sfctl-note" style="margin:1rem 0 0;">
+			Hours are saved with your Studio draft — use Review &amp; Publish when you are ready.
+		</p>
+	{/if}
 </form>

@@ -7,8 +7,8 @@ import History from '@lucide/svelte/icons/history';
 import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 import LayoutTemplate from '@lucide/svelte/icons/layout-template';
 import MonitorPlay from '@lucide/svelte/icons/monitor-play';
-import QrCode from '@lucide/svelte/icons/qr-code';
-import Rocket from '@lucide/svelte/icons/rocket';
+import Megaphone from '@lucide/svelte/icons/megaphone';
+import Zap from '@lucide/svelte/icons/zap';
 import Settings from '@lucide/svelte/icons/settings';
 import Shield from '@lucide/svelte/icons/shield';
 import Store from '@lucide/svelte/icons/store';
@@ -204,7 +204,8 @@ const TITLES: Array<[string, string]> = [
 	['/shop/kitchen', 'Kitchen'],
 	['/shop/orders', 'Selling'],
 	['/shop/menu', 'Menu'],
-	['/shop/storefront/launch', 'Launch'],
+	['/shop/storefront/promote', 'Publish & Marketing'],
+	['/shop/storefront/launch', 'Publish & Marketing'],
 	['/shop', 'Dashboard']
 ];
 
@@ -310,16 +311,16 @@ export const TENANT_NAV: ShopNavGroup[] = [
 				permission: 'storefront'
 			},
 			{
-				href: '/shop/storefront/launch',
-				label: 'Launch',
-				icon: Rocket,
+				href: '/shop/storefront/actions',
+				label: 'Action',
+				icon: Zap,
 				exact: true,
 				permission: 'storefront'
 			},
 			{
-				href: '/shop/storefront/qr',
-				label: 'QR & Share',
-				icon: QrCode,
+				href: '/shop/storefront/promote',
+				label: 'Publish & Marketing',
+				icon: Megaphone,
 				exact: true,
 				permission: 'storefront'
 			}
@@ -491,10 +492,14 @@ export function tenantTitle(pathname: string, businessType?: string | null): str
 	return segmentLabel(segments, segments.length - 1, businessType);
 }
 
-/** Kitchen and Live Activity can drop the admin chrome for TV / prep displays. */
+/** Kitchen, Live Activity, and Studio preview frame drop the admin chrome. */
 export function isOpsFullscreenPath(pathname: string): boolean {
 	const path = pathname.replace(/\/+$/, '') || '/';
-	return path === '/shop/kitchen' || path === '/shop/live';
+	return (
+		path === '/shop/kitchen' ||
+		path === '/shop/live' ||
+		path === '/shop/customize/preview-frame'
+	);
 }
 
 function humanise(v: string): string {

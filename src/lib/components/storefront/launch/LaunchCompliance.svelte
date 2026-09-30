@@ -40,7 +40,7 @@
 			policyStore.sign(tenantSlug, signerName.trim(), 'owner@orderly.store');
 			policySignature = policyStore.getSignature(tenantSlug);
 			policySigned = true;
-			toast.success('Policy signed. Launch unlocked.');
+			toast.success('Policy signed. Publish unlocked.');
 		} finally {
 			signingPolicy = false;
 		}
@@ -82,7 +82,7 @@
 					Read Agreement
 				</button>
 				<button type="button" class="btn btn-primary" onclick={() => onSetTab('readiness')}>
-					Return to Launch Readiness
+					Return to Publish checklist
 				</button>
 			</div>
 		</div>
@@ -148,7 +148,7 @@
 						onclick={handleSignPolicy}
 					>
 						<ShieldCheck size={16} strokeWidth={2.2} />
-						{signingPolicy ? 'Signing…' : 'Sign & Unlock Launch'}
+						{signingPolicy ? 'Signing…' : 'Sign & Unlock Publish'}
 					</button>
 					<button type="button" class="btn btn-ghost" onclick={() => (showPolicyModal = true)}>
 						Open Full Document

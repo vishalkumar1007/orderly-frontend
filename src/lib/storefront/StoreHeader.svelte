@@ -6,6 +6,9 @@
 	import User from '@lucide/svelte/icons/user';
 	import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
 	import X from '@lucide/svelte/icons/x';
+	import Moon from '@lucide/svelte/icons/moon';
+	import Sun from '@lucide/svelte/icons/sun';
+	import { useStorefrontThemeToggle } from '$lib/storefront/themeToggle.svelte';
 	import type { StoreConfig } from '$lib/storefront/api';
 	import { cartCount, type CartLine } from '$lib/storefront/cart.svelte';
 
@@ -24,7 +27,15 @@
 		searchTerm = $bindable(''),
 		signedIn = false,
 		/** Hides the account button where sign-in is switched off. */
-		loginEnabled = true
+		loginEnabled = true,
+		/**
+		 * Studio embedded preview: search updates the parent in place instead of
+		 * navigating the iframe. Brand, menu, and cart links stay so the preview
+		 * shell can intercept them.
+		 */
+		previewMode = false,
+		/** Override path for aria-current when embedded outside the store host. */
+		activePath = undefined as string | undefined
 	}: {
 		config: StoreConfig | null;
 		lines: CartLine[];
@@ -32,18 +43,22 @@
 		searchTerm?: string;
 		signedIn?: boolean;
 		loginEnabled?: boolean;
+		previewMode?: boolean;
+		activePath?: string;
 	} = $props();
 
 	const store = $derived(config?.store ?? null);
 	const hours = $derived(config?.hours ?? null);
 	const ordering = $derived(config?.ordering ?? null);
 	const count = $derived(cartCount(lines));
-	const pathname = $derived($page.url.pathname);
+	const pathname = $derived(activePath ?? $page.url.pathname);
 
 	const storeStatus = $derived(ordering?.store_status ?? (hours?.is_open ? 'OPEN' : 'CLOSED'));
 	const statusLabel = $derived(
 		ordering?.store_status_label ?? (hours?.is_open ? 'Open Now' : 'Closed')
 	);
+
+	const themeToggle = useStorefrontThemeToggle();
 
 	const statusDotClass = $derived.by(() => {
 		switch (storeStatus) {
@@ -64,6 +79,7 @@
 		const target = event.currentTarget as HTMLFormElement;
 		const value = new FormData(target).get('q')?.toString().trim() ?? '';
 		searchTerm = value;
+		if (previewMode) return;
 		const url = new URL($page.url);
 		if (value) url.searchParams.set('q', value);
 		else url.searchParams.delete('q');
@@ -76,6 +92,7 @@
 
 	function clearSearch() {
 		searchTerm = '';
+		if (previewMode) return;
 		const url = new URL($page.url);
 		url.searchParams.delete('q');
 		void goto(`${url.pathname}${url.search}`, {
@@ -120,7 +137,7 @@
 				</div>
 			</a>
 
-			<!-- Center Search (Desktop / Tablet view) -->
+			<!-- Center search. On a phone this row is hidden; the mobile row below shows. -->
 			{#if search}
 				<div class="sf-header-search-wrap sf-desktop-search">
 					<form class="sf-search sf-header-search" role="search" onsubmit={submitSearch}>
@@ -156,12 +173,27 @@
 					<span>Menu</span>
 				</a>
 
+				{#if themeToggle?.enabled}
+					<button
+						type="button"
+						class="sf-icon-btn"
+						aria-label={themeToggle.mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+						onclick={() => themeToggle.toggle()}
+					>
+						{#if themeToggle.mode === 'dark'}
+							<Sun size={18} strokeWidth={2} aria-hidden="true" />
+						{:else}
+							<Moon size={18} strokeWidth={2} aria-hidden="true" />
+						{/if}
+					</button>
+				{/if}
+
 				{#if loginEnabled}
 					<a
 						class="sf-icon-btn sf-user-btn"
 						href={signedIn ? '/profile' : '/login'}
 						aria-label={signedIn ? 'Your profile' : 'Sign in'}
-						aria-current={pathname === '/profile' ? 'page' : undefined}
+						aria-current={pathname === '/profile' || pathname === '/login' ? 'page' : undefined}
 						title={signedIn ? 'Your account' : 'Sign in'}
 					>
 						<User size={19} strokeWidth={2} />

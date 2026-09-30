@@ -149,7 +149,9 @@ try {
 	eq('/shop/kitchen', nav.tenantTitle('/shop/kitchen'), 'Kitchen');
 	eq('/shop/live', nav.tenantTitle('/shop/live'), 'Live Activity');
 	eq('/shop/customize', nav.tenantTitle('/shop/customize'), 'Customize');
-	eq('/shop/storefront/launch', nav.tenantTitle('/shop/storefront/launch'), 'Launch');
+	eq('/shop/storefront/actions', nav.tenantTitle('/shop/storefront/actions'), 'Action');
+	eq('/shop/storefront/promote', nav.tenantTitle('/shop/storefront/promote'), 'Publish & Marketing');
+	eq('/shop/storefront/launch', nav.tenantTitle('/shop/storefront/launch'), 'Publish & Marketing');
 	eq('/shop/payments', nav.tenantTitle('/shop/payments'), 'Payments');
 	eq('/shop/customers', nav.tenantTitle('/shop/customers'), 'Customers');
 	eq('/shop/iam', nav.tenantTitle('/shop/iam'), 'IAM');
@@ -199,12 +201,12 @@ try {
 	);
 
 	eq(
-		'launch trail',
-		nav.tenantCrumbs('/shop/storefront/launch'),
+		'promote trail',
+		nav.tenantCrumbs('/shop/storefront/promote'),
 		[
 			{ label: 'Overview', href: '/shop' },
-			{ label: 'Storefront', href: '/shop/storefront' },
-			{ label: 'Launch', href: null }
+			{ label: 'Storefront', href: '/shop/customize' },
+			{ label: 'Publish & Marketing', href: null }
 		]
 	);
 
@@ -250,7 +252,7 @@ try {
 		eq(
 			'Storefront destinations',
 			storefront?.items.map((i) => i.label),
-			['Customize', 'Launch', 'QR & Share']
+			['Customize', 'Action', 'Publish & Marketing']
 		);
 	}
 
@@ -367,7 +369,7 @@ try {
 
 	{
 		const ids = studio.STUDIO_SECTIONS.map((s) => s.id);
-		eq('section ids', ids, ['style', 'branding', 'homepage', 'menu', 'customer', 'checkout']);
+		eq('section ids', ids, ['style', 'branding', 'homepage', 'menu', 'ordering', 'customer', 'checkout']);
 		eq('no duplicate section id', ids.length, new Set(ids).size);
 
 		// The catalogue section is named by the type, not by the developer. A
@@ -375,12 +377,23 @@ try {
 		const food = types.templateFor('FOOD_SHOP');
 		const grocery = types.templateFor('GROCERY');
 		const catalogue = studio.STUDIO_SECTIONS.find((s) => s.id === 'menu');
-		eq('a food shop calls it', catalogue.label(food.terminology), food.terminology.catalog);
-		eq('a grocery calls it', catalogue.label(grocery.terminology), grocery.terminology.catalog);
+		eq('a food shop calls it', catalogue.label(food.terminology), `${food.terminology.catalog} layout`);
+		eq('a grocery calls it', catalogue.label(grocery.terminology), `${grocery.terminology.catalog} layout`);
 
 		// Every section's change categories must be ones the diff can produce,
 		// or a badge would never light and nobody would notice.
-		const known = new Set(['Brand', 'Contact', 'Look', 'Ordering', 'Payments', 'Workflow', 'Homepage']);
+		const known = new Set([
+			'Brand',
+			'Contact',
+			'Look',
+			'Menu layout',
+			'Ordering',
+			'Hours',
+			'Customers',
+			'Payments',
+			'Workflow',
+			'Homepage'
+		]);
 		const unknown = studio.STUDIO_SECTIONS
 			.flatMap((s) => s.categories)
 			.filter((c) => !known.has(c));
@@ -610,13 +623,12 @@ try {
 		}
 	}
 
-	// A screen must stay lit while a sub-tab under it is open, or the rail looks
-	// broken the moment a screen grows one.
-	if (sf.isStorefrontActive('/shop/customize/theme/warm', sf.STOREFRONT_NAV[2])) {
-		ok('a screen stays lit on a sub-path');
+	// Legacy section URLs still belong to the Studio hub in the rail.
+	if (sf.isStorefrontActive('/shop/customize/branding', sf.STOREFRONT_NAV[0])) {
+		ok('legacy section paths keep Studio lit in the rail');
 	} else {
 		failures++;
-		console.log('  FAIL a screen does not stay lit on a sub-path');
+		console.log('  FAIL legacy customize paths do not light Studio');
 	}
 
 	/* ---------------------------------------------------------------- */

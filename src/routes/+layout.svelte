@@ -126,7 +126,8 @@
 		// Initialize theme before first paint to prevent flash
 		(function() {
 			var stored = localStorage.getItem('orderly-theme');
-			var theme = stored === 'dark' || stored === 'light' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+			var ok = stored === 'light' || stored === 'soft' || stored === 'mist' || stored === 'dark' || stored === 'graphite' || stored === 'raw' || stored === 'night' || stored === 'midnight';
+			var theme = ok ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 			document.documentElement.dataset.theme = theme;
 		})();
 	</script>

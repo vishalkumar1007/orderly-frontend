@@ -12,12 +12,14 @@
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
 	import Upload from '@lucide/svelte/icons/upload';
+	import PanelRightClose from '@lucide/svelte/icons/panel-right-close';
+	import PanelRightOpen from '@lucide/svelte/icons/panel-right-open';
 	import { templateFor } from '$lib/admin/businessTypes';
 	import { useStorefront, type StorefrontContext } from '$lib/storefront/admin-context';
 	import { StudioDraftStore } from '$lib/storefront/studioDraft.svelte';
 	import {
 		studioSectionFor,
-		visibleStudioSections
+		studioSectionsByGroup
 	} from '$lib/storefront/studioSections';
 	import StudioControls from '$lib/components/studio/StudioControls.svelte';
 	import StudioPreview from '$lib/components/studio/StudioPreview.svelte';
@@ -26,6 +28,7 @@
 	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
 	import { toast } from '$lib/components/admin/toast';
+	import '$lib/components/studio/studio-split.css';
 
 	/**
 	 * Storefront Studio.
@@ -54,16 +57,22 @@
 	let conflictOpen = $state(false);
 	let discarding = $state(false);
 
-	/** Reload the draft whenever the shell hands us a different shop. */
-	let loadedSlug = $state('');
-	$effect(() => {
-		const slug = ctx.config?.store?.slug ?? '';
-		if (!slug || slug === loadedSlug) return;
-		loadedSlug = slug;
-		untrack(() => void store.load(ctx.config));
-	});
+	const SPLIT_KEY = 'orderly-studio-split';
+	const PREVIEW_HIDDEN_KEY = 'orderly-studio-preview-hidden';
+	const SPLIT_DEFAULT = 38;
+	let splitPct = $state(SPLIT_DEFAULT);
+	let isDragging = $state(false);
+	let splitRowEl = $state<HTMLDivElement | null>(null);
+	let previewHidden = $state(false);
 
 	onMount(() => {
+		try {
+			const saved = Number(localStorage.getItem(SPLIT_KEY));
+			if (Number.isFinite(saved) && saved >= 28 && saved <= 62) splitPct = saved;
+			previewHidden = localStorage.getItem(PREVIEW_HIDDEN_KEY) === '1';
+		} catch {
+			/* ignore */
+		}
 		// A draft that only exists on the server is worth flushing before the
 		// tab closes; the debounce may still be holding the last keystroke.
 		const flush = () => void store.saveNow();
@@ -71,11 +80,92 @@
 		return () => window.removeEventListener('beforeunload', flush);
 	});
 
+	function setPreviewHidden(hidden: boolean) {
+		previewHidden = hidden;
+		try {
+			localStorage.setItem(PREVIEW_HIDDEN_KEY, hidden ? '1' : '0');
+		} catch {
+			/* ignore */
+		}
+	}
+
+	function persistSplit(pct: number) {
+		splitPct = pct;
+		try {
+			localStorage.setItem(SPLIT_KEY, String(Math.round(pct)));
+		} catch {
+			/* ignore */
+		}
+	}
+
+	function startSplitDrag(e: PointerEvent) {
+		if (e.button !== 0) return;
+		e.preventDefault();
+		isDragging = true;
+
+		const onMove = (moveEvent: PointerEvent) => {
+			if (!splitRowEl) return;
+			const rect = splitRowEl.getBoundingClientRect();
+			if (rect.width <= 0) return;
+			let pct = ((moveEvent.clientX - rect.left) / rect.width) * 100;
+			if (pct < 28) pct = 28;
+			if (pct > 62) pct = 62;
+			persistSplit(pct);
+		};
+
+		const onUp = () => {
+			isDragging = false;
+			window.removeEventListener('pointermove', onMove);
+			window.removeEventListener('pointerup', onUp);
+			document.body.style.cursor = '';
+			document.body.style.userSelect = '';
+		};
+
+		document.body.style.cursor = 'col-resize';
+		document.body.style.userSelect = 'none';
+		window.addEventListener('pointermove', onMove);
+		window.addEventListener('pointerup', onUp);
+	}
+
+	function resetSplit() {
+		persistSplit(SPLIT_DEFAULT);
+	}
+
+	function handleSplitterKeydown(e: KeyboardEvent) {
+		if (e.key === 'ArrowLeft') {
+			e.preventDefault();
+			persistSplit(Math.max(28, splitPct - 2));
+		} else if (e.key === 'ArrowRight') {
+			e.preventDefault();
+			persistSplit(Math.min(62, splitPct + 2));
+		} else if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			resetSplit();
+		}
+	}
+
+	/** Reload the draft whenever the shell hands us a different shop.
+	 *  Live ops (status / banner / hours) also refresh when Action updates the cache. */
+	let loadedSlug = $state('');
+	$effect(() => {
+		const cfg = ctx.config;
+		const slug = cfg?.store?.slug ?? '';
+		if (!slug) return;
+		untrack(() => {
+			if (slug !== loadedSlug) {
+				loadedSlug = slug;
+				void store.load(cfg);
+			} else {
+				store.applyLiveOps(cfg);
+			}
+		});
+	});
+
 	const template = $derived(templateFor(ctx.config?.store?.business_type ?? ''));
 	const terms = $derived(template.terminology);
 	const controls = $derived(template.controls);
 	const allowed = $derived(new Set(controls));
-	const sections = $derived(visibleStudioSections(controls));
+	const sectionGroups = $derived(studioSectionsByGroup(controls));
 	const active = $derived(studioSectionFor($page.url.searchParams.get('section'), controls));
 
 	const counts = $derived(store.diffsByCategory);
@@ -140,7 +230,7 @@
 	<title>Storefront Studio · Orderly</title>
 </svelte:head>
 
-<div class="studio">
+<div class="studio" class:preview-hidden={previewHidden}>
 	<header class="studio-bar">
 		<div class="studio-bar-left">
 			<a class="btn btn-ghost btn-sm" href="/shop" aria-label="Back to the console">
@@ -183,6 +273,20 @@
 		</div>
 
 		<div class="studio-actions">
+			<button
+				class="btn btn-ghost btn-sm"
+				type="button"
+				onclick={() => setPreviewHidden(!previewHidden)}
+				title={previewHidden ? 'Show live preview' : 'Hide live preview'}
+			>
+				{#if previewHidden}
+					<PanelRightOpen size={14} strokeWidth={2} />
+					<span class="studio-action-label">Show preview</span>
+				{:else}
+					<PanelRightClose size={14} strokeWidth={2} />
+					<span class="studio-action-label">Hide preview</span>
+				{/if}
+			</button>
 			<button
 				class="btn btn-ghost btn-sm"
 				type="button"
@@ -245,42 +349,77 @@
 
 	<div class="studio-body">
 		<nav class="studio-rail" aria-label="Studio sections">
-			{#each sections as section (section.id)}
-				{@const on = active.id === section.id}
-				{@const n = countFor(section.categories)}
-				<button
-					type="button"
-					class="studio-rail-item"
-					class:on
-					aria-current={on ? 'page' : undefined}
-					onclick={() => select(section.id)}
-				>
-					<span class="studio-rail-icon"><section.icon size={16} strokeWidth={1.9} /></span>
-					<span class="studio-rail-text">
-						<span class="studio-rail-label">{section.label(terms)}</span>
-						<span class="studio-rail-hint">{section.hint(terms)}</span>
-					</span>
-					{#if n > 0}<span class="studio-rail-count" title="{n} unpublished">{n}</span>{/if}
-				</button>
+			{#each sectionGroups as group (group.group)}
+				<div class="studio-rail-group">
+					<span class="studio-rail-group-label">{group.label}</span>
+					{#each group.sections as section (section.id)}
+						{@const on = active.id === section.id}
+						{@const n = countFor(section.categories)}
+						<button
+							type="button"
+							class="studio-rail-item"
+							class:on
+							aria-current={on ? 'page' : undefined}
+							onclick={() => select(section.id)}
+						>
+							<span class="studio-rail-icon"><section.icon size={16} strokeWidth={1.9} /></span>
+							<span class="studio-rail-text">
+								<span class="studio-rail-label">{section.label(terms)}</span>
+								<span class="studio-rail-hint">{section.hint(terms)}</span>
+							</span>
+							{#if n > 0}<span class="studio-rail-count" title="{n} unpublished">{n}</span>{/if}
+						</button>
+					{/each}
+				</div>
 			{/each}
 		</nav>
 
-		<section class="studio-panel" aria-label="{active.label(terms)} controls">
-			{#if store.isLoading}
-				<div class="studio-loading">
-					<Skeleton height="1.1rem" width="9rem" />
-					<Skeleton height="4rem" />
-					<Skeleton height="4rem" />
-					<Skeleton height="4rem" />
-				</div>
-			{:else}
-				<StudioControls {store} section={active.id} {terms} {allowed} />
-			{/if}
-		</section>
+		<div
+			bind:this={splitRowEl}
+			class="studio-split-row"
+			class:is-dragging={isDragging}
+			class:preview-hidden={previewHidden}
+			style="--studio-editor-split: {splitPct}%;"
+		>
+			<section class="studio-panel" aria-label="{active.label(terms)} controls">
+				{#if store.isLoading}
+					<div class="studio-loading">
+						<Skeleton height="1.1rem" width="9rem" />
+						<Skeleton height="4rem" />
+						<Skeleton height="4rem" />
+						<Skeleton height="4rem" />
+					</div>
+				{:else}
+					<StudioControls {store} section={active.id} {terms} {allowed} />
+				{/if}
+			</section>
 
-		<section class="studio-stage" aria-label="Live preview">
-			<StudioPreview config={store.draft} />
-		</section>
+			{#if !previewHidden}
+				<div
+					class="studio-splitter"
+					role="separator"
+					aria-orientation="vertical"
+					aria-valuenow={Math.round(splitPct)}
+					aria-valuemin={28}
+					aria-valuemax={62}
+					aria-label="Resize editor and preview"
+					tabindex="0"
+					title="Drag to resize panels (Double-click to reset)"
+					onpointerdown={startSplitDrag}
+					ondblclick={resetSplit}
+					onkeydown={handleSplitterKeydown}
+				>
+					<div class="studio-splitter-line"></div>
+					<div class="studio-splitter-pill">
+						<span class="studio-splitter-dots"></span>
+					</div>
+				</div>
+
+				<section class="studio-stage" aria-label="Live preview">
+					<StudioPreview config={store.draft} />
+				</section>
+			{/if}
+		</div>
 	</div>
 </div>
 
@@ -319,14 +458,13 @@
 	.studio {
 		display: flex;
 		flex-direction: column;
-		/* Fill the shell's content area: a studio is a workspace, not a page you
-		   scroll as a whole — each column scrolls on its own. */
-		height: calc(100dvh - var(--topbar-h) - 2.5rem);
-		min-height: 34rem;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-lg);
+		flex: 1;
+		min-height: 0;
+		height: 100%;
+		max-height: 100%;
 		background: var(--surface);
 		overflow: hidden;
+		overscroll-behavior: none;
 	}
 
 	.studio-bar {
@@ -443,18 +581,46 @@
 	.studio-body {
 		flex: 1;
 		min-height: 0;
-		display: grid;
-		grid-template-columns: 14rem minmax(0, 22rem) minmax(0, 1fr);
+		display: flex;
+		flex-direction: row;
+		overflow: hidden;
 	}
 
 	.studio-rail {
+		flex: 0 0 14rem;
+		width: 14rem;
 		border-right: 1px solid var(--border);
 		padding: 0.6rem;
 		display: flex;
 		flex-direction: column;
-		gap: 0.15rem;
+		gap: 0.65rem;
 		overflow-y: auto;
+		overscroll-behavior: contain;
 		background: var(--surface-2);
+	}
+
+	.studio-rail-group {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+
+	.studio-rail-group-label {
+		padding: 0.15rem 0.55rem 0.25rem;
+		font-size: var(--fs-micro);
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-3);
+	}
+
+	.studio-split-row {
+		flex: 1;
+		min-width: 0;
+		min-height: 0;
+		display: flex;
+		flex-direction: row;
+		overflow: hidden;
 	}
 
 	.studio-rail-item {
@@ -470,7 +636,9 @@
 		font-family: inherit;
 		text-align: left;
 		cursor: pointer;
-		transition: background var(--tr), color var(--tr);
+		transition:
+			background var(--tr),
+			color var(--tr);
 	}
 
 	.studio-rail-item:hover {
@@ -527,38 +695,58 @@
 	}
 
 	.studio-panel {
-		border-right: 1px solid var(--border);
+		flex: 0 0 var(--studio-editor-split, 38%);
+		width: var(--studio-editor-split, 38%);
+		min-width: 0;
+		min-height: 0;
+		overflow-x: hidden;
 		overflow-y: auto;
-		padding: 0.9rem;
+		overscroll-behavior: contain;
+		padding: 0;
+		background: var(--surface);
+	}
+
+	.studio-split-row.preview-hidden .studio-panel {
+		flex: 1 1 auto;
+		width: 100%;
 	}
 
 	.studio-loading {
 		display: grid;
 		gap: 0.7rem;
+		padding: 1rem 1.1rem;
 	}
 
 	.studio-stage {
-		overflow-y: auto;
-		background: var(--surface-3);
-		padding: 1rem;
+		flex: 1 1 0;
+		min-width: 0;
+		min-height: 0;
+		overflow: hidden;
+		background: var(--bg, var(--surface-2));
+		display: flex;
+		flex-direction: column;
 	}
 
-	/* —— Narrower: the preview drops under the controls, the rail becomes a
-	   scrolling row. A three-column workspace below ~1200px is three columns
-	   of nothing. —— */
 	@media (max-width: 1200px) {
 		.studio {
-			height: auto;
-			min-height: 0;
+			height: 100%;
+			max-height: 100%;
+			overflow: hidden;
 		}
 
 		.studio-body {
-			grid-template-columns: minmax(0, 1fr);
+			flex-direction: column;
+			min-height: 0;
+			overflow: hidden;
 		}
 
 		.studio-rail {
+			flex: none;
+			width: 100%;
+			max-height: 4.5rem;
 			flex-direction: row;
 			overflow-x: auto;
+			overflow-y: hidden;
 			border-right: 0;
 			border-bottom: 1px solid var(--border);
 		}
@@ -572,9 +760,23 @@
 			display: none;
 		}
 
+		.studio-split-row {
+			flex-direction: column;
+			flex: 1;
+			min-height: 0;
+			overflow: hidden;
+		}
+
 		.studio-panel {
-			border-right: 0;
+			flex: 1 1 45%;
+			width: 100%;
+			min-height: 0;
 			border-bottom: 1px solid var(--border);
+		}
+
+		.studio-stage {
+			flex: 1 1 55%;
+			min-height: 0;
 		}
 	}
 

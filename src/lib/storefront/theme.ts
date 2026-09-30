@@ -47,6 +47,8 @@ export type StoreTheme = {
 	secondary: string;
 	accent: string;
 	hero_image_url?: string;
+	/** When true, shoppers can override light/dark in the storefront header. */
+	customer_mode_switch_enabled?: boolean;
 	/** Resolved CSS custom properties, e.g. `--sf-primary`. */
 	vars: Record<string, string>;
 	/** The resolved font stack, and the Google Fonts families to load. */

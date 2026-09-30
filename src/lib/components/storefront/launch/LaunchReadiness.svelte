@@ -3,7 +3,7 @@
 	import Rocket from '@lucide/svelte/icons/rocket';
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import CircleDashed from '@lucide/svelte/icons/circle-dashed';
-	import AlertCircle from '@lucide/svelte/icons/alert-circle';
+	import AlertCircle from '@lucide/svelte/icons/circle-alert';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import QrCode from '@lucide/svelte/icons/qr-code';
 	import Share2 from '@lucide/svelte/icons/share-2';
@@ -102,7 +102,7 @@
 			<div class="studio-hero-top">
 				<div class="hero-text-block">
 					<div class="hero-badge-wrap">
-						<StatusBadge status={setup.setup_status} />
+						<StatusBadge status={setup.setup_status ?? ''} />
 						{#if !policySigned}
 							<span class="badge-lock">
 								<Lock size={12} strokeWidth={2.4} /> Policy Unsigned
@@ -168,7 +168,7 @@
 						{@const isStepDone =
 							step.key === 'policy'
 								? policySigned
-								: Boolean(setup.steps[step.key as SetupStepKey])}
+								: Boolean(setup.steps?.[step.key as SetupStepKey])}
 						<div
 							class="segment-bar"
 							class:completed={isStepDone}
@@ -216,7 +216,7 @@
 			<ul class="checklist-grid">
 				{#each STEPS as s, i (s.key)}
 					{@const isDone =
-						s.key === 'policy' ? policySigned : Boolean(setup.steps[s.key as SetupStepKey])}
+						s.key === 'policy' ? policySigned : Boolean(setup.steps?.[s.key as SetupStepKey])}
 					<li class="checklist-item-card" class:is-done={isDone}>
 						<div class="check-icon-wrap" class:done={isDone}>
 							{#if isDone}
@@ -274,7 +274,7 @@
 						<h3 class="section-h">Storefront Link</h3>
 						<p class="section-note">Share or open your public storefront.</p>
 					</div>
-					<a class="btn btn-ghost btn-sm" href="/shop/storefront/qr">
+					<a class="btn btn-ghost btn-sm" href="/shop/storefront/promote?tab=marketing&asset=qr">
 						<QrCode size={15} strokeWidth={2} />
 						<span>QR</span>
 					</a>

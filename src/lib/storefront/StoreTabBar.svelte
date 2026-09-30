@@ -11,23 +11,38 @@
 	 * Cart is intentionally not a tab: the sticky cart bar is the primary CTA
 	 * when the cart has items, so a fourth Cart tab would compete with it.
 	 * Profile replaces it when login is enabled.
+	 *
+	 * `activePath` lets Studio's embedded preview highlight the current view
+	 * without depending on the real browser URL.
 	 */
 	let {
 		loginEnabled = true,
 		signedIn = false,
-		cartBarVisible = false
+		cartBarVisible = false,
+		activePath = undefined as string | undefined
 	}: {
 		loginEnabled?: boolean;
 		signedIn?: boolean;
 		cartBarVisible?: boolean;
+		activePath?: string;
 	} = $props();
 
-	const pathname = $derived($page.url.pathname);
+	const pathname = $derived(activePath ?? $page.url.pathname);
 
 	const tabs = $derived([
 		{ href: '/', label: 'Home', icon: House, current: pathname === '/' },
-		{ href: '/menu', label: 'Menu', icon: UtensilsCrossed, current: pathname.startsWith('/menu') },
-		{ href: '/orders', label: 'Orders', icon: Receipt, current: pathname.startsWith('/orders') },
+		{
+			href: '/menu',
+			label: 'Menu',
+			icon: UtensilsCrossed,
+			current: pathname.startsWith('/menu')
+		},
+		{
+			href: '/orders',
+			label: 'Orders',
+			icon: Receipt,
+			current: pathname.startsWith('/orders')
+		},
 		...(loginEnabled
 			? [
 					{

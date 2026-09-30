@@ -64,7 +64,11 @@ export type AdminStorefront = {
 		currency: string;
 		timezone: string;
 	};
-	theme: StoreTheme & { hero_image_url: string; vars: Record<string, string> };
+	theme: StoreTheme & {
+		hero_image_url: string;
+		customer_mode_switch_enabled?: boolean;
+		vars: Record<string, string>;
+	};
 	behaviour: {
 		ordering_enabled: boolean;
 		closed_message: string;
@@ -551,6 +555,7 @@ export function createDefaultStorefront(slug = 'your-shop', name = 'Your Store')
 			secondary: '#8b5cf6',
 			accent: '#06b6d4',
 			hero_image_url: '',
+			customer_mode_switch_enabled: false,
 			vars: {
 				'--sf-primary': '#5b4bdb',
 				'--sf-secondary': '#8b5cf6',
@@ -633,4 +638,94 @@ export function createDefaultStorefront(slug = 'your-shop', name = 'Your Store')
 export function isDefaultStorefront(config: AdminStorefront | null | undefined): boolean {
 	if (!config) return true;
 	return config.store.slug === 'your-shop' && config.public_url === '';
+}
+
+/**
+ * Lay a stored Studio draft over the live admin document.
+ * Draft only carries editable fields; catalogues / hours / public_url stay live.
+ */
+export function mergeAdminDraft(
+	live: AdminStorefront,
+	draft: Partial<AdminStorefront> | null | undefined
+): AdminStorefront {
+	const out: AdminStorefront = JSON.parse(JSON.stringify(live));
+	if (!draft) return out;
+	if (draft.store) Object.assign(out.store, draft.store);
+	if (draft.theme) Object.assign(out.theme, draft.theme);
+	if (draft.behaviour) Object.assign(out.behaviour, draft.behaviour);
+	if (draft.payments) Object.assign(out.payments, draft.payments);
+	if (draft.workflow) Object.assign(out.workflow, draft.workflow);
+	if (draft.homepage?.sections) out.homepage = { sections: draft.homepage.sections };
+	if (draft.hours) {
+		out.hours = { ...out.hours, ...draft.hours };
+	}
+	return out;
+}
+
+export const STORE_STATUS_OPTIONS = [
+	{ value: 'OPEN' as const, label: 'Open', desc: 'Accepting orders normally.' },
+	{ value: 'BUSY' as const, label: 'Busy', desc: 'Open but with longer wait times.' },
+	{ value: 'AWAY' as const, label: 'Away', desc: 'Temporarily not accepting orders.' },
+	{ value: 'CLOSED' as const, label: 'Closed', desc: 'Checkout is stopped.' }
+];
+
+/**
+ * Map an admin draft document into the public StoreConfig shape used by
+ * StoreHome / StoreHeader so Studio preview matches the live customer UI.
+ */
+export function adminToStoreConfig(admin: AdminStorefront): StoreConfig {
+	const loginMode =
+		admin.behaviour.customer_login_mode ??
+		(admin.behaviour.customer_login_enabled ? 'optional' : 'off');
+	return {
+		store: {
+			name: admin.store.name,
+			slug: admin.store.slug,
+			logo_url: admin.store.logo_url,
+			favicon_url: admin.store.favicon_url,
+			tagline: admin.store.tagline,
+			description: admin.store.description,
+			phone: admin.store.phone,
+			address: admin.store.address,
+			business_type: admin.store.business_type,
+			currency: admin.store.currency
+		},
+		theme: {
+			...admin.theme,
+			hero_image_url: admin.theme.hero_image_url,
+			vars: admin.theme.vars ?? {}
+		},
+		homepage: {
+			sections: (admin.homepage?.sections ?? []).map((s) => ({
+				id: s.id,
+				type: s.type,
+				enabled: s.enabled,
+				content: s.content ?? {}
+			}))
+		},
+		payments: { ...admin.payments },
+		ordering: {
+			enabled: admin.behaviour.ordering_enabled && admin.ordering_available_now,
+			closed_reason: admin.closed_reason || admin.behaviour.closed_message || '',
+			prep_time_minutes: admin.behaviour.prep_time_minutes,
+			customer_login: loginMode !== 'off',
+			customer_login_mode: loginMode,
+			payment_requirement: admin.workflow?.payment_requirement ?? 'NONE',
+			auto_accept: admin.workflow?.acceptance_mode === 'AUTO',
+			store_status: admin.behaviour.store_status || 'OPEN',
+			status_message: admin.behaviour.status_message || '',
+			store_status_label: admin.behaviour.store_status_label || '',
+			status_message_display: admin.behaviour.status_message_display || ''
+		},
+		hours: {
+			always_open: admin.hours.always_open,
+			is_open: admin.hours.is_open,
+			label: admin.hours.label,
+			detail: admin.hours.detail,
+			timezone: admin.hours.timezone || admin.store.timezone || 'UTC',
+			schedule: admin.hours.schedule ?? {},
+			today_closes: admin.hours.today_closes
+		},
+		preview: true
+	};
 }

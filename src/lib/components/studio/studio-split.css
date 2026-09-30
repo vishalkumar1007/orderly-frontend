@@ -1,0 +1,80 @@
+/* Storefront Studio splitter — ported from onboard, themed for the shop console. */
+
+.studio-splitter {
+	flex: 0 0 10px;
+	width: 10px;
+	margin: 0 -5px;
+	position: relative;
+	z-index: 10;
+	cursor: col-resize;
+	user-select: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	outline: none;
+}
+
+.studio-splitter-line {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 50%;
+	width: 1px;
+	background: var(--border);
+	transform: translateX(-50%);
+	transition:
+		background 0.15s ease,
+		width 0.15s ease;
+}
+
+.studio-splitter-pill {
+	position: relative;
+	z-index: 2;
+	width: 6px;
+	height: 36px;
+	border-radius: 9999px;
+	background: var(--border);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.15s ease;
+}
+
+.studio-splitter-dots {
+	width: 2px;
+	height: 14px;
+	border-radius: 1px;
+	background: var(--text-3);
+	transition: background 0.15s ease;
+}
+
+.studio-splitter:hover .studio-splitter-line,
+.studio-split-row.is-dragging .studio-splitter .studio-splitter-line,
+.studio-splitter:focus-visible .studio-splitter-line {
+	background: color-mix(in srgb, var(--accent) 55%, var(--border));
+	width: 2px;
+}
+
+.studio-splitter:hover .studio-splitter-pill,
+.studio-split-row.is-dragging .studio-splitter .studio-splitter-pill,
+.studio-splitter:focus-visible .studio-splitter-pill {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	height: 48px;
+	box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.12));
+}
+
+.studio-splitter:hover .studio-splitter-dots,
+.studio-split-row.is-dragging .studio-splitter .studio-splitter-dots {
+	background: var(--accent);
+}
+
+.studio-split-row.is-dragging {
+	user-select: none;
+}
+
+@media (max-width: 1200px) {
+	.studio-splitter {
+		display: none;
+	}
+}

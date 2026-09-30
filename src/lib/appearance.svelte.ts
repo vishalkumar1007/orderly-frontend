@@ -21,7 +21,59 @@
 import { ApiClientError, api, getAccessToken } from '$lib/api/client';
 import { applyBrandTheme, setCachedBrandTheme, type BrandTheme } from '$lib/brandTheme';
 
-export type ColorMode = 'light' | 'dark' | 'system';
+export type ColorMode =
+	| 'light'
+	| 'soft'
+	| 'mist'
+	| 'dark'
+	| 'graphite'
+	| 'raw'
+	| 'night'
+	| 'midnight'
+	| 'system';
+
+/** Resolved surface theme painted on <html data-theme>. */
+export type ResolvedThemeMode = Exclude<ColorMode, 'system'>;
+
+/**
+ * Dashboard looks inspired by common admin/SaaS themes (Linear charcoal, OLED
+ * raw black, midnight slate, paper soft, cool mist) — some with a coloured
+ * wash, some flat.
+ */
+export const COLOR_MODES: Array<{
+	id: ColorMode;
+	label: string;
+	hint: string;
+	swatch: string;
+	/** How strong the accent page wash is. */
+	wash: 'none' | 'subtle' | 'medium' | 'strong';
+}> = [
+	{ id: 'light', label: 'Light', hint: 'Bright white · faint wash', swatch: '#f7f8fb', wash: 'subtle' },
+	{ id: 'soft', label: 'Soft', hint: 'Warm paper · coloured wash', swatch: '#f3f1ec', wash: 'strong' },
+	{ id: 'mist', label: 'Mist', hint: 'Cool light · barely tinted', swatch: '#f4f6f9', wash: 'subtle' },
+	{ id: 'dark', label: 'Dark', hint: 'Navy dark · accent glow', swatch: '#10121d', wash: 'medium' },
+	{ id: 'graphite', label: 'Graphite', hint: 'Flat dark · no colour wash', swatch: '#141416', wash: 'none' },
+	{ id: 'raw', label: 'Raw', hint: 'OLED black · no colour wash', swatch: '#050505', wash: 'none' },
+	{ id: 'night', label: 'Night', hint: 'Charcoal · strong colour wash', swatch: '#121214', wash: 'strong' },
+	{ id: 'midnight', label: 'Midnight', hint: 'Slate navy · medium wash', swatch: '#0f172a', wash: 'medium' },
+	{ id: 'system', label: 'System', hint: 'Follow device setting', swatch: 'linear-gradient(135deg,#f7f8fb 50%,#10121d 50%)', wash: 'subtle' }
+];
+
+const COLOR_MODE_IDS = new Set(COLOR_MODES.map((m) => m.id));
+
+export function isValidColorMode(mode: string): mode is ColorMode {
+	return COLOR_MODE_IDS.has(mode as ColorMode);
+}
+
+export function isDarkFamily(mode: ResolvedThemeMode | ColorMode): boolean {
+	return (
+		mode === 'dark' ||
+		mode === 'night' ||
+		mode === 'midnight' ||
+		mode === 'graphite' ||
+		mode === 'raw'
+	);
+}
 
 /** Which console is asking. They share a column and differ only in the default. */
 export type ConsoleKind = 'tenant' | 'platform';
@@ -68,6 +120,44 @@ function storageKey(scope: string): string {
 	return `orderly-console-appearance:${scope || 'console'}`;
 }
 
+/** Remembers Soft/Night when the API still only accepts light/dark/system. */
+function surfaceKey(scope: string): string {
+	return `orderly-console-surface:${scope || 'console'}`;
+}
+
+export function readStoredSurface(scope: string): ColorMode | null {
+	try {
+		const raw = localStorage.getItem(surfaceKey(scope));
+		if (raw && isValidColorMode(raw)) return raw;
+	} catch {
+		/* ignore */
+	}
+	return null;
+}
+
+export function storeSurface(scope: string, mode: ColorMode): void {
+	try {
+		localStorage.setItem(surfaceKey(scope), mode);
+	} catch {
+		/* ignore */
+	}
+}
+
+/** Map extended looks onto light/dark for older appearance validators. */
+export function apiColorMode(mode: ColorMode): 'light' | 'dark' | 'system' {
+	if (mode === 'system') return 'system';
+	return isDarkFamily(mode) ? 'dark' : 'light';
+}
+
+/** Prefer an explicit dashboard look over a mapped light/dark from the API. */
+export function restoreSurfaceMode(scope: string, apiMode: ColorMode): ColorMode {
+	const stored = readStoredSurface(scope);
+	if (!stored) return apiMode;
+	if (stored === apiMode) return stored;
+	if (apiColorMode(stored) === apiColorMode(apiMode)) return stored;
+	return apiMode;
+}
+
 export function readStoredTheme(scope: string): BrandTheme | null {
 	try {
 		const raw = localStorage.getItem(storageKey(scope));
@@ -108,8 +198,8 @@ const state = $state<{
 	kind: ConsoleKind;
 	scope: string;
 	appearance: ConsoleAppearance | null;
-	/** Resolved light/dark, after `system` has been asked of the browser. */
-	mode: 'light' | 'dark';
+	/** Resolved surface theme after `system` has been asked of the browser. */
+	mode: ResolvedThemeMode;
 }>({ kind: 'tenant', scope: '', appearance: null, mode: 'light' });
 
 export const consoleAppearance = {
@@ -130,8 +220,8 @@ export const consoleAppearance = {
 	}
 };
 
-function resolveMode(colorMode: ColorMode): 'light' | 'dark' {
-	if (colorMode === 'light' || colorMode === 'dark') return colorMode;
+function resolveMode(colorMode: ColorMode): ResolvedThemeMode {
+	if (colorMode !== 'system' && isValidColorMode(colorMode)) return colorMode;
 	if (typeof window === 'undefined') return 'light';
 	return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
@@ -149,13 +239,19 @@ export function adoptAppearance(
 	scope: string,
 	appearance: ConsoleAppearance
 ): void {
+	const restoredMode = restoreSurfaceMode(scope, appearance.theme.color_mode);
+	const next: ConsoleAppearance = {
+		...appearance,
+		theme: { ...appearance.theme, color_mode: restoredMode }
+	};
 	state.kind = kind;
 	state.scope = scope;
-	state.appearance = appearance;
-	state.mode = resolveMode(appearance.theme.color_mode);
-	applyBrandTheme(appearance.theme);
-	setCachedBrandTheme(scope || 'console', appearance.theme);
-	storeTheme(scope, appearance.theme);
+	state.appearance = next;
+	state.mode = resolveMode(restoredMode);
+	applyBrandTheme(next.theme);
+	setCachedBrandTheme(scope || 'console', next.theme);
+	storeTheme(scope, next.theme);
+	storeSurface(scope, restoredMode);
 }
 
 /**
@@ -218,14 +314,36 @@ async function loadDefaultOnly(kind: ConsoleKind): Promise<BrandTheme> {
 }
 
 /** Save a partial personal choice and get the resolved appearance back. */
-export function saveAppearance(
+export async function saveAppearance(
 	kind: ConsoleKind,
 	patch: AppearanceWrite
 ): Promise<ConsoleAppearance> {
-	return api<ConsoleAppearance>(endpoint(kind), {
-		method: 'PATCH',
-		body: JSON.stringify(patch)
-	});
+	const preferred = patch.color_mode;
+	const body: AppearanceWrite = preferred
+		? { ...patch, color_mode: apiColorMode(preferred) }
+		: patch;
+	try {
+		const saved = await api<ConsoleAppearance>(endpoint(kind), {
+			method: 'PATCH',
+			body: JSON.stringify(preferred ? { ...patch, color_mode: preferred } : patch)
+		});
+		if (preferred) storeSurface(state.scope || 'console', preferred);
+		return preferred
+			? { ...saved, theme: { ...saved.theme, color_mode: preferred } }
+			: saved;
+	} catch (err) {
+		// Older APIs reject extended looks — persist the closest classic mode and
+		// keep the richer surface choice in the browser so the console still paints.
+		if (preferred && preferred !== 'light' && preferred !== 'dark' && preferred !== 'system') {
+			const saved = await api<ConsoleAppearance>(endpoint(kind), {
+				method: 'PATCH',
+				body: JSON.stringify(body)
+			});
+			storeSurface(state.scope || 'console', preferred);
+			return { ...saved, theme: { ...saved.theme, color_mode: preferred } };
+		}
+		throw err;
+	}
 }
 
 /** Drop the personal layer and go back to the default. */
@@ -234,7 +352,7 @@ export function resetAppearance(kind: ConsoleKind): Promise<ConsoleAppearance> {
 }
 
 /**
- * Set light/dark for the signed-in person.
+ * Set the console surface theme for the signed-in person.
  *
  * Paints first and persists after: a theme toggle that waits for a round trip
  * feels broken, and the worst case if the write fails is that the next reload
@@ -266,4 +384,39 @@ export async function setColorMode(mode: ColorMode): Promise<void> {
 	} catch {
 		/* Painted already; the account keeps whatever it had. */
 	}
+}
+
+/** Flip between the light and dark families, pairing related looks when possible. */
+export async function toggleColorMode(): Promise<void> {
+	const current = state.appearance?.theme.color_mode ?? state.mode;
+	let next: ColorMode;
+	switch (current) {
+		case 'soft':
+			next = 'night';
+			break;
+		case 'night':
+			next = 'soft';
+			break;
+		case 'mist':
+			next = 'graphite';
+			break;
+		case 'graphite':
+			next = 'mist';
+			break;
+		case 'midnight':
+			next = 'soft';
+			break;
+		case 'raw':
+			next = 'light';
+			break;
+		case 'dark':
+			next = 'light';
+			break;
+		case 'light':
+			next = 'dark';
+			break;
+		default:
+			next = isDarkFamily(state.mode) ? 'light' : 'dark';
+	}
+	await setColorMode(next);
 }

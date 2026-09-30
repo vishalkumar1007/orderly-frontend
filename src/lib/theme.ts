@@ -1,7 +1,7 @@
 import { browser } from '$app/environment';
 
 /**
- * The pre-paint light/dark cache.
+ * The pre-paint surface-theme cache.
  *
  * This is *not* where the setting lives. A signed-in person's colour mode is on
  * their account (`lib/appearance.svelte.ts`), which is one round trip away — too
@@ -9,19 +9,35 @@ import { browser } from '$app/environment';
  * who chose dark. So the resolved mode is mirrored here, the inline script in
  * the root layout reads it before anything renders, and the account overwrites
  * it as soon as it answers.
- *
- * Treating this as the setting is what made the toggle and the saved mode
- * disagree; nothing may write it except the appearance module and that script.
  */
 const STORAGE_KEY = 'orderly-theme';
 
-export type ThemeMode = 'light' | 'dark';
+export type ThemeMode =
+	| 'light'
+	| 'soft'
+	| 'mist'
+	| 'dark'
+	| 'graphite'
+	| 'raw'
+	| 'night'
+	| 'midnight';
+
+const VALID: ThemeMode[] = [
+	'light',
+	'soft',
+	'mist',
+	'dark',
+	'graphite',
+	'raw',
+	'night',
+	'midnight'
+];
 
 export function resolveInitialTheme(): ThemeMode {
 	if (!browser) return 'light';
 	try {
 		const stored = localStorage.getItem(STORAGE_KEY);
-		if (stored === 'light' || stored === 'dark') return stored;
+		if (stored && (VALID as string[]).includes(stored)) return stored as ThemeMode;
 	} catch {
 		/* blocked storage — fall through to the system preference */
 	}

@@ -1,15 +1,12 @@
 <script lang="ts">
 	import Clock from '@lucide/svelte/icons/clock';
-	import OpeningHoursForm from '$lib/components/storefront/OpeningHoursForm.svelte';
-	import type { StorefrontContext } from '$lib/storefront/admin-context';
+	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import './launch-shared.css';
 
 	let {
-		sfProps,
-		onsaved
+		config
 	}: {
-		sfProps: Partial<StorefrontContext>;
-		onsaved: () => void | Promise<void>;
+		config: { hours: { label?: string; detail?: string; is_open?: boolean } };
 	} = $props();
 </script>
 
@@ -19,16 +16,21 @@
 			<Clock size={24} strokeWidth={1.8} />
 		</div>
 		<div>
-			<h2 class="intro-h">Store Schedule &amp; Opening Hours</h2>
-			<p class="intro-p">
-				Set when the store accepts orders by the clock. For live open / busy / closed and pausing
-				orders, use the Status tab.
-			</p>
+			<h2 class="intro-h">Opening hours</h2>
+			<p class="intro-p">Weekly schedule lives in Customize Studio — publish when you are ready.</p>
 		</div>
 	</div>
 
 	<div class="panel hours-panel">
-		<OpeningHoursForm {...sfProps} {onsaved} />
+		<p class="section-note" style="margin:0 0 1rem;">
+			Right now:
+			<strong>{config.hours.is_open ? 'Open' : 'Closed'}</strong>
+			{config.hours.detail ? ` · ${config.hours.detail}` : ''}
+		</p>
+		<a class="btn btn-primary" href="/shop/customize?section=ordering">
+			<ExternalLink size={15} strokeWidth={2} />
+			Edit hours in Customize
+		</a>
 	</div>
 </div>
 

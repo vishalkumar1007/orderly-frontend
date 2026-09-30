@@ -18,7 +18,7 @@
 		tenantTitle
 	} from '$lib/tenant/nav';
 	import { orderBoard } from '$lib/tenant/orders.svelte';
-	import { invalidateDashboardSnapshot } from '$lib/tenant/dashboardCache.svelte';
+	import { invalidateDashboardSnapshot, resolveStorefrontUrl } from '$lib/tenant/dashboardCache.svelte';
 	import { invalidateMenuSnapshot } from '$lib/tenant/menuCache.svelte';
 	import { invalidateStorefrontAdmin } from '$lib/storefront/adminCache.svelte';
 	import { clearBrandTheme, invalidateBrandThemeCache } from '$lib/brandTheme';
@@ -127,6 +127,9 @@
 		isOpsFullscreenPath($page.url.pathname) && $page.url.searchParams.get('fullscreen') === '1'
 	);
 
+	/** Storefront Studio owns the content pane edge-to-edge. */
+	const isStudioHub = $derived($page.url.pathname === '/shop/customize');
+
 	/** Resolve identity for the side of the login wall we are currently on. */
 	async function resolve(side: 'public' | 'protected') {
 		if (side === 'public') {
@@ -187,9 +190,7 @@
 				const link = await api<StoreLink>('/api/v1/tenant/store-link');
 				if (cancelled) return;
 				shopName = link.name || data.tenantSlug || 'Your shop';
-				storefrontUrl =
-					link.public_url ||
-					(link.public_host ? `http://${link.public_host}${link.public_path || ''}` : '');
+				storefrontUrl = resolveStorefrontUrl(link);
 			} catch {
 				if (!cancelled) shopName = data.tenantSlug ?? 'Your shop';
 			}
@@ -272,6 +273,8 @@
 			storageKey="orderly-shop-rail"
 			settingsHref="/shop/settings"
 			appearanceHref="/shop/settings?section=appearance"
+			wideContent={isStudioHub}
+			flushContent={isStudioHub}
 			onSignOut={signOut}
 		>
 			{#snippet actions()}

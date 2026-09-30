@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Megaphone from '@lucide/svelte/icons/megaphone';
 	import Sparkles from '@lucide/svelte/icons/sparkles';
-	import AlertCircle from '@lucide/svelte/icons/alert-circle';
+	import AlertCircle from '@lucide/svelte/icons/circle-alert';
 	import Info from '@lucide/svelte/icons/info';
 	import Store from '@lucide/svelte/icons/store';
 	import { storefrontAdminApi } from '$lib/storefront/admin';
@@ -208,7 +208,8 @@
 		padding: 1.25rem 1.5rem;
 		background: var(--surface);
 		border: 1px solid var(--border);
-		border-radius: var(--radius-md, 12px);
+		border-radius: var(--radius-lg, 12px);
+		box-shadow: none;
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
@@ -233,9 +234,9 @@
 		cursor: pointer;
 	}
 	.type-pill-btn.active {
-		border-color: var(--primary, #3b82f6);
-		color: var(--text);
-		background: var(--surface);
+		border-color: var(--accent);
+		color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 12%, var(--surface));
 	}
 	.composer-header {
 		display: flex;

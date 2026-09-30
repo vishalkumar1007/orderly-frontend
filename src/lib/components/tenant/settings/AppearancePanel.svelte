@@ -69,11 +69,16 @@
 	let loading = $state(true);
 	let error = $state('');
 	let saving = $state(false);
+	let savedFlash = $state(false);
 	let resetting = $state(false);
 	let publishOpen = $state(false);
 	let publishing = $state(false);
 	let restoreOpen = $state(false);
 	let restoring = $state(false);
+	/** Skip autosave until bootstrap finishes and while we are applying a saved result. */
+	let readyForAutosave = $state(false);
+	let lastSavedKey = $state('');
+	let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
 	let presetId = $state('indigo-violet');
 	let colorMode = $state<ColorMode>('system');
@@ -90,6 +95,15 @@
 
 	/** Only a complete colour is worth painting with. */
 	const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+
+	function formKey(
+		pid = presetId,
+		mode = colorMode,
+		a = accent,
+		a2 = accent2
+	) {
+		return `${pid}|${mode}|${a.trim().toLowerCase()}|${a2.trim().toLowerCase()}`;
+	}
 
 	/**
 	 * What the current form choices resolve to, without asking the server.
@@ -128,6 +142,7 @@
 
 	/** Seed the form from whichever layer is currently in force. */
 	function adopt(next: ConsoleAppearance) {
+		readyForAutosave = false;
 		appearance = next;
 		const theme = next.theme;
 		presetId = theme.preset_id;
@@ -146,10 +161,15 @@
 				? theme.tokens.accent2
 				: '';
 		adoptAppearance(kind, scope, next);
+		lastSavedKey = formKey();
+		queueMicrotask(() => {
+			readyForAutosave = true;
+		});
 	}
 
 	async function bootstrap() {
 		loading = true;
+		readyForAutosave = false;
 		try {
 			const [list, resolved] = await Promise.all([
 				api<{ presets: ThemePreset[] }>(
@@ -170,39 +190,38 @@
 	onMount(bootstrap);
 
 	/*
-	 * Paint every edit as it is made.
-	 *
-	 * `applyBrandTheme` writes the accent variables and `data-theme` onto
-	 * <html>, and every themed surface — the rail above all — is a `color-mix`
-	 * against those, so the whole console follows a preset click with no reload
-	 * and nothing to re-render. `untrack` keeps this a one-way street: the
-	 * effect reacts to the form, never to the theme it just applied.
+	 * Paint every edit as it is made, then autosave after a short pause.
 	 */
 	$effect(() => {
 		const theme = draftTheme;
+		const key = formKey();
 		if (!theme || loading) return;
 		untrack(() => {
 			applyBrandTheme(theme);
 			previewColorMode(theme.color_mode);
 		});
+		if (!readyForAutosave || accentError || accent2Error || key === lastSavedKey) return;
+		untrack(() => scheduleAutosave());
 	});
 
-	/**
-	 * Leaving without saving must undo the preview.
-	 *
-	 * Otherwise a colour someone tried and walked away from follows them around
-	 * the console until the next reload, which reads as "it saved" — the one
-	 * thing a preview must never look like.
-	 */
+	function scheduleAutosave() {
+		if (saveTimer) clearTimeout(saveTimer);
+		saveTimer = setTimeout(() => {
+			void save({ silent: true });
+		}, 450);
+	}
+
 	onMount(() => () => {
+		if (saveTimer) clearTimeout(saveTimer);
+		if (!saving) return;
 		const saved = appearance?.theme;
 		if (saved) applyBrandTheme(saved);
 	});
 
-	async function save() {
+	async function save(opts: { silent?: boolean } = {}) {
 		if (saving) return;
 		if (accentError || accent2Error) {
-			toast.error('Fix the colour before saving');
+			if (!opts.silent) toast.error('Fix the colour before saving');
 			return;
 		}
 		saving = true;
@@ -216,7 +235,9 @@
 				overrides
 			});
 			adopt(next);
-			toast.success('Your console appearance is saved');
+			savedFlash = true;
+			setTimeout(() => (savedFlash = false), 1600);
+			if (!opts.silent) toast.success('Your console appearance is saved');
 		} catch (err) {
 			toast.error(errorMessage(err, 'save your appearance'));
 		} finally {
@@ -376,6 +397,15 @@
 				{/if}
 			</p>
 			<div class="ap-actions">
+				<span class="ap-save-status" aria-live="polite">
+					{#if saving}
+						Saving…
+					{:else if savedFlash}
+						<CircleCheck size={14} strokeWidth={2.2} /> Saved
+					{:else}
+						Changes save automatically
+					{/if}
+				</span>
 				{#if canSetBusinessDefault}
 					{#if kind === 'platform'}
 						<button
@@ -396,13 +426,6 @@
 						<Users size={15} strokeWidth={1.9} /> Set as {copy.defaultName}
 					</button>
 				{/if}
-				<button class="btn btn-primary" type="button" disabled={saving} onclick={save}>
-					{#if saving}
-						Saving…
-					{:else}
-						<CircleCheck size={15} strokeWidth={2.2} /> Save for me
-					{/if}
-				</button>
 			</div>
 		</div>
 	</div>
@@ -478,8 +501,19 @@
 
 	.ap-actions {
 		display: flex;
+		align-items: center;
 		gap: 0.5rem;
 		flex-wrap: wrap;
+	}
+
+	.ap-save-status {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: var(--fs-meta);
+		font-weight: 600;
+		color: var(--text-3);
+		margin-right: 0.35rem;
 	}
 
 	@media (max-width: 600px) {

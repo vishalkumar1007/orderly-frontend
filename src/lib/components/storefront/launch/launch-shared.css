@@ -19,7 +19,8 @@
 	padding: 1.25rem 1.5rem;
 	background: var(--surface);
 	border: 1px solid var(--border);
-	border-radius: var(--radius-md, 12px);
+	border-radius: var(--radius-lg, 12px);
+	box-shadow: none;
 }
 
 .intro-icon-wrap {
@@ -28,9 +29,9 @@
 	justify-content: center;
 	width: 2.75rem;
 	height: 2.75rem;
-	border-radius: var(--radius-sm, 8px);
-	background: var(--surface-2);
-	color: var(--text-2);
+	border-radius: var(--radius);
+	background: color-mix(in srgb, var(--accent) 14%, transparent);
+	color: var(--accent);
 	flex-shrink: 0;
 }
 
@@ -97,8 +98,8 @@
 }
 
 .text-input:focus {
-	outline: 2px solid color-mix(in srgb, var(--primary, #3b82f6) 40%, transparent);
-	border-color: var(--primary, #3b82f6);
+	outline: 2px solid var(--accent-ring);
+	border-color: var(--accent);
 }
 
 .text-input.read-only {

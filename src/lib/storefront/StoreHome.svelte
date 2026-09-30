@@ -70,6 +70,12 @@
 
 	const hero = $derived(visible.find((s) => s.type === 'HERO'));
 	const announcement = $derived(visible.find((s) => s.type === 'ANNOUNCEMENT'));
+	const liveBannerMessage = $derived((config.ordering?.status_message ?? '').trim());
+	const heroStyle = $derived(config.theme?.hero ?? 'gradient');
+	const heroImageUrl = $derived((config.theme?.hero_image_url ?? '').trim());
+	const filterStyle = $derived(config.theme?.filter_style ?? 'chips');
+	const showHeroCover = $derived(heroStyle === 'image' || heroStyle === 'gradient');
+	const useHeroPhoto = $derived(heroStyle === 'image' && Boolean(heroImageUrl));
 	const hours = $derived(config.hours);
 	const hourRows = $derived(hoursRows(hours));
 	const todayKey = $derived(hourRows.find((r) => r.isToday)?.key);
@@ -155,7 +161,7 @@
 </script>
 
 <!-- Announcement Banner -->
-{#if announcement && read(announcement, 'text')}
+{#if !liveBannerMessage && announcement && read(announcement, 'text')}
 	<div class="sf-announcement" data-tone={announceTone}>
 		<Sparkles size={16} strokeWidth={2.2} aria-hidden="true" />
 		<span>{read(announcement, 'text')}</span>
@@ -164,16 +170,23 @@
 
 <!-- Restaurant Profile & Hero Header -->
 {#if hero}
-	<section class="sf-restaurant-hero">
-		<!-- Panoramic Cover Banner -->
-		<div
-			class="sf-hero-cover"
-			style={config.theme.hero_image_url
-				? `background-image: linear-gradient(180deg, rgba(15, 23, 42, 0.25) 0%, rgba(15, 23, 42, 0.75) 100%), url('${config.theme.hero_image_url}')`
-				: undefined}
-		>
-			<div class="sf-hero-cover-pattern" aria-hidden="true"></div>
-		</div>
+	<section class="sf-restaurant-hero" data-hero={heroStyle}>
+		{#if showHeroCover}
+			<div
+				class="sf-hero-cover"
+				class:sf-hero-cover-photo={useHeroPhoto}
+				style={useHeroPhoto
+					? `background-image: linear-gradient(180deg, rgba(15, 23, 42, 0.25) 0%, rgba(15, 23, 42, 0.75) 100%), url('${heroImageUrl}')`
+					: undefined}
+			>
+				{#if !useHeroPhoto}
+					<div class="sf-hero-cover-pattern" aria-hidden="true"></div>
+				{/if}
+				{#if config.preview && heroStyle === 'image' && !heroImageUrl}
+					<div class="sf-hero-cover-hint">Add a cover photo URL to replace this gradient</div>
+				{/if}
+			</div>
+		{/if}
 
 		<!-- Overlapping Restaurant Profile Card -->
 		<div class="sf-restaurant-card-wrap">
@@ -260,7 +273,7 @@
 {/if}
 
 <!-- Sticky Category & Quick Filter Bar -->
-<div class="sf-sticky-nav-bar">
+<div class="sf-sticky-nav-bar" data-filter-style={filterStyle}>
 	<div class="sf-sticky-nav-inner">
 		<!-- Quick Dietary Switches (Shown for Food businesses) -->
 		<div class="sf-diet-filters">
@@ -294,7 +307,7 @@
 		<div class="sf-sticky-nav-divider" aria-hidden="true"></div>
 
 		<!-- Scrollable Category Chips -->
-		<div class="sf-nav-categories">
+		<div class="sf-nav-categories" data-style={filterStyle}>
 			{#each menu.categories as category (category.id)}
 				<button
 					class="sf-nav-chip {activeCategory === category.id ? 'sf-active-chip' : ''}"
@@ -317,7 +330,9 @@
 				<div class="sf-section-head">
 					<div class="sf-section-title-wrap">
 						<h2 class="sf-section-title">{read(section, 'title', 'Browse by category')}</h2>
-						<span class="sf-section-sub">Handcrafted fresh daily</span>
+						{#if read(section, 'subtitle') || read(section, 'description')}
+							<span class="sf-section-sub">{read(section, 'subtitle') || read(section, 'description')}</span>
+						{/if}
 					</div>
 					<a href="/menu" class="sf-section-link">
 						<span>See full menu</span>
@@ -364,7 +379,13 @@
 									)}
 								</h2>
 							</div>
-							<span class="sf-section-sub">Customer favorites loved by everyone</span>
+							<span class="sf-section-sub">
+								{read(section, 'description') ||
+									read(section, 'subtitle') ||
+									(section.type === 'POPULAR_PRODUCTS'
+										? 'Customer favorites'
+										: 'Hand-picked highlights')}
+							</span>
 						</div>
 						<a href="/menu" class="sf-section-link">
 							<span>See all</span>

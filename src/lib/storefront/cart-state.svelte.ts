@@ -41,6 +41,7 @@ export type CartState = {
 	estimate: () => CartTotals;
 	setTotals: (totals: CartTotals | null) => void;
 	sync: (lines: CartLine[]) => void;
+	setNotice: (msg: string) => void;
 };
 
 const KEY = 'orderly:cart';
@@ -98,6 +99,9 @@ export function createCart(slug: string, initial: CartLine[]): CartState {
 		sync(next) {
 			lines = next;
 			writeCart(slug, lines);
+		},
+		setNotice(msg: string) {
+			notice = msg;
 		}
 	};
 

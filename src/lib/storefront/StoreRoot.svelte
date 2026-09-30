@@ -15,7 +15,8 @@
 	 *    off `data-sf-theme` in the stylesheet.
 	 */
 	import { hasCompleteTokens, resolveThemeMode, themeVars, FALLBACK_THEME } from './theme';
-	import { onMount } from 'svelte';
+	import { STOREFRONT_THEME_TOGGLE_KEY, type StorefrontThemeToggle } from './themeToggle.svelte';
+	import { onMount, setContext } from 'svelte';
 
 	let {
 		config,
@@ -40,21 +41,49 @@
 	const theme = $derived(config?.theme ?? FALLBACK_THEME);
 	const vars = $derived(hasCompleteTokens(theme) ? themeVars(theme) : themeVars(FALLBACK_THEME));
 	const mode = $derived(resolveThemeMode(theme.mode));
+	const switchEnabled = $derived(Boolean(theme.customer_mode_switch_enabled));
 
 	// `system` needs the OS preference, which only exists in the browser. A
 	// listener keeps a storefront that is left open across a theme switch
 	// correct without a reload.
 	let systemDark = $state(false);
+	let userChoice = $state<'light' | 'dark' | null>(null);
 
 	onMount(() => {
 		const query = window.matchMedia('(prefers-color-scheme: dark)');
 		systemDark = query.matches;
 		const onChange = (event: MediaQueryListEvent) => (systemDark = event.matches);
 		query.addEventListener('change', onChange);
+
+		if (switchEnabled && tenantSlug) {
+			const saved = localStorage.getItem(`sf-theme-${tenantSlug}`);
+			if (saved === 'light' || saved === 'dark') userChoice = saved;
+		}
+
 		return () => query.removeEventListener('change', onChange);
 	});
 
-	const resolved = $derived(theme.mode === 'system' ? (systemDark ? 'dark' : 'light') : mode);
+	const defaultResolved = $derived(
+		theme.mode === 'system' ? (systemDark ? 'dark' : 'light') : mode
+	);
+	const resolved = $derived(userChoice ?? defaultResolved);
+
+	function toggleCustomerTheme() {
+		const next = resolved === 'dark' ? 'light' : 'dark';
+		userChoice = next;
+		if (tenantSlug) localStorage.setItem(`sf-theme-${tenantSlug}`, next);
+	}
+
+	const toggleApi = $state<StorefrontThemeToggle>({
+		enabled: false,
+		mode: 'light',
+		toggle: toggleCustomerTheme
+	});
+	$effect(() => {
+		toggleApi.enabled = switchEnabled;
+		toggleApi.mode = resolved;
+	});
+	setContext(STOREFRONT_THEME_TOGGLE_KEY, toggleApi);
 </script>
 
 <div class="sf-root" data-sf-theme={resolved} data-sf-tenant={tenantSlug || undefined} style={vars}>

@@ -1,4 +1,5 @@
 import type { Component } from 'svelte';
+import Clock from '@lucide/svelte/icons/clock';
 import CreditCard from '@lucide/svelte/icons/credit-card';
 import Image from '@lucide/svelte/icons/image';
 import LayoutTemplate from '@lucide/svelte/icons/layout-template';
@@ -18,10 +19,20 @@ import type { ConfigControl, Terminology } from '$lib/admin/businessTypes';
  * A hotel does not have a Menu and a grocery does not either — calling it one
  * is how a console ends up feeling like it was built for somebody else's shop.
  */
-export type StudioSectionId = 'style' | 'branding' | 'homepage' | 'menu' | 'customer' | 'checkout';
+export type StudioSectionGroup = 'appearance' | 'operations';
+
+export type StudioSectionId =
+	| 'style'
+	| 'branding'
+	| 'homepage'
+	| 'menu'
+	| 'ordering'
+	| 'customer'
+	| 'checkout';
 
 export type StudioSection = {
 	id: StudioSectionId;
+	group: StudioSectionGroup;
 	label: (terms: Terminology) => string;
 	hint: (terms: Terminology) => string;
 	icon: Component;
@@ -38,6 +49,7 @@ export type StudioSection = {
 export const STUDIO_SECTIONS: StudioSection[] = [
 	{
 		id: 'style',
+		group: 'appearance',
 		label: () => 'Style',
 		hint: () => 'Preset, colours, type and shape',
 		icon: Palette,
@@ -45,6 +57,7 @@ export const STUDIO_SECTIONS: StudioSection[] = [
 	},
 	{
 		id: 'branding',
+		group: 'appearance',
 		label: () => 'Brand',
 		hint: () => 'Name, logo and how you introduce yourself',
 		icon: Image,
@@ -52,6 +65,7 @@ export const STUDIO_SECTIONS: StudioSection[] = [
 	},
 	{
 		id: 'homepage',
+		group: 'appearance',
 		label: () => 'Homepage',
 		hint: () => 'What a customer sees first',
 		icon: LayoutTemplate,
@@ -59,28 +73,45 @@ export const STUDIO_SECTIONS: StudioSection[] = [
 	},
 	{
 		id: 'menu',
-		label: (t) => t.catalog,
-		hint: (t) => `How your ${t.items.toLowerCase()} are laid out`,
+		group: 'appearance',
+		label: (t) => `${t.catalog} layout`,
+		hint: () => 'Layout, filters and header navigation',
 		icon: UtensilsCrossed,
-		categories: []
+		categories: ['Menu layout']
+	},
+	{
+		id: 'ordering',
+		group: 'operations',
+		label: () => 'Ordering & status',
+		hint: () => 'Hours, pricing, and when you accept orders',
+		icon: Clock,
+		categories: ['Ordering', 'Hours'],
+		requires: ['ordering']
 	},
 	{
 		id: 'customer',
+		group: 'operations',
 		label: () => 'Customers',
-		hint: () => 'Signing in, and what you ask for',
+		hint: () => 'Phone sign-in before checkout',
 		icon: Users,
-		categories: ['Ordering'],
+		categories: ['Customers'],
 		requires: ['customer_login', 'ordering']
 	},
 	{
 		id: 'checkout',
-		label: () => 'Checkout',
-		hint: (t) => `Paying, and how an ${t.order.toLowerCase()} is handled`,
+		group: 'operations',
+		label: () => 'Payments & checkout',
+		hint: () => 'Payment methods and order flow',
 		icon: CreditCard,
 		categories: ['Payments', 'Workflow'],
 		requires: ['payment_methods', 'payment_timing', 'acceptance']
 	}
 ];
+
+export const STUDIO_GROUP_LABELS: Record<StudioSectionGroup, string> = {
+	appearance: 'Appearance',
+	operations: 'Store rules'
+};
 
 /**
  * The sections this business type has a use for.
@@ -93,6 +124,31 @@ export function visibleStudioSections(controls: readonly ConfigControl[]): Studi
 	return STUDIO_SECTIONS.filter(
 		(section) => !section.requires || section.requires.some((c) => held.has(c))
 	);
+}
+
+export function studioSectionsByGroup(
+	controls: readonly ConfigControl[]
+): { group: StudioSectionGroup; label: string; sections: StudioSection[] }[] {
+	const visible = visibleStudioSections(controls);
+	const groups: StudioSectionGroup[] = ['appearance', 'operations'];
+	return groups
+		.map((group) => ({
+			group,
+			label: STUDIO_GROUP_LABELS[group],
+			sections: visible.filter((s) => s.group === group)
+		}))
+		.filter((g) => g.sections.length > 0);
+}
+
+/** Map a diff category to Appearance vs Store rules for the review modal. */
+export function studioGroupForCategory(category: string): StudioSectionGroup {
+	if (category === 'Ordering' || category === 'Hours' || category === 'Customers') {
+		return 'operations';
+	}
+	if (category === 'Payments' || category === 'Workflow') {
+		return 'operations';
+	}
+	return 'appearance';
 }
 
 /** Resolve a section id to one this business type actually shows. */

@@ -1,17 +1,14 @@
 import type { Component } from 'svelte';
-import Image from '@lucide/svelte/icons/image';
-import LayoutTemplate from '@lucide/svelte/icons/layout-template';
-import Palette from '@lucide/svelte/icons/palette';
-import Smartphone from '@lucide/svelte/icons/smartphone';
 import Store from '@lucide/svelte/icons/store';
 
 /**
  * Storefront Customize navigation.
  *
- * Preview and QR live on the tenant rail as their own destinations.
- * Opening hours, QR and Preview live under /shop/storefront; payments has its
+ * Preview and Publish & Marketing live under /shop/storefront.
+ * Opening hours live under Action; payments has its
  * own destination and order workflow is a section of Settings.
- * This list is only the Customize hub: look, homepage, and customer login.
+ * Legacy section URLs redirect into Studio (`/shop/customize?section=…`).
+ * This list is the Customize hub entry only.
  */
 export type StorefrontNavItem = {
 	href: string;
@@ -29,43 +26,14 @@ export type StorefrontNavItem = {
 export const STOREFRONT_NAV: StorefrontNavItem[] = [
 	{
 		href: '/shop/customize',
-		label: 'Overview',
-		description: 'How your storefront looks and whether it is live',
+		label: 'Studio',
+		description: 'Appearance, store rules, preview, and publish',
 		icon: Store
-	},
-	{
-		href: '/shop/customize/branding',
-		label: 'Branding',
-		description: 'Logo, favicon and the name customers see',
-		icon: Image
-	},
-	{
-		href: '/shop/customize/theme',
-		label: 'Theme',
-		description: 'Colours, fonts, buttons and cards',
-		icon: Palette
-	},
-	{
-		href: '/shop/customize/homepage',
-		label: 'Homepage',
-		description: 'Choose and order the sections on your home page',
-		icon: LayoutTemplate
-	},
-	{
-		href: '/shop/customize/login',
-		label: 'Customer login',
-		description: 'Whether customers can sign in with their phone',
-		icon: Smartphone
 	}
 ];
 
-/** Paths that show the Customize sidebar shell (not /shop/customize Studio workspace). */
-const CUSTOMIZE_SHELL_PATHS = [
-	'/shop/customize/branding',
-	'/shop/customize/theme',
-	'/shop/customize/homepage',
-	'/shop/customize/login'
-];
+/** Paths that show the legacy Customize sidebar shell (empty — sections live in Studio). */
+const CUSTOMIZE_SHELL_PATHS: string[] = [];
 
 /** True when the Customize inner nav should wrap the page. */
 export function isCustomizeShellPath(pathname: string): boolean {
@@ -78,8 +46,14 @@ export function isCustomizeShellPath(pathname: string): boolean {
 /** `isStorefrontActive` lights a nav item without lighting its siblings. */
 export function isStorefrontActive(pathname: string, item: StorefrontNavItem): boolean {
 	const path = pathname.replace(/\/+$/, '') || '/';
-	// Exact for the overview, so visiting a screen does not leave it lit too.
-	if (item.href === '/shop/customize') return path === item.href;
+	// Studio hub and legacy section URLs that redirect into it.
+	if (item.href === '/shop/customize') {
+		if (path === item.href || path.startsWith(item.href + '?')) return true;
+		return (
+			path.startsWith('/shop/customize/') &&
+			!path.startsWith('/shop/customize/preview-frame')
+		);
+	}
 	return path === item.href || path.startsWith(item.href + '/');
 }
 
@@ -97,10 +71,12 @@ export const STOREFRONT_SEGMENT_LABELS: Record<string, string> = {
 	login: 'Customer login',
 	'store-info': 'Business Profile',
 	hours: 'Operating Hours',
-	launch: 'Launch',
+	actions: 'Action',
+	promote: 'Publish & Marketing',
+	launch: 'Publish & Marketing',
 	payments: 'Payments',
 	workflow: 'Order Workflow',
-	qr: 'QR & Share',
+	qr: 'Publish & Marketing',
 	preview: 'Preview'
 };
 

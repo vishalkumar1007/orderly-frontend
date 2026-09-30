@@ -54,6 +54,8 @@
 		storageKey = 'orderly-sidebar',
 		/** Render content edge-to-edge, for wide forms. */
 		wideContent = false,
+		/** Zero padding/max-width — workspaces like Storefront Studio. */
+		flushContent = false,
 		/** Hide the account menu, for embedded or kiosk surfaces. */
 		showProfile = true,
 		/** Settings link in the account menu — portal-specific. */
@@ -80,6 +82,7 @@
 		navLabel?: string;
 		storageKey?: string;
 		wideContent?: boolean;
+		flushContent?: boolean;
 		showProfile?: boolean;
 		settingsHref?: string;
 		profileHref?: string;
@@ -258,7 +261,15 @@
 			{/snippet}
 		</AdminTopbar>
 
-		<div class={['content fade-in', wideContent ? 'content-wide' : ''].join(' ')}>
+		<div
+			class={[
+				'content fade-in',
+				wideContent ? 'content-wide' : '',
+				flushContent ? 'content-flush' : ''
+			]
+				.filter(Boolean)
+				.join(' ')}
+		>
 			{@render children()}
 		</div>
 	</div>
