@@ -70,7 +70,19 @@ export type OnboardDraft = {
 		logo_url: string;
 		favicon_url: string;
 	};
+	themeSelectedByUser?: boolean;
 	config: OnboardConfig;
+	/**
+	 * Per-capability choices for a capability-driven type (Barber, Hotel,
+	 * General — see BusinessTypeTemplate.capabilityDriven). Keyed by
+	 * capability code, sent as-is as `capability_overrides`; the server only
+	 * applies an entry when business_type_capabilities marks that capability
+	 * configurable for the chosen type, so this can be sent unconditionally
+	 * without risk of turning on something the business type does not have.
+	 */
+	capabilityOverrides: Record<string, boolean>;
+	/** Required: the Super Admin confirming terms on the business's behalf. */
+	termsAccepted: boolean;
 	step: number;
 };
 
@@ -106,6 +118,7 @@ export function defaultDraft(): OnboardDraft {
 			logo_url: '',
 			favicon_url: ''
 		},
+		themeSelectedByUser: false,
 		config: {
 			ordering_enabled: true,
 			customer_login_mode: 'optional',
@@ -118,6 +131,8 @@ export function defaultDraft(): OnboardDraft {
 			cash_enabled: true,
 			default_payment_method: 'ONLINE'
 		},
+		capabilityOverrides: {},
+		termsAccepted: false,
 		step: 0
 	};
 }
@@ -192,7 +207,8 @@ export function loadOnboardDraft(): OnboardDraft | null {
 			org: { ...base.org, ...parsed.org },
 			admin: { ...base.admin, ...parsed.admin },
 			theme: { ...base.theme, ...parsed.theme },
-			config: { ...base.config, ...parsed.config }
+			config: { ...base.config, ...parsed.config },
+			capabilityOverrides: { ...base.capabilityOverrides, ...parsed.capabilityOverrides }
 		};
 	} catch {
 		return null;

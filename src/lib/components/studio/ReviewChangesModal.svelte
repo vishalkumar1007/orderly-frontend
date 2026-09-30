@@ -162,14 +162,14 @@
 
 	.review-title {
 		margin: 0;
-		font-size: 1rem;
+		font-size: var(--fs-title);
 		font-weight: 700;
 		color: var(--text);
 	}
 
 	.review-subtitle {
 		margin: 2px 0 0;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 
@@ -204,7 +204,7 @@
 		border-radius: var(--radius-sm, 6px);
 		background: color-mix(in srgb, var(--warn, #ef4444) 12%, transparent);
 		color: var(--warn, #ef4444);
-		font-size: 0.8125rem;
+		font-size: var(--fs-body);
 	}
 
 
@@ -218,21 +218,21 @@
 		color: #10b981;
 		text-align: center;
 		gap: 8px;
-		font-size: 0.84375rem;
+		font-size: var(--fs-body);
 	}
 
 	.review-summary-bar {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		font-size: 0.8125rem;
+		font-size: var(--fs-body);
 		color: var(--text-2);
 		padding-bottom: 6px;
 		border-bottom: 1px solid var(--border);
 	}
 
 	.review-version-tag {
-		font-size: 0.6875rem;
+		font-size: var(--fs-label);
 		font-weight: 700;
 		background: var(--surface-3);
 		padding: 2px 8px;
@@ -262,7 +262,7 @@
 	}
 
 	.review-diff-cat {
-		font-size: 0.65625rem;
+		font-size: var(--fs-label);
 		font-weight: 700;
 		text-transform: uppercase;
 		color: var(--icon-fg);
@@ -270,7 +270,7 @@
 	}
 
 	.review-diff-label {
-		font-size: 0.8125rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 		color: var(--text);
 	}
@@ -279,7 +279,7 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		font-size: 0.78125rem;
+		font-size: var(--fs-tab);
 	}
 
 	.review-diff-from {

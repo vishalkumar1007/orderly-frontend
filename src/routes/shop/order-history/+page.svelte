@@ -295,7 +295,7 @@
 					<td>
 						<strong style="font-weight:600;">#{order.order_number}</strong>
 						{#if order.prep_minutes !== null}
-							<span class="muted" style="display:block;font-size:0.72rem;">
+							<span class="muted" style="display:block;font-size:var(--fs-meta);">
 								{order.prep_minutes} min to ready
 							</span>
 						{/if}
@@ -303,7 +303,7 @@
 					<td class="col-sm">
 						{order.customer_name || 'Walk-in'}
 						{#if order.customer_phone}
-							<span class="muted" style="display:block;font-size:0.72rem;">
+							<span class="muted" style="display:block;font-size:var(--fs-meta);">
 								{order.customer_phone}
 							</span>
 						{/if}
@@ -314,7 +314,7 @@
 					<td class="col-md">
 						{#if order.payment_status}
 							<StatusBadge status={order.payment_status} dot={false} />
-							<span class="muted" style="display:block;font-size:0.72rem;">
+							<span class="muted" style="display:block;font-size:var(--fs-meta);">
 								{order.payment_method || '—'}
 							</span>
 						{:else}

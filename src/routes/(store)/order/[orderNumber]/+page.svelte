@@ -130,8 +130,8 @@
 		</div>
 	{:else if phonePrompt}
 		<div class="sf-card" style="padding:20px;">
-			<h1 style="margin:0 0 6px;font-size:1.125rem;font-weight:750;">Confirm it's your order</h1>
-			<p style="margin:0 0 16px;font-size:0.875rem;color:var(--sf-text-2);line-height:1.5;">
+			<h1 style="margin:0 0 6px;font-size:var(--fs-h1);font-weight:750;">Confirm it's your order</h1>
+			<p style="margin:0 0 16px;font-size:var(--fs-body);color:var(--sf-text-2);line-height:1.5;">
 				Enter the phone number you used to place order #{orderNumber}.
 			</p>
 			<form onsubmit={submitPhone}>
@@ -253,12 +253,12 @@
 					<span style="min-width:0;">
 						{item.quantity} × {item.name}
 						{#if item.addons?.length}
-							<span style="display:block;font-size:0.75rem;color:var(--sf-text-3);">
+							<span style="display:block;font-size:var(--fs-code);color:var(--sf-text-3);">
 								{item.addons.map((a) => (a.quantity > 1 ? `${a.quantity}× ` : '') + a.name).join(', ')}
 							</span>
 						{/if}
 						{#if item.notes}
-							<span style="display:block;font-size:0.75rem;color:var(--sf-text-3);font-style:italic;">
+							<span style="display:block;font-size:var(--fs-code);color:var(--sf-text-3);font-style:italic;">
 								“{item.notes}”
 							</span>
 						{/if}

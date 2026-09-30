@@ -351,7 +351,7 @@
 
 	.scp-block h4 {
 		margin: 0 0 0.55rem;
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		font-weight: 700;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
@@ -362,7 +362,7 @@
 		display: grid;
 		gap: 0.25rem;
 		margin-bottom: 0.55rem;
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 	}
 
@@ -378,7 +378,7 @@
 		background: var(--bg);
 		border-radius: 999px;
 		padding: 0.3rem 0.65rem;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		font-weight: 650;
 		cursor: pointer;
 		color: var(--text);
@@ -415,11 +415,11 @@
 
 	.scp-product strong {
 		display: block;
-		font-size: 0.875rem;
+		font-size: var(--fs-body);
 	}
 
 	.scp-product .muted {
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 	}
 
 	.scp-add {
@@ -442,7 +442,7 @@
 
 	.scp-cart-row strong {
 		display: block;
-		font-size: 0.875rem;
+		font-size: var(--fs-body);
 	}
 
 	.scp-qty {
@@ -464,7 +464,7 @@
 		display: flex;
 		align-items: center;
 		gap: 0.4rem;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 	}
 
 	.scp-total {
@@ -473,25 +473,25 @@
 		margin-top: 0.65rem;
 		padding-top: 0.55rem;
 		border-top: 1px solid var(--border);
-		font-size: 0.95rem;
+		font-size: var(--fs-title);
 	}
 
 	.scp-empty,
 	.scp-hint {
 		margin: 0;
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 	}
 
 	.scp-check {
 		display: flex;
 		align-items: center;
 		gap: 0.45rem;
-		font-size: 0.85rem;
+		font-size: var(--fs-body);
 	}
 
 	.scp-error {
 		margin: 0;
 		color: var(--danger, #b91c1c);
-		font-size: 0.85rem;
+		font-size: var(--fs-body);
 	}
 </style>

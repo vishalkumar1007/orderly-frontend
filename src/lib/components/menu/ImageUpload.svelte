@@ -143,7 +143,7 @@
 		border-radius: var(--radius);
 		background: var(--surface-2);
 		color: var(--text-3);
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		font-family: inherit;
 		cursor: pointer;
 		transition: border-color var(--tr), background var(--tr), color var(--tr);
@@ -202,7 +202,7 @@
 	}
 
 	.img-upload-hint {
-		font-size: 0.65rem;
+		font-size: var(--fs-micro);
 		color: var(--text-3);
 	}
 

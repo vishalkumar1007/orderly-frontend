@@ -374,14 +374,14 @@
 
 	.title {
 		margin: 0;
-		font-size: 1.1rem;
+		font-size: var(--fs-title);
 		font-weight: 650;
 		color: var(--text-1);
 	}
 
 	.sub {
 		margin: 0.2rem 0 0;
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 		color: var(--text-3);
 	}
 
@@ -404,7 +404,7 @@
 	}
 
 	.current-label {
-		font-size: 0.74rem;
+		font-size: var(--fs-code);
 		font-weight: 600;
 		letter-spacing: 0.04em;
 		text-transform: uppercase;
@@ -412,20 +412,20 @@
 	}
 
 	.current-source {
-		font-size: 0.95rem;
+		font-size: var(--fs-title);
 		font-weight: 600;
 		color: var(--text-1);
 	}
 
 	.current-note {
 		margin: 0.3rem 0 0;
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 		color: var(--text-3);
 	}
 
 	.alert-hint {
 		margin-top: 0.2rem;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		color: var(--text-3);
 	}
 
@@ -441,13 +441,13 @@
 
 	.panel-h {
 		margin: 0;
-		font-size: 0.86rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 	}
 
 	.panel-note {
 		margin: 0.2rem 0 0;
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 
@@ -459,7 +459,7 @@
 		display: flex;
 		align-items: flex-start;
 		gap: 0.5rem;
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 		color: var(--text-2);
 	}
 
@@ -483,7 +483,7 @@
 		border: 1px solid color-mix(in srgb, var(--ok, #059669) 35%, transparent);
 		border-radius: var(--radius-sm);
 		background: color-mix(in srgb, var(--ok, #059669) 8%, transparent);
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 	}
 
 	.outcome.bad {
@@ -493,7 +493,7 @@
 
 	.detail {
 		font-family: var(--font-mono);
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		color: var(--text-3);
 		word-break: break-word;
 	}

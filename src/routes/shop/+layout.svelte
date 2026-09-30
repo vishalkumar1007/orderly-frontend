@@ -28,6 +28,8 @@
 	import Toaster from '$lib/components/admin/Toaster.svelte';
 	import { toast } from '$lib/components/admin/toast';
 	import AppShell from '$lib/components/shell/AppShell.svelte';
+	import BusinessPolicyModal from '$lib/components/tenant/BusinessPolicyModal.svelte';
+	import { policyStore } from '$lib/tenant/policyStore';
 
 	let { children, data } = $props();
 
@@ -53,6 +55,16 @@
 	let storefrontUrl = $state('');
 	/** Bumps on each auth attempt so stale me() results cannot flip shell status. */
 	let authGen = 0;
+	let showPolicyModal = $state(false);
+
+	$effect(() => {
+		if (status === 'ready' && user && isAdmin && !isPublicRoute) {
+			const slug = data.tenantSlug || hostTenant?.slug || '';
+			if (slug && !policyStore.isSigned(slug) && !policyStore.isSkipped(slug)) {
+				showPolicyModal = true;
+			}
+		}
+	});
 
 	/**
 	 * `/shop/login` is a child of this layout. It must always render its own UI —
@@ -277,6 +289,16 @@
 
 			{@render children()}
 		</AppShell>
+		{#if user && isAdmin}
+			<BusinessPolicyModal
+				bind:open={showPolicyModal}
+				tenantSlug={data.tenantSlug || hostTenant?.slug || ''}
+				businessName={shopName || data.tenantSlug || ''}
+				userName={user.name || ''}
+				userEmail={user.email || ''}
+				mandatory={true}
+			/>
+		{/if}
 		<Toaster />
 	{/if}
 {:else if status === 'loading'}

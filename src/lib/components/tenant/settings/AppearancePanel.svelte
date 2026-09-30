@@ -471,7 +471,7 @@
 
 	.ap-foot-note {
 		margin: 0;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		color: var(--text-3);
 		line-height: 1.45;
 	}

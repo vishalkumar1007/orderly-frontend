@@ -14,5 +14,5 @@
 		`aria-live="polite"` rather than an alert: adding to a cart is feedback, not
 		an interruption, and a screen reader should not interrupt itself over it.
 	-->
-	<div class="sf-toast" role="status" aria-live="polite">{message}</div>
+	<div class="sf-toast" role="status" aria-live="polite" data-tone="success">{message}</div>
 {/if}

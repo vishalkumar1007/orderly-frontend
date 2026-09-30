@@ -118,7 +118,7 @@
 
 	.int-tab-label {
 		display: block;
-		font-size: 0.875rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 		color: var(--text);
 	}
@@ -129,7 +129,7 @@
 
 	.int-tab-hint {
 		display: block;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 		line-height: 1.35;
 	}

@@ -350,7 +350,7 @@
 	.studio-id h1 {
 		margin: 0;
 		font-family: var(--font-display);
-		font-size: 0.95rem;
+		font-size: var(--fs-title);
 		font-weight: 650;
 		letter-spacing: -0.01em;
 		white-space: nowrap;
@@ -358,7 +358,7 @@
 
 	.studio-id p {
 		margin: 0;
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		color: var(--text-3);
 		white-space: nowrap;
 		overflow: hidden;
@@ -381,7 +381,7 @@
 		border-radius: 999px;
 		border: 1px solid var(--border);
 		background: var(--surface);
-		font-size: 0.73rem;
+		font-size: var(--fs-meta);
 		font-weight: 600;
 		color: var(--text-2);
 		white-space: nowrap;
@@ -413,7 +413,7 @@
 	}
 
 	.studio-saved {
-		font-size: 0.7rem;
+		font-size: var(--fs-label);
 		color: var(--text-3);
 		display: inline-flex;
 		align-items: center;
@@ -436,7 +436,7 @@
 		padding: 0 0.25rem;
 		border-radius: 999px;
 		background: color-mix(in srgb, var(--text) 12%, transparent);
-		font-size: 0.62rem;
+		font-size: var(--fs-micro);
 		font-weight: 700;
 	}
 
@@ -500,14 +500,14 @@
 
 	.studio-rail-label {
 		display: block;
-		font-size: 0.83rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 		color: var(--text);
 	}
 
 	.studio-rail-hint {
 		display: block;
-		font-size: 0.7rem;
+		font-size: var(--fs-label);
 		color: var(--text-3);
 		line-height: 1.35;
 	}
@@ -522,7 +522,7 @@
 		border-radius: 999px;
 		background: var(--warn-bg);
 		color: var(--warn);
-		font-size: 0.64rem;
+		font-size: var(--fs-micro);
 		font-weight: 700;
 	}
 

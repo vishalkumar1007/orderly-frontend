@@ -293,7 +293,7 @@
 	.posture li {
 		position: relative;
 		padding-left: 1.4rem;
-		font-size: 0.83rem;
+		font-size: var(--fs-body);
 		line-height: 1.55;
 		color: var(--text-2);
 	}

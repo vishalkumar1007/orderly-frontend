@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import Copy from '@lucide/svelte/icons/copy';
-	import ExternalLink from '@lucide/svelte/icons/external-link';
-	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
-	import Link2 from '@lucide/svelte/icons/link-2';
-	import List from '@lucide/svelte/icons/list';
-	import Search from '@lucide/svelte/icons/search';
-	import X from '@lucide/svelte/icons/x';
+	import IconCopy from '@tabler/icons-svelte/icons/copy';
+	import IconExternalLink from '@tabler/icons-svelte/icons/external-link';
+	import IconLayoutGrid from '@tabler/icons-svelte/icons/layout-grid';
+	import IconLink from '@tabler/icons-svelte/icons/link';
+	import IconList from '@tabler/icons-svelte/icons/list';
+	import IconSearch from '@tabler/icons-svelte/icons/search';
+	import IconX from '@tabler/icons-svelte/icons/x';
 	import {
 		changeTenantPlan,
 		fetchPlanOptions,
@@ -317,7 +317,7 @@
 </script>
 
 {#if error}
-	<div class="panel" style="margin-bottom:1rem;">
+	<div class="panel biz-error-panel">
 		<ErrorState message={error} onretry={load} />
 	</div>
 {/if}
@@ -326,7 +326,7 @@
 	<div class="biz-toolbar panel">
 		<div class="biz-search">
 			<span class="biz-search-icon" aria-hidden="true">
-				<Search size={15} strokeWidth={1.9} />
+				<IconSearch size={15} stroke={1.7} />
 			</span>
 			<input
 				class="input biz-search-input"
@@ -343,7 +343,7 @@
 					aria-label="Clear search"
 					onclick={() => (search = '')}
 				>
-					<X size={14} strokeWidth={2.2} />
+					<IconX size={14} stroke={1.9} />
 				</button>
 			{/if}
 		</div>
@@ -398,7 +398,7 @@
 		<div class="biz-toolbar-foot">
 			<div class="biz-toolbar-left">
 				{#if !loading && filtered.length > 0}
-					<p class="table-count" style="margin:0;">
+					<p class="table-count table-count-flush">
 						<strong>{pageRows.length}</strong> of <strong>{filtered.length}</strong>
 						{filtered.length === 1 ? 'business' : 'businesses'}
 						{#if businesses.length !== filtered.length}
@@ -406,7 +406,7 @@
 						{/if}
 					</p>
 				{:else if !loading}
-					<p class="table-count" style="margin:0;">
+					<p class="table-count table-count-flush">
 						{businesses.length === 0 ? 'No businesses yet' : 'No matches'}
 					</p>
 				{/if}
@@ -425,7 +425,7 @@
 					title="List view"
 					onclick={() => setView('list')}
 				>
-					<List size={15} strokeWidth={2} />
+					<IconList size={15} stroke={1.7} />
 					<span>List</span>
 				</button>
 				<button
@@ -435,7 +435,7 @@
 					title="Card view"
 					onclick={() => setView('cards')}
 				>
-					<LayoutGrid size={15} strokeWidth={2} />
+					<IconLayoutGrid size={15} stroke={1.7} />
 					<span>Cards</span>
 				</button>
 			</div>
@@ -452,7 +452,7 @@
 				{/each}
 			</div>
 		{:else}
-			<div class="panel" style="padding:1.25rem;display:flex;flex-direction:column;gap:0.75rem;" aria-busy="true">
+			<div class="panel biz-skel-rows" aria-busy="true">
 				{#each [1, 2, 3, 4, 5] as _, i (i)}
 					<Skeleton height="2.1rem" />
 				{/each}
@@ -503,7 +503,7 @@
 										void copyText(tenantPublicUrl(t), 'Storefront URL');
 									}}
 								>
-									<Copy size={12} strokeWidth={2.2} />
+									<IconCopy size={12} stroke={1.9} />
 								</button>
 							</span>
 						</div>
@@ -552,7 +552,7 @@
 									);
 								}}
 							>
-								<Link2 size={13} strokeWidth={2.1} />
+								<IconLink size={13} stroke={1.7} />
 							</button>
 							<button
 								type="button"
@@ -565,7 +565,7 @@
 									openStore(t);
 								}}
 							>
-								<ExternalLink size={13} strokeWidth={2.1} />
+								<IconExternalLink size={13} stroke={1.7} />
 							</button>
 						</div>
 					</div>
@@ -589,7 +589,7 @@
 					<th class="col-md">Plan</th>
 					<th>Status</th>
 					<th class="col-md">Created</th>
-					<th style="width:1%;"><span class="sr-only">Actions</span></th>
+					<th class="col-actions"><span class="sr-only">Actions</span></th>
 				{/snippet}
 
 				{#snippet children()}
@@ -599,7 +599,7 @@
 								<div class="cell-id">
 									<TenantAvatar name={t.name} size="sm" />
 									<span class="cell-id-txt">
-										<a href={`/superadmin/businesses/${t.id}`} style="font-weight:550;">{t.name}</a>
+										<a class="biz-name-link" href={`/superadmin/businesses/${t.id}`}>{t.name}</a>
 										<span class="biz-list-slug">
 											<span class="mono">{t.slug}</span>
 											<button
@@ -609,19 +609,19 @@
 												title="Copy storefront URL"
 												onclick={() => copyText(tenantPublicUrl(t), 'Storefront URL')}
 											>
-												<Copy size={11} strokeWidth={2.2} />
+												<IconCopy size={11} stroke={1.9} />
 											</button>
 										</span>
 									</span>
 								</div>
 							</td>
-							<td class="col-md" style="color:var(--text-2);">
+							<td class="col-md muted">
 								{labelForType(t.business_type, types)}
 							</td>
 							<td class="col-sm">
 								{t.owner_name || '—'}
 								{#if t.setup_status === 'PENDING'}
-									<span class="muted" style="display:block;font-size:0.72rem;">awaiting setup</span>
+									<span class="muted biz-sub-line">awaiting setup</span>
 								{/if}
 							</td>
 							<td class="col-md">
@@ -639,7 +639,7 @@
 									{/if}
 								</span>
 							</td>
-							<td class="num muted col-md" style="white-space:nowrap;">{formatDate(t.created_at)}</td>
+							<td class="num muted col-md biz-nowrap">{formatDate(t.created_at)}</td>
 							<td>
 								<div class="biz-list-actions">
 									<button
@@ -653,7 +653,7 @@
 												'Admin route'
 											)}
 									>
-										<Link2 size={13} strokeWidth={2.1} />
+										<IconLink size={13} stroke={1.7} />
 									</button>
 									<button
 										type="button"
@@ -662,7 +662,7 @@
 										title="Open storefront"
 										onclick={() => openStore(t)}
 									>
-										<ExternalLink size={13} strokeWidth={2.1} />
+										<IconExternalLink size={13} stroke={1.7} />
 									</button>
 									<Menu label={`Actions for ${t.name}`} items={menuItems(t)} />
 								</div>
@@ -692,7 +692,7 @@
 />
 
 <Modal bind:open={planOpen} title={target ? `Change plan — ${target.name}` : 'Change plan'}>
-	<p class="muted" style="margin:0 0 0.9rem;font-size:0.82rem;line-height:1.5;">
+	<p class="muted biz-lede">
 		The business moves to the new plan immediately and its subscription follows. Nothing is
 		charged — this records which plan it is provisioned on.
 	</p>
@@ -712,7 +712,7 @@
 
 <SlideOver bind:open={editOpen} title="Edit business">
 	{#if target}
-		<div style="display:flex;flex-direction:column;gap:0.85rem;">
+		<div class="biz-field-stack">
 			<FormField label="Business name" htmlFor="edit-name" required>
 				<TextInput id="edit-name" bind:value={editForm.name} />
 			</FormField>
@@ -757,10 +757,79 @@
 </SlideOver>
 
 <style>
+	/*
+	 * Everything below used to be an inline `style` attribute on the element it
+	 * applied to. That put layout decisions — a 1%-wide column, a 550 weight, a
+	 * `white-space` — in the markup where they could not be reused, could not be
+	 * found by searching the stylesheet, and could not carry a comment explaining
+	 * why the value was what it was.
+	 *
+	 * The values are unchanged; only their location is not.
+	 */
 	.biz-page {
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
+	}
+
+	/* The error banner above the page, separated from the toolbar below it. */
+	.biz-error-panel {
+		margin-bottom: 1rem;
+	}
+
+	/* The count line already carries a margin from the shared primitive. */
+	.table-count-flush {
+		margin: 0;
+	}
+
+	/* List-view skeleton: a panel holding a stack of bars. */
+	.biz-skel-rows {
+		padding: 1.25rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	/*
+	 * `width: 1%` on a table header is the standard way to make a column shrink
+	 * to its content while the other columns share the remaining width — the
+	 * actions column should be as narrow as the buttons in it, not a share of the
+	 * table. On its own, not scoped to `.table`, because this table is not always
+	 * inside one.
+	 */
+	.col-actions {
+		width: 1%;
+	}
+
+	/* The business name is the row's primary identifier, so it carries weight
+	   the rest of the row does not. */
+	.biz-name-link {
+		font-weight: 550;
+	}
+
+	/* Secondary line under a value in the same cell. */
+	.biz-sub-line {
+		display: block;
+		font-size: var(--fs-meta);
+	}
+
+	/* A formatted date should never wrap mid-timestamp. */
+	.biz-nowrap {
+		white-space: nowrap;
+	}
+
+	/* Intro line under a card grid or a table, before the result. */
+	.biz-lede {
+		margin: 0 0 0.9rem;
+		font-size: var(--fs-body);
+		line-height: 1.5;
+	}
+
+	/* The form inside the edit slide-over. */
+	.biz-field-stack {
+		display: flex;
+		flex-direction: column;
+		gap: 0.85rem;
 	}
 
 	.biz-toolbar {
@@ -788,7 +857,7 @@
 		padding-left: 2.25rem;
 		padding-right: 2.25rem;
 		height: 2.45rem;
-		font-size: 0.875rem;
+		font-size: var(--fs-body);
 	}
 
 	.biz-search-clear {
@@ -838,7 +907,7 @@
 	}
 
 	.biz-filter span {
-		font-size: 0.65rem;
+		font-size: var(--fs-micro);
 		font-weight: 550;
 		letter-spacing: 0.01em;
 		color: var(--text-3);
@@ -846,7 +915,7 @@
 
 	.biz-filter .input {
 		padding: 0.35rem 0.55rem;
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 	}
 
 	.biz-toolbar-foot {
@@ -887,7 +956,7 @@
 		background: transparent;
 		color: var(--text-3);
 		font-family: inherit;
-		font-size: 0.74rem;
+		font-size: var(--fs-code);
 		font-weight: 550;
 		cursor: pointer;
 		transition:
@@ -964,7 +1033,7 @@
 	}
 
 	.biz-card-name {
-		font-size: 0.92rem;
+		font-size: var(--fs-title);
 		font-weight: 600;
 		letter-spacing: -0.01em;
 		color: var(--text);
@@ -978,7 +1047,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.25rem;
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		color: var(--text-3);
 		min-width: 0;
 	}
@@ -1003,7 +1072,7 @@
 	}
 
 	.biz-meta-item {
-		font-size: 0.74rem;
+		font-size: var(--fs-code);
 		font-weight: 550;
 		color: var(--text-2);
 		padding: 0.12rem 0.4rem;
@@ -1012,7 +1081,7 @@
 	}
 
 	.biz-meta-muted {
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		color: var(--text-3);
 	}
 

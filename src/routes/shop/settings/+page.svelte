@@ -184,7 +184,7 @@
 
 		<!-- Not a section: a place to go, not a form to fill in. It keeps its
 		     own screen and stays findable from here. -->
-		<a class="set-rail-link set-rail-out" href="/shop/setup">
+		<a class="set-rail-link set-rail-out" href="/shop/storefront/launch">
 			<Rocket size={15} strokeWidth={1.9} />
 			Launch checklist
 		</a>
@@ -267,7 +267,7 @@
 	.set-rail-label {
 		margin: 0.85rem 0 0.35rem;
 		padding: 0 0.6rem;
-		font-size: 0.68rem;
+		font-size: var(--fs-label);
 		font-weight: 700;
 		letter-spacing: 0.07em;
 		text-transform: uppercase;
@@ -288,7 +288,7 @@
 		background: transparent;
 		color: var(--text-2);
 		font-family: inherit;
-		font-size: 0.85rem;
+		font-size: var(--fs-body);
 		font-weight: 500;
 		text-align: left;
 		text-decoration: none;
@@ -327,7 +327,7 @@
 
 	.set-lede {
 		margin: 0 0 1.5rem;
-		font-size: 0.88rem;
+		font-size: var(--fs-body);
 		line-height: 1.6;
 		color: var(--text-3);
 		max-width: 46rem;

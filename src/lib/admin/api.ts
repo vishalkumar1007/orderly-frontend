@@ -3,6 +3,7 @@ import type { BrandTheme, ThemePreset } from '$lib/brandTheme';
 import type {
 	AuditLog,
 	AwaitingSetup,
+	CapabilityRow,
 	CreateTenantPayload,
 	CreatedTenant,
 	DashboardData,
@@ -366,6 +367,12 @@ export async function checkSlugAvailable(slug: string) {
 	);
 }
 
+export async function checkEmailAvailable(email: string) {
+	return api<{ available: boolean; email: string; reason?: string }>(
+		`/api/v1/admin/tenants/email-available?email=${encodeURIComponent(email)}`
+	);
+}
+
 export async function resendTenantInvite(tenantId: string) {
 	return api<{
 		admin_email: string;
@@ -387,6 +394,18 @@ export async function fetchThemePresets(): Promise<ThemePreset[]> {
 export async function fetchTenantTypes(): Promise<TenantType[]> {
 	const data = await api<{ types: TenantType[] }>('/api/v1/admin/tenant-types');
 	return data.types;
+}
+
+/**
+ * The capability matrix row for one business type — what the wizard's
+ * capability-driven configuration step (Barber, Hotel, General) renders as
+ * fixed "included" badges plus toggles for the configurable ones.
+ */
+export async function fetchBusinessTypeCapabilities(code: string): Promise<CapabilityRow[]> {
+	const data = await api<{ capabilities: CapabilityRow[] }>(
+		`/api/v1/admin/business-types/${encodeURIComponent(code)}/capabilities`
+	);
+	return data.capabilities;
 }
 
 export async function createTenantType(payload: {
@@ -433,3 +452,16 @@ export function tenantPublicUrl(tenant: Pick<Tenant, 'slug' | 'public_host'>): s
 	}
 	return url.endsWith('/') ? url : `${url}/`;
 }
+
+/**
+ * Upload a platform-level branding asset (e.g., business logo during onboarding).
+ */
+export async function uploadAdminAsset(file: File): Promise<{ url: string; key: string }> {
+	const formData = new FormData();
+	formData.append('file', file);
+	return api<{ url: string; key: string }>('/api/v1/admin/upload', {
+		method: 'POST',
+		body: formData
+	});
+}
+

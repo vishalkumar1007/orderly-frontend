@@ -209,7 +209,7 @@
 	.set-rail-label {
 		margin: 0.65rem 0 0.2rem;
 		padding: 0 0.55rem;
-		font-size: 0.65rem;
+		font-size: var(--fs-micro);
 		font-weight: 700;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
@@ -230,7 +230,7 @@
 		background: transparent;
 		color: var(--text-2);
 		font-family: inherit;
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 		font-weight: 500;
 		text-align: left;
 		white-space: nowrap;
@@ -264,7 +264,7 @@
 	.set-page-title {
 		margin: 0;
 		font-family: var(--font-display);
-		font-size: 1.35rem;
+		font-size: var(--fs-h1);
 		font-weight: 650;
 		letter-spacing: -0.025em;
 		color: var(--text);
@@ -273,7 +273,7 @@
 
 	.set-lede {
 		margin: 0.4rem 0 0;
-		font-size: 0.86rem;
+		font-size: var(--fs-body);
 		line-height: 1.55;
 		color: var(--text-3);
 		max-width: 42rem;

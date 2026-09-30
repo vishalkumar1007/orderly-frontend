@@ -88,7 +88,7 @@
 
 	.source-h {
 		margin: 0 0 0.5rem;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		font-weight: 600;
 		letter-spacing: 0.04em;
 		text-transform: uppercase;
@@ -138,7 +138,7 @@
 
 	.opt-title {
 		flex: 1;
-		font-size: 0.86rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 	}
 
@@ -156,7 +156,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.25rem;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		color: var(--text-2);
 	}
 
@@ -169,7 +169,7 @@
 	}
 
 	.opt-hint {
-		font-size: 0.74rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 </style>

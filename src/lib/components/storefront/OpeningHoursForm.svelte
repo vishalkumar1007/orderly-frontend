@@ -4,20 +4,20 @@
 	import FormField from '$lib/components/admin/FormField.svelte';
 	import Select from '$lib/components/admin/Select.svelte';
 	import Switch from '$lib/components/admin/Switch.svelte';
-	import TextInput from '$lib/components/admin/TextInput.svelte';
 	import {
 		DAYS,
 		DAY_LABELS,
 		emptySchedule,
-		shiftLabel,
 		storefrontAdminApi,
-		type AdminStorefront
 	} from '$lib/storefront/admin';
 	import { seed, useStorefront, type StorefrontContext } from '$lib/storefront/admin-context';
 	import { toast } from '$lib/components/admin/toast';
 
-	let props: Partial<StorefrontContext> = $props();
-	const ctx = useStorefront(() => props);
+	let {
+		onsaved,
+		...ctxProps
+	}: Partial<StorefrontContext> & { onsaved?: () => void | Promise<void> } = $props();
+	const ctx = useStorefront(() => ctxProps);
 	const config = $derived(ctx.config);
 	const save = (run: Parameters<StorefrontContext['save']>[0]) => ctx.save(run);
 
@@ -44,7 +44,6 @@
 	);
 	let saving = $state(false);
 
-	/** `shiftsFor` always returns an array, so the template can map over it. */
 	function shiftsFor(day: string): string[][] {
 		const rows = schedule[day] ?? [];
 		const pairs: string[][] = [];
@@ -75,7 +74,6 @@
 		write(day, pairs);
 	}
 
-	/** The common case: the same hours every day, in one action. */
 	function applyToAll(fromDay: string) {
 		const source = shiftsFor(fromDay);
 		const next: Record<string, string[]> = {};
@@ -91,10 +89,8 @@
 
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
-		// A malformed time would be dropped by the server, which would leave the
-		// owner looking at a schedule that is not the one they typed. Catch it here.
 		for (const day of DAYS) {
-			for (const [index, pair] of shiftsFor(day).entries()) {
+			for (const pair of shiftsFor(day)) {
 				for (const value of pair) {
 					if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) {
 						toast.error(`${DAY_LABELS[day]}: “${value}” is not a valid time. Use 24-hour HH:MM.`);
@@ -116,8 +112,10 @@
 			})
 		);
 		saving = false;
-		if (ok) toast.success('Opening hours saved');
-		else toast.error('Could not save your opening hours');
+		if (ok) {
+			toast.success('Opening hours saved');
+			await onsaved?.();
+		} else toast.error('Could not save your opening hours');
 	}
 </script>
 

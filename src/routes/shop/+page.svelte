@@ -4,8 +4,6 @@
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import ClipboardList from '@lucide/svelte/icons/clipboard-list';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
-	import Eye from '@lucide/svelte/icons/eye';
-	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import ChefHat from '@lucide/svelte/icons/chef-hat';
 	import QrCode from '@lucide/svelte/icons/qr-code';
 	import Rocket from '@lucide/svelte/icons/rocket';
@@ -24,6 +22,9 @@
 	import { formatCurrency } from '$lib/admin/format';
 	import { orderBoard } from '$lib/tenant/orders.svelte';
 	import type { SetupStepKey } from '$lib/tenant/dashboardCache.svelte';
+	import { page } from '$app/stores';
+	import { policyStore, type PolicySignature } from '$lib/tenant/policyStore';
+	import BusinessPolicyModal from '$lib/components/tenant/BusinessPolicyModal.svelte';
 	import {
 		getDashboardSnapshot,
 		loadDashboardSnapshot,
@@ -98,16 +99,38 @@
 
 	/**
 	 * The short form of the launch checklist. The full list, with its optional
-	 * steps, lives on /shop/setup — this is the nudge, not the workspace, so it
+	 * steps, lives on /shop/storefront/launch — this is the nudge, not the workspace, so it
 	 * carries only what stands between the shop and its first order.
 	 */
-	const CHECKLIST: { key: SetupStepKey; label: string; href: string }[] = [
+	const tenantSlug = $derived(($page.data.tenantSlug as string) || '');
+	let policySignature = $state<PolicySignature | null>(null);
+	let policySigned = $state(false);
+	let showPolicyModal = $state(false);
+
+	$effect(() => {
+		if (tenantSlug) {
+			policySignature = policyStore.getSignature(tenantSlug);
+			policySigned = !!policySignature?.signed;
+		}
+	});
+
+	onMount(() => {
+		return policyStore.subscribe(() => {
+			if (tenantSlug) {
+				policySignature = policyStore.getSignature(tenantSlug);
+				policySigned = !!policySignature?.signed;
+			}
+		});
+	});
+
+	const CHECKLIST: { key: SetupStepKey | 'policy'; label: string; href: string }[] = [
+		{ key: 'policy', label: 'Sign Orderly Business Policy', href: '#policy' },
 		{ key: 'business_info', label: 'Complete your business details', href: '/shop/settings?section=business' },
 		{ key: 'menu', label: 'Add products to your menu', href: '/shop/menu' },
 		{ key: 'payment', label: 'Confirm payment methods', href: '/shop/payments' },
-		{ key: 'hours', label: 'Set your operating hours', href: '/shop/storefront/hours' },
+		{ key: 'hours', label: 'Set your operating hours', href: '/shop/storefront/launch#hours' },
 		{ key: 'storefront', label: 'Set up your storefront', href: '/shop/customize' },
-		{ key: 'launch', label: 'Publish your store', href: '/shop/setup' }
+		{ key: 'launch', label: 'Publish your store', href: '/shop/storefront/launch' }
 	];
 
 	const seed = getDashboardSnapshot();
@@ -117,7 +140,6 @@
 	let error = $state('');
 	/** Only block the pane when we have nothing to show yet. */
 	let loading = $state(!seed);
-	let publishing = $state(false);
 	let analytics = $state<TenantAnalytics | null>(null);
 	let analyticsLoading = $state(true);
 	let window = $state<AnalyticsWindow>('30d');
@@ -127,7 +149,9 @@
 
 	const statusLabel = (s: string) => STORE_STATUSES.find((x) => x.value === s)?.label ?? s;
 
-	const doneCount = $derived(setup ? CHECKLIST.filter((c) => setup!.steps[c.key]).length : 0);
+	const doneCount = $derived(
+		(policySigned ? 1 : 0) + (setup ? CHECKLIST.filter((c) => c.key !== 'policy' && setup!.steps[c.key as SetupStepKey]).length : 0)
+	);
 	const progress = $derived(Math.round((doneCount / CHECKLIST.length) * 100));
 	const showSetup = $derived(Boolean(setup && !setup.is_published));
 
@@ -236,22 +260,6 @@
 		setDashboardSnapshot({ stats, store, setup, currency });
 	}
 
-	async function togglePublish() {
-		if (!store || publishing) return;
-		publishing = true;
-		try {
-			const path = store.is_published ? '/api/v1/tenant/unpublish' : '/api/v1/tenant/publish';
-			const res = await api<StoreLink>(path, { method: 'POST' });
-			store = { ...store, ...res };
-			syncDashboardCache();
-			toast.success(store.is_published ? 'Your store is live' : 'Store unpublished');
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Could not change publish state');
-		} finally {
-			publishing = false;
-		}
-	}
-
 	async function setStoreStatus(status: string) {
 		if (!store || status === store.store_status) return;
 		try {
@@ -308,18 +316,6 @@
 						</button>
 					{/each}
 				</div>
-				<button
-					class={['btn', 'btn-sm', store.is_published ? 'btn-ghost' : 'btn-primary'].join(' ')}
-					type="button"
-					disabled={publishing}
-					onclick={togglePublish}
-				>
-					{#if store.is_published}
-						<EyeOff size={14} strokeWidth={2} /> Unpublish
-					{:else}
-						<Eye size={14} strokeWidth={2} /> Publish
-					{/if}
-				</button>
 			</div>
 		</section>
 	{:else if loading}
@@ -398,7 +394,7 @@
 					<p>{doneCount} of {CHECKLIST.length} done · {progress}%</p>
 				</div>
 				{#if setup.steps.menu}
-					<a class="btn btn-primary btn-sm" href="/shop/setup">
+					<a class="btn btn-primary btn-sm" href="/shop/storefront/launch">
 						<Rocket size={14} strokeWidth={2} /> Go live
 					</a>
 				{/if}
@@ -414,9 +410,22 @@
 			</div>
 			<ul class="dash-checklist">
 				{#each CHECKLIST as c (c.key)}
-					{@const isDone = setup!.steps[c.key]}
+					{@const isDone = c.key === 'policy' ? policySigned : (setup ? setup.steps[c.key as SetupStepKey] : false)}
 					<li>
-						<a class={['dash-check', isDone ? 'done' : ''].join(' ')} href={c.href}>
+						<a
+							class={['dash-check', isDone ? 'done' : ''].join(' ')}
+							href={c.href}
+							onclick={(e) => {
+								if (c.key === 'policy') {
+									e.preventDefault();
+									showPolicyModal = true;
+								} else if (!policySigned) {
+									e.preventDefault();
+									toast.info('Please sign the Orderly Business Policy first to unlock setup.');
+									showPolicyModal = true;
+								}
+							}}
+						>
 							<span class="dash-check-box">
 								{#if isDone}<CircleCheck size={15} strokeWidth={2.2} />{/if}
 							</span>
@@ -553,7 +562,7 @@
 			{#if analyticsLoading}
 				<Skeleton height="6rem" />
 			{:else if (analytics?.payment_mix ?? []).length === 0}
-				<p class="muted" style="font-size:0.82rem;margin:0;">
+				<p class="muted" style="font-size:var(--fs-body);margin:0;">
 					No completed orders in this period yet.
 				</p>
 			{:else}
@@ -595,6 +604,17 @@
 	{/if}
 </div>
 
+<BusinessPolicyModal
+	bind:open={showPolicyModal}
+	{tenantSlug}
+	businessName={store?.name || tenantSlug}
+	mandatory={false}
+	onsigned={() => {
+		policySignature = policyStore.getSignature(tenantSlug);
+		policySigned = true;
+	}}
+/>
+
 <style>
 	.pay-mix {
 		margin-top: 0.85rem;
@@ -623,7 +643,7 @@
 		align-items: baseline;
 		justify-content: space-between;
 		gap: 0.5rem;
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 	}
 
 	.pay-top strong {
@@ -631,7 +651,7 @@
 	}
 
 	.pay-top .muted {
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 	}
 
 	.pay-bar {
@@ -652,7 +672,7 @@
 	.pay-share {
 		grid-area: share;
 		text-align: right;
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 		font-weight: 650;
 		font-variant-numeric: tabular-nums;
 		color: var(--text-2);
@@ -697,7 +717,7 @@
 		gap: 0.35rem;
 		padding: 0.2rem 0.55rem;
 		border-radius: 999px;
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		font-weight: 650;
 		border: 1px solid var(--border);
 		background: var(--surface-2);
@@ -729,7 +749,7 @@
 	.dash-title {
 		margin: 0;
 		font-family: var(--font-display);
-		font-size: 1.35rem;
+		font-size: var(--fs-h1);
 		font-weight: 700;
 		letter-spacing: -0.02em;
 		line-height: 1.2;
@@ -741,7 +761,7 @@
 		align-items: center;
 		gap: 0.3rem;
 		margin-top: 0.35rem;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		font-family: var(--font-mono);
 		color: var(--accent-dark);
 		text-decoration: none;
@@ -767,7 +787,7 @@
 		border-radius: 999px;
 		background: var(--surface);
 		color: var(--text-2);
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		font-weight: 550;
 		font-family: inherit;
 		cursor: pointer;
@@ -790,14 +810,14 @@
 
 	.dash-section-head h2 {
 		margin: 0;
-		font-size: 0.95rem;
+		font-size: var(--fs-title);
 		font-weight: 650;
 		color: var(--text);
 	}
 
 	.dash-section-head p {
 		margin: 0.15rem 0 0;
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 		color: var(--text-3);
 	}
 
@@ -843,14 +863,14 @@
 	}
 
 	.dash-stat-label {
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		font-weight: 600;
 		color: var(--text-3);
 	}
 
 	.dash-stat-value {
 		font-family: var(--font-display);
-		font-size: 1.4rem;
+		font-size: var(--fs-stat);
 		font-weight: 750;
 		letter-spacing: -0.02em;
 		line-height: 1.15;
@@ -860,7 +880,7 @@
 	}
 
 	.dash-stat-hint {
-		font-size: 0.7rem;
+		font-size: var(--fs-label);
 		color: var(--text-3);
 	}
 
@@ -908,14 +928,14 @@
 
 	.dash-action-body strong {
 		display: block;
-		font-size: 0.88rem;
+		font-size: var(--fs-body);
 		font-weight: 650;
 		color: var(--text);
 	}
 
 	.dash-action-body span {
 		display: block;
-		font-size: 0.74rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 		white-space: nowrap;
 		overflow: hidden;
@@ -936,13 +956,13 @@
 
 	.dash-setup-head h2 {
 		margin: 0;
-		font-size: 0.95rem;
+		font-size: var(--fs-title);
 		font-weight: 650;
 	}
 
 	.dash-setup-head p {
 		margin: 0.15rem 0 0;
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 		color: var(--text-3);
 	}
 
@@ -979,7 +999,7 @@
 		border-radius: 10px;
 		text-decoration: none;
 		color: var(--text);
-		font-size: 0.86rem;
+		font-size: var(--fs-body);
 		font-weight: 550;
 	}
 
@@ -1028,7 +1048,7 @@
 		border-radius: calc(var(--radius-sm) - 2px);
 		background: transparent;
 		color: var(--text-3);
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		font-weight: 550;
 		font-family: inherit;
 		cursor: pointer;

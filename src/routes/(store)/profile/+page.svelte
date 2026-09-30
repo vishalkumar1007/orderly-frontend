@@ -106,7 +106,7 @@
 			<a class="sf-btn sf-btn-ghost" style="margin-top:8px;" href="/orders">Find my orders</a>
 		</div>
 	{:else}
-		<h1 style="margin:0 0 16px;font-size:1.375rem;font-weight:800;letter-spacing:-0.02em;">
+		<h1 style="margin:0 0 16px;font-size:var(--fs-stat);font-weight:800;letter-spacing:-0.02em;">
 			Your profile
 		</h1>
 
@@ -135,16 +135,16 @@
 			{:else}
 				<div style="display:flex;align-items:center;gap:12px;">
 					<span
-						style="width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:var(--sf-primary-soft);color:var(--sf-primary);font-weight:800;font-size:1.125rem;flex-shrink:0;"
+						style="width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:var(--sf-primary-soft);color:var(--sf-primary);font-weight:800;font-size:var(--fs-h1);flex-shrink:0;"
 						aria-hidden="true"
 					>
 						{(profile.customer.name || 'G').trim().charAt(0).toUpperCase()}
 					</span>
 					<div style="flex:1;min-width:0;">
-						<p style="margin:0;font-weight:700;font-size:1rem;">
+						<p style="margin:0;font-weight:700;font-size:var(--fs-title);">
 							{profile.customer.name || 'Your name'}
 						</p>
-						<p style="margin:2px 0 0;font-size:0.8125rem;color:var(--sf-text-2);">
+						<p style="margin:2px 0 0;font-size:var(--fs-body);color:var(--sf-text-2);">
 							{profile.customer.phone}
 						</p>
 					</div>
@@ -191,7 +191,7 @@
 							<strong style="font-size:0.9375rem;">{order.reference || '#' + order.order_number}</strong>
 							<strong style="font-size:0.9375rem;">{money(order.total, currency)}</strong>
 						</div>
-						<p style="margin:4px 0 0;font-size:0.8125rem;color:var(--sf-text-2);">
+						<p style="margin:4px 0 0;font-size:var(--fs-body);color:var(--sf-text-2);">
 							{order.item_count} {order.item_count === 1 ? 'item' : 'items'} · {relativeTime(order.created_at)}
 						</p>
 					</a>

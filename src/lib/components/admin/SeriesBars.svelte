@@ -65,7 +65,7 @@
 		margin: 0.5rem 0 0;
 		padding-top: 0.6rem;
 		border-top: 1px solid var(--border-subtle);
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 </style>

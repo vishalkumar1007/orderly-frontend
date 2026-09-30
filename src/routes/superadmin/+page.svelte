@@ -246,12 +246,12 @@
 				<Rocket size={22} strokeWidth={1.6} />
 			</span>
 			<h2
-				style="font-family:var(--font-display);font-size:1.25rem;font-weight:600;letter-spacing:-0.02em;margin:0 0 0.4rem;"
+				style="font-family:var(--font-display);font-size:var(--fs-h1);font-weight:600;letter-spacing:-0.02em;margin:0 0 0.4rem;"
 			>
 				Your platform is ready
 			</h2>
 			<p
-				style="margin:0 auto 1.4rem;max-width:32rem;font-size:0.88rem;color:var(--text-3);line-height:1.55;"
+				style="margin:0 auto 1.4rem;max-width:32rem;font-size:var(--fs-body);color:var(--text-3);line-height:1.55;"
 			>
 				No businesses are onboarded yet. Onboard the first one to give it a storefront address,
 				a configured menu and an administrator who can sign in.
@@ -308,7 +308,7 @@
 					<span class="dash-live-dot"></span>
 					Today · every business
 				</span>
-				<span class="muted" style="font-size:0.75rem;">{nowLabel}</span>
+				<span class="muted" style="font-size:var(--fs-code);">{nowLabel}</span>
 			</div>
 			<div class="today-grid">
 				{#each [0, 1, 2] as i (i)}
@@ -387,7 +387,7 @@
 				{#if loading}
 					<Skeleton height="92px" />
 				{:else if businessWeeks.length === 0}
-					<p class="muted" style="font-size:0.82rem;margin:0;">No onboarding data yet.</p>
+					<p class="muted" style="font-size:var(--fs-body);margin:0;">No onboarding data yet.</p>
 				{:else}
 					{@const wmax = Math.max(...businessWeeks.map((w) => Number(w.tenant_count ?? 0)), 1)}
 					<div class="pulse-bars" aria-hidden="true">
@@ -419,7 +419,7 @@
 						{#each [1, 2, 3] as _, i (i)}<Skeleton height="2.6rem" />{/each}
 					</div>
 				{:else if newest.length === 0}
-					<p class="muted" style="font-size:0.82rem;margin:0;">No businesses yet.</p>
+					<p class="muted" style="font-size:var(--fs-body);margin:0;">No businesses yet.</p>
 				{:else}
 					<div class="act-rows">
 						{#each newest as b (b.id)}
@@ -450,14 +450,14 @@
 						{#each [1, 2, 3] as _, i (i)}<Skeleton height="2.6rem" />{/each}
 					</div>
 				{:else if events.length === 0}
-					<p class="muted" style="font-size:0.82rem;margin:0;">No events recorded yet.</p>
+					<p class="muted" style="font-size:var(--fs-body);margin:0;">No events recorded yet.</p>
 				{:else}
 					<div class="act-rows">
 						{#each events as ev, i (ev.id)}
 							<div class="act-row">
 								<span
 									class="cell-avatar"
-									style="width:1.6rem;height:1.6rem;font-size:0.62rem;background:{tint(
+									style="width:1.6rem;height:1.6rem;font-size:var(--fs-micro);background:{tint(
 										i
 									)};color:#fff;border-radius:999px;"
 								>

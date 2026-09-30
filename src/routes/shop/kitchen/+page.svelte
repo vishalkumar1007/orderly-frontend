@@ -186,7 +186,7 @@
 
 	.osh-kitchen-lead {
 		margin: 0;
-		font-size: 0.85rem;
+		font-size: var(--fs-body);
 		color: var(--text-3);
 		line-height: 1.45;
 		flex: 1;
@@ -227,7 +227,7 @@
 		border-radius: 999px;
 		background: var(--icon-bg);
 		color: var(--icon-fg);
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		font-weight: 700;
 		white-space: nowrap;
 	}
@@ -257,14 +257,14 @@
 
 	.os-ticket-num {
 		font-family: var(--font-display);
-		font-size: 1.6rem;
+		font-size: var(--fs-stat);
 		font-weight: 800;
 		letter-spacing: -0.03em;
 		line-height: 1;
 	}
 
 	.os-ticket-stage {
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
@@ -284,28 +284,28 @@
 		display: flex;
 		align-items: baseline;
 		gap: 0.6rem;
-		font-size: 1rem;
+		font-size: var(--fs-title);
 		line-height: 1.35;
 	}
 
 	.os-ticket-items b {
 		flex: none;
 		min-width: 1.75rem;
-		font-size: 1.05rem;
+		font-size: var(--fs-title);
 		font-weight: 800;
 		color: var(--icon-fg);
 		font-variant-numeric: tabular-nums;
 	}
 
 	.os-ticket-cust {
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		color: var(--text-3);
 	}
 
 	.os-ticket-go {
 		width: 100%;
 		min-height: 3.25rem;
-		font-size: 1rem;
+		font-size: var(--fs-title);
 		font-weight: 700;
 	}
 
@@ -331,14 +331,14 @@
 	.osh-ticket-empty h2 {
 		margin: 0 0 0.3rem;
 		font-family: var(--font-display);
-		font-size: 1.05rem;
+		font-size: var(--fs-title);
 		font-weight: 650;
 		letter-spacing: -0.01em;
 	}
 
 	.osh-ticket-empty p {
 		margin: 0;
-		font-size: 0.85rem;
+		font-size: var(--fs-body);
 		color: var(--text-3);
 		line-height: 1.5;
 	}

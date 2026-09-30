@@ -416,7 +416,7 @@
 			<p class="menu-sub">Manage what customers can order</p>
 		</div>
 		<div class="menu-header-actions">
-			<a class="btn btn-ghost" href="/shop/storefront/preview">
+			<a class="btn btn-ghost" href="/shop/storefront/launch">
 				<Eye size={15} strokeWidth={2} /> Preview Store
 			</a>
 			<button class="btn btn-ghost" type="button" onclick={openAddCategory}>
@@ -485,7 +485,7 @@
 				style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;"
 			>
 				<div>
-					<h2 style="margin:0;font-size:0.95rem;">{t.groups}</h2>
+					<h2 style="margin:0;font-size:var(--fs-title);">{t.groups}</h2>
 					<p class="panel-note" style="margin:0.15rem 0 0;">
 						Organize {t.items.toLowerCase()} and control display order
 					</p>
@@ -746,13 +746,13 @@
 	}
 	.menu-title {
 		margin: 0;
-		font-size: 1.35rem;
+		font-size: var(--fs-h1);
 		font-weight: 700;
 	}
 	.menu-sub {
 		margin: 0.2rem 0 0;
 		color: var(--text-3);
-		font-size: 0.9rem;
+		font-size: var(--fs-body);
 	}
 	.menu-header-actions {
 		display: flex;
@@ -796,7 +796,7 @@
 		font-weight: 600;
 	}
 	.cat-count {
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		color: var(--text-3);
 	}
 	.cat-row-actions {
@@ -856,7 +856,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.3rem;
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 		color: var(--text-2);
 		padding: 0.35rem 0.55rem;
 		border: 1px solid var(--border);

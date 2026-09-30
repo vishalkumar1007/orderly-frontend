@@ -192,7 +192,7 @@
 
 	.hp-head h3 {
 		margin: 0;
-		font-size: 0.7rem;
+		font-size: var(--fs-label);
 		font-weight: 650;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
@@ -226,12 +226,12 @@
 	}
 
 	.hp-main strong {
-		font-size: 0.86rem;
+		font-size: var(--fs-body);
 		font-weight: 550;
 	}
 
 	.hp-main span {
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 		line-height: 1.45;
 	}
@@ -241,7 +241,7 @@
 		align-items: center;
 		gap: 0.6rem;
 		flex-shrink: 0;
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		color: var(--text-3);
 	}
 

@@ -245,14 +245,14 @@
 		background: var(--accent);
 		color: var(--on-accent);
 		font-weight: 700;
-		font-size: 0.95rem;
+		font-size: var(--fs-title);
 		flex-shrink: 0;
 	}
 
 	.setup-name {
 		margin: 0;
 		font-family: var(--font-display);
-		font-size: 0.95rem;
+		font-size: var(--fs-title);
 		font-weight: 700;
 		letter-spacing: -0.01em;
 		line-height: 1.2;
@@ -260,7 +260,7 @@
 
 	.setup-sub {
 		margin: 0.05rem 0 0;
-		font-size: 0.7rem;
+		font-size: var(--fs-label);
 		font-weight: 650;
 		text-transform: uppercase;
 		letter-spacing: 0.07em;
@@ -285,14 +285,14 @@
 	.setup-heading h1 {
 		margin: 0 0 0.3rem;
 		font-family: var(--font-display);
-		font-size: 1.35rem;
+		font-size: var(--fs-h1);
 		font-weight: 700;
 		letter-spacing: -0.02em;
 	}
 
 	.setup-heading p {
 		margin: 0;
-		font-size: 0.86rem;
+		font-size: var(--fs-body);
 		color: var(--text-2);
 		line-height: 1.5;
 	}
@@ -303,7 +303,7 @@
 
 	.setup-field label {
 		display: block;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		font-weight: 600;
 		color: var(--text-2);
 		margin-bottom: 0.3rem;
@@ -334,7 +334,7 @@
 		background: none;
 		outline: none;
 		font: inherit;
-		font-size: 0.95rem;
+		font-size: var(--fs-title);
 		color: var(--text);
 		min-height: 2.85rem;
 	}
@@ -383,7 +383,7 @@
 	}
 
 	.setup-strength-label {
-		font-size: 0.7rem;
+		font-size: var(--fs-label);
 		font-weight: 600;
 	}
 
@@ -396,14 +396,14 @@
 		border-radius: var(--radius-sm);
 		background: var(--danger-bg);
 		color: var(--danger);
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 		line-height: 1.45;
 	}
 
 	.setup-submit {
 		width: 100%;
 		min-height: 3rem;
-		font-size: 0.95rem;
+		font-size: var(--fs-title);
 		margin-top: 0.25rem;
 	}
 
@@ -413,7 +413,7 @@
 		justify-content: center;
 		gap: 0.35rem;
 		margin-top: 1.5rem;
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		color: var(--text-3);
 	}
 </style>

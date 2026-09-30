@@ -99,7 +99,7 @@
 			/>
 		{:else}
 			<span
-				style="width:56px;height:56px;border-radius:var(--radius-sm);display:grid;place-items:center;background:var(--accent);color:#fff;font-weight:800;font-size:1.25rem;"
+				style="width:56px;height:56px;border-radius:var(--radius-sm);display:grid;place-items:center;background:var(--accent);color:#fff;font-weight:800;font-size:var(--fs-h1);"
 				aria-hidden="true"
 			>
 				{initial}
@@ -107,7 +107,7 @@
 		{/if}
 		<div style="min-width:0;">
 			<p style="margin:0;font-weight:600;">{name.trim() || 'Your store name'}</p>
-			<p style="margin:0.1rem 0 0;font-size:0.75rem;color:var(--text-2);">
+			<p style="margin:0.1rem 0 0;font-size:var(--fs-code);color:var(--text-2);">
 				{#if logoBroken}
 					That logo address did not load — check it is reachable.
 				{:else if logoUrl.trim()}

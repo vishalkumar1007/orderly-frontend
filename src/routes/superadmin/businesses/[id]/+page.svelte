@@ -383,7 +383,7 @@
 				<p style="margin:0.15rem 0 0;">
 					The administrator has not set a password. Generate a fresh link if the last one expired.
 				</p>
-				{#if inviteNote}<p style="margin:0.35rem 0 0;font-size:0.78rem;">{inviteNote}</p>{/if}
+				{#if inviteNote}<p style="margin:0.35rem 0 0;font-size:var(--fs-tab);">{inviteNote}</p>{/if}
 				{#if inviteSetupUrl}
 					<div style="display:flex;align-items:center;gap:0.4rem;margin-top:0.5rem;">
 						<code class="mono" style="flex:1;min-width:0;">{inviteSetupUrl}</code>
@@ -681,14 +681,14 @@
 					{#each logs as ev (ev.id)}
 						<div class="ev-row">
 							<div style="min-width:0;">
-								<strong style="font-size:0.85rem;font-weight:550;">
+								<strong style="font-size:var(--fs-body);font-weight:550;">
 									{ev.action.replaceAll('_', ' ')}
 								</strong>
-								<p class="muted" style="margin:0.1rem 0 0;font-size:0.75rem;">
+								<p class="muted" style="margin:0.1rem 0 0;font-size:var(--fs-code);">
 									{ev.actor || ev.actor_email || 'System'} · {ev.resource}
 								</p>
 							</div>
-							<span class="muted" style="font-size:0.75rem;white-space:nowrap;">
+							<span class="muted" style="font-size:var(--fs-code);white-space:nowrap;">
 								{formatDateTime(ev.timestamp)}
 							</span>
 						</div>
@@ -734,7 +734,7 @@
 					<tr>
 						<td>
 							<strong style="font-weight:550;">{log.action.replaceAll('_', ' ')}</strong>
-							<span class="muted" style="display:block;font-size:0.74rem;">{log.resource}</span>
+							<span class="muted" style="display:block;font-size:var(--fs-code);">{log.resource}</span>
 						</td>
 						<td>{log.actor || log.actor_email || 'System'}</td>
 						<td><StatusBadge status={String(log.result)} /></td>
@@ -763,7 +763,7 @@
 />
 
 <Modal bind:open={planOpen} title="Change plan">
-	<p class="muted" style="margin:0 0 0.9rem;font-size:0.82rem;line-height:1.5;">
+	<p class="muted" style="margin:0 0 0.9rem;font-size:var(--fs-body);line-height:1.5;">
 		The business moves immediately and its subscription follows. Nothing is charged.
 	</p>
 	<PlanPicker {plans} bind:value={planChoice} />
@@ -826,7 +826,7 @@
 
 <style>
 	.bt-type {
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		font-weight: 550;
 		color: var(--text-3);
 		padding: 0.1rem 0.45rem;
@@ -861,7 +861,7 @@
 	.boundary li {
 		position: relative;
 		padding-left: 1.4rem;
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 		line-height: 1.5;
 		color: var(--text-3);
 	}
@@ -891,7 +891,7 @@
 	}
 
 	.plan-features li {
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		color: var(--text-2);
 	}
 </style>

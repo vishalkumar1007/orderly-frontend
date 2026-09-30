@@ -204,7 +204,7 @@
 		border-radius: 999px;
 		background: var(--icon-bg);
 		color: var(--icon-fg);
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
@@ -212,7 +212,7 @@
 
 	.sod-block h4 {
 		margin: 0 0 0.4rem;
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		font-weight: 700;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
@@ -221,7 +221,7 @@
 
 	.sod-block p {
 		margin: 0;
-		font-size: 0.9rem;
+		font-size: var(--fs-body);
 		line-height: 1.45;
 	}
 
@@ -237,20 +237,20 @@
 		display: flex;
 		justify-content: space-between;
 		gap: 0.75rem;
-		font-size: 0.9rem;
+		font-size: var(--fs-body);
 	}
 
 	.sod-addons {
 		list-style: none;
 		margin: 0.2rem 0 0 1.4rem;
 		padding: 0;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		color: var(--text-3, var(--muted));
 	}
 
 	.sod-notes {
 		margin: 0.2rem 0 0 1.4rem;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 	}
 
 	.sod-total {
@@ -259,7 +259,7 @@
 		margin-top: 0.75rem;
 		padding-top: 0.65rem;
 		border-top: 1px solid var(--border);
-		font-size: 0.95rem;
+		font-size: var(--fs-title);
 	}
 
 	.warn {

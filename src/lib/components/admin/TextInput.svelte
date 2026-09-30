@@ -61,7 +61,7 @@
 	/>
 	{#if suffix}
 		<span
-			style="position:absolute;right:0.7rem;top:50%;transform:translateY(-50%);font-size:0.75rem;color:var(--text-3);pointer-events:none;"
+			style="position:absolute;right:0.7rem;top:50%;transform:translateY(-50%);font-size:var(--fs-code);color:var(--text-3);pointer-events:none;"
 			aria-hidden="true"
 		>
 			{suffix}

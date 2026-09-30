@@ -14,6 +14,7 @@
 		status = 'idle',
 		error = '',
 		disabled = false,
+		onblur,
 		onslugchange
 	}: {
 		id?: string;
@@ -23,6 +24,7 @@
 		status?: Status;
 		error?: string;
 		disabled?: boolean;
+		onblur?: () => void;
 		onslugchange?: (slug: string) => void;
 	} = $props();
 
@@ -65,6 +67,7 @@
 			aria-invalid={error ? 'true' : undefined}
 			aria-describedby="{id}-status"
 			oninput={onInput}
+			onblur={() => onblur?.()}
 		/>
 		<span class="slug-suffix" aria-hidden="true">.{baseDomain}</span>
 
@@ -115,7 +118,7 @@
 	.slug-prefix,
 	.slug-suffix {
 		flex-shrink: 0;
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 		color: var(--text-3);
 		background: var(--surface-2);
 		align-self: stretch;
@@ -142,7 +145,7 @@
 		padding-right: 2.1rem;
 		height: 2.5rem;
 		font-family: var(--font-mono);
-		font-size: 0.85rem;
+		font-size: var(--fs-body);
 	}
 
 	.slug-input:focus {
@@ -174,7 +177,7 @@
 	}
 
 	.slug-note {
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		font-weight: 550;
 	}
 
@@ -203,7 +206,7 @@
 	}
 
 	.slug-preview-label {
-		font-size: 0.65rem;
+		font-size: var(--fs-micro);
 		font-weight: 650;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
@@ -213,7 +216,7 @@
 
 	.slug-preview code {
 		font-family: var(--font-mono);
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		color: var(--text);
 		overflow: hidden;
 		text-overflow: ellipsis;

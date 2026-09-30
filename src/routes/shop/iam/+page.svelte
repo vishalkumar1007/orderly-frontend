@@ -285,7 +285,7 @@
 				<tr>
 					<td>
 						<div class="cell-id">
-							<span class="cell-avatar" style="width:1.9rem;height:1.9rem;font-size:0.72rem;">
+							<span class="cell-avatar" style="width:1.9rem;height:1.9rem;font-size:var(--fs-meta);">
 								{initials(user.name || user.email)}
 							</span>
 							<span class="cell-id-txt">
@@ -300,7 +300,7 @@
 					<td class="col-md">
 						<span class="role-chip" data-role={user.role}>{user.role_label}</span>
 					</td>
-					<td class="col-sm muted" style="font-size:0.76rem;">{accessSummary(user)}</td>
+					<td class="col-sm muted" style="font-size:var(--fs-code);">{accessSummary(user)}</td>
 					<td><StatusBadge status={String(user.status)} /></td>
 					<td class="num col-md muted">
 						{user.active_sessions}
@@ -364,7 +364,7 @@
 								<tr>
 									<td>
 										<strong style="font-weight:550;">{permission.label}</strong>
-										<span class="muted" style="display:block;font-size:0.74rem;">
+										<span class="muted" style="display:block;font-size:var(--fs-code);">
 											{permission.description}
 										</span>
 									</td>
@@ -439,13 +439,13 @@
 	}
 
 	.intro strong {
-		font-size: 0.86rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 	}
 
 	.intro p {
 		margin: 0.2rem 0 0;
-		font-size: 0.79rem;
+		font-size: var(--fs-tab);
 		line-height: 1.55;
 		color: var(--text-3);
 		max-width: 52rem;
@@ -461,13 +461,13 @@
 
 	.iam-head h2 {
 		margin: 0;
-		font-size: 0.95rem;
+		font-size: var(--fs-title);
 		font-weight: 600;
 	}
 
 	.iam-head p {
 		margin: 0.25rem 0 0;
-		font-size: 0.79rem;
+		font-size: var(--fs-tab);
 		line-height: 1.5;
 		color: var(--text-3);
 		max-width: 50rem;
@@ -479,7 +479,7 @@
 		border-radius: 999px;
 		background: var(--surface-3);
 		color: var(--text-3);
-		font-size: 0.62rem;
+		font-size: var(--fs-micro);
 		font-weight: 650;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
@@ -490,7 +490,7 @@
 		align-items: center;
 		padding: 0.15rem 0.5rem;
 		border-radius: 999px;
-		font-size: 0.74rem;
+		font-size: var(--fs-code);
 		font-weight: 600;
 		background: var(--surface-3);
 		color: var(--text-2);
@@ -521,19 +521,19 @@
 	}
 
 	.role-card strong {
-		font-size: 0.88rem;
+		font-size: var(--fs-body);
 		font-weight: 650;
 	}
 
 	.role-card p {
 		margin: 0.25rem 0 0.5rem;
-		font-size: 0.77rem;
+		font-size: var(--fs-tab);
 		line-height: 1.5;
 		color: var(--text-3);
 	}
 
 	.role-count {
-		font-size: 0.7rem;
+		font-size: var(--fs-label);
 		font-weight: 600;
 		color: var(--icon-fg);
 	}
@@ -545,7 +545,7 @@
 
 	.matrix-group td {
 		background: var(--surface-2);
-		font-size: 0.7rem;
+		font-size: var(--fs-label);
 		font-weight: 650;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
@@ -579,7 +579,7 @@
 	.matrix-note {
 		margin: 0;
 		padding: 0 1.25rem 1.25rem;
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		line-height: 1.5;
 		color: var(--text-3);
 		max-width: 52rem;

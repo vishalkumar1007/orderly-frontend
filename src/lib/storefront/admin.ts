@@ -75,6 +75,9 @@ export type AdminStorefront = {
 		packaging_fee: number;
 		published: boolean;
 		store_status: string;
+		status_message?: string;
+		store_status_label?: string;
+		status_message_display?: string;
 	};
 	payments: {
 		online_payment_enabled: boolean;
@@ -563,7 +566,10 @@ export function createDefaultStorefront(slug = 'your-shop', name = 'Your Store')
 			tax_percent: 0,
 			packaging_fee: 0,
 			published: true,
-			store_status: 'OPEN'
+			store_status: 'OPEN',
+			status_message: '',
+			store_status_label: 'Open Now',
+			status_message_display: ''
 		},
 		payments: {
 			online_payment_enabled: true,

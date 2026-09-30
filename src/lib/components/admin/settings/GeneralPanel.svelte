@@ -334,7 +334,7 @@
 	}
 
 	.set-env-note {
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 </style>

@@ -284,7 +284,7 @@
 	.price-sym {
 		color: var(--text-3);
 		font-weight: 600;
-		font-size: 0.9rem;
+		font-size: var(--fs-body);
 	}
 	.price-row :global(.input) {
 		flex: 1;
@@ -301,7 +301,7 @@
 		background: transparent;
 		color: var(--accent-dark);
 		font: inherit;
-		font-size: 0.85rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 		cursor: pointer;
 		padding: 0.25rem 0;
@@ -330,7 +330,7 @@
 		border-radius: 999px;
 		background: var(--surface);
 		color: var(--text-2);
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		font-weight: 550;
 		font-family: inherit;
 		cursor: pointer;

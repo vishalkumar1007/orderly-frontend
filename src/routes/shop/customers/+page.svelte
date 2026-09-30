@@ -160,7 +160,7 @@
 				<tr class="cust-row" onclick={() => void openCustomer(c)}>
 					<td>
 						<div class="cell-id">
-							<span class="cell-avatar" style="width:1.9rem;height:1.9rem;font-size:0.72rem;">
+							<span class="cell-avatar" style="width:1.9rem;height:1.9rem;font-size:var(--fs-meta);">
 								{#if c.name}
 									{initials(c.name)}
 								{:else}
@@ -205,7 +205,7 @@
 		<div class="cdetail">
 			<section class="cdetail-block">
 				<div class="cdetail-hero">
-					<span class="cell-avatar" style="width:2.6rem;height:2.6rem;font-size:0.9rem;">
+					<span class="cell-avatar" style="width:2.6rem;height:2.6rem;font-size:var(--fs-body);">
 						{initials(c.name || c.phone || '?')}
 					</span>
 					<div>
@@ -281,7 +281,7 @@
 
 	.cust-lead {
 		margin: 0 0 0.45rem;
-		font-size: 0.9rem;
+		font-size: var(--fs-body);
 		line-height: 1.45;
 	}
 
@@ -289,7 +289,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.75rem;
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 		color: var(--text-2);
 	}
 
@@ -323,7 +323,7 @@
 		background: var(--bg);
 		border-radius: 999px;
 		padding: 0.3rem 0.7rem;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		font-weight: 650;
 		cursor: pointer;
 		color: var(--text);
@@ -356,12 +356,12 @@
 
 	.cdetail-hero strong {
 		display: block;
-		font-size: 1rem;
+		font-size: var(--fs-title);
 	}
 
 	.cdetail-hero p {
 		margin: 0.15rem 0 0;
-		font-size: 0.85rem;
+		font-size: var(--fs-body);
 	}
 
 	.cdetail-meta {
@@ -369,7 +369,7 @@
 		flex-wrap: wrap;
 		gap: 0.75rem;
 		margin-bottom: 0.75rem;
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 		color: var(--text-2);
 	}
 
@@ -380,7 +380,7 @@
 
 	.cdetail-block h4 {
 		margin: 0 0 0.55rem;
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		font-weight: 700;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
@@ -404,7 +404,7 @@
 		border-radius: 10px;
 		text-decoration: none;
 		color: var(--text);
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 		align-items: center;
 	}
 

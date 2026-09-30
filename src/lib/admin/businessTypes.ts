@@ -20,13 +20,16 @@
  * catalogue moved ahead of the code.
  */
 
-import type { Component } from 'svelte';
-import Building2 from '@lucide/svelte/icons/building-2';
-import Coffee from '@lucide/svelte/icons/coffee';
-import Hotel from '@lucide/svelte/icons/hotel';
-import ShoppingBasket from '@lucide/svelte/icons/shopping-basket';
-import Soup from '@lucide/svelte/icons/soup';
-import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
+// Tabler, not Lucide — see planing/ui_rules.md: "Tabler is the Clauge icon
+// language." The onboarding wizard is the first screen built to that rule;
+// these icons feed its business-type cards and the live preview's tab.
+import IconBed from '@tabler/icons-svelte/icons/bed';
+import IconBuildingStore from '@tabler/icons-svelte/icons/building-store';
+import IconChefHat from '@tabler/icons-svelte/icons/chef-hat';
+import IconCoffee from '@tabler/icons-svelte/icons/coffee';
+import IconScissors from '@tabler/icons-svelte/icons/scissors';
+import IconShoppingBasket from '@tabler/icons-svelte/icons/basket';
+import IconSoup from '@tabler/icons-svelte/icons/soup';
 import type { TenantType } from './types';
 
 /* ------------------------------------------------------------------ *
@@ -159,7 +162,13 @@ export type BusinessTypeTemplate = {
 	tagline: string;
 	/** The sentence that decides the choice, as shown on the selection card. */
 	description: string;
-	icon: Component;
+	// `any` rather than svelte's `Component`: @tabler/icons-svelte still types
+	// its icons as legacy SvelteComponentTyped classes, which do not satisfy
+	// Svelte 5's function-component Component type even though both render
+	// fine at runtime. This is an icon-package interop gap, not a real type
+	// hole — every value assigned here is a Svelte component.
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	icon: any;
 	/** Console brand preset applied to the tenant's own portal. */
 	brand: { preset_id: string; color_mode: 'light' | 'dark' | 'system' };
 	terminology: Terminology;
@@ -171,6 +180,14 @@ export type BusinessTypeTemplate = {
 	starterCategories: string[];
 	/** Which controls step 6 renders for this type. */
 	controls: ConfigControl[];
+	/**
+	 * True when this type has no opinion about order acceptance, prep time or
+	 * payment timing — Barber, Hotel and General are not order-shaped
+	 * businesses, so step 6 asks a different question for them: which of the
+	 * business type's capabilities (business_type_capabilities on the server)
+	 * should actually be turned on, not how orders should be accepted.
+	 */
+	capabilityDriven?: boolean;
 	/** The console modules this type enables. */
 	modules: ModuleKey[];
 	/**
@@ -234,19 +251,37 @@ const RETAIL_TERMS: Terminology = {
 	staff: 'Staff'
 };
 
-const HOSPITALITY_TERMS: Terminology = {
+const BARBER_TERMS: Terminology = {
 	item: 'Service',
 	items: 'Services',
-	group: 'Department',
-	groups: 'Departments',
-	catalog: 'Service list',
-	order: 'Request',
-	orders: 'Requests',
-	fulfilment: 'Delivery to room',
-	station: 'Service desk',
-	prep: 'In progress',
-	ticket: 'Request',
-	handover: 'delivered',
+	group: 'Category',
+	groups: 'Categories',
+	catalog: 'Services',
+	order: 'Appointment',
+	orders: 'Appointments',
+	fulfilment: 'In person',
+	// There is no kitchen here — there is the line of chairs and the queue
+	// number a customer is called by.
+	station: 'Queue',
+	prep: 'In service',
+	ticket: 'Appointment',
+	handover: 'served',
+	staff: 'Barbers'
+};
+
+const HOTEL_TERMS: Terminology = {
+	item: 'Room type',
+	items: 'Room types',
+	group: 'Category',
+	groups: 'Categories',
+	catalog: 'Rooms',
+	order: 'Reservation',
+	orders: 'Reservations',
+	fulfilment: 'Stay',
+	station: 'Front desk',
+	prep: 'Occupied',
+	ticket: 'Reservation',
+	handover: 'checked out',
 	staff: 'Team'
 };
 
@@ -272,7 +307,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 		tagline: 'Counter service, high volume, short queue',
 		description:
 			'Quick-service and local food businesses such as momo shops, snack counters, roll carts and roadside kitchens. Orders are taken fast, prepared to order and collected at the counter.',
-		icon: Soup,
+		icon: IconSoup,
 		brand: { preset_id: 'orange', color_mode: 'system' },
 		terminology: FOOD_TERMS,
 		storefront: {
@@ -313,7 +348,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 		tagline: 'A stocked catalogue, collected in store',
 		description:
 			'Neighbourhood grocers and provision stores. A long catalogue browsed by aisle rather than a short menu, packed against a list and collected when it is ready.',
-		icon: ShoppingBasket,
+		icon: IconShoppingBasket,
 		brand: { preset_id: 'emerald', color_mode: 'system' },
 		terminology: RETAIL_TERMS,
 		storefront: {
@@ -356,7 +391,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 		tagline: 'Short menu, fast turnaround, regulars',
 		description:
 			'Coffee shops, tea rooms and bakeries. A short menu that changes often, most orders ready in minutes, and customers who come back often enough to be worth recognising.',
-		icon: Coffee,
+		icon: IconCoffee,
 		brand: { preset_id: 'indigo-violet', color_mode: 'system' },
 		terminology: CAFE_TERMS,
 		storefront: {
@@ -397,7 +432,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 		tagline: 'Full menu, courses, longer tickets',
 		description:
 			'Sit-down and takeaway restaurants with a full menu across courses. Tickets take longer, the kitchen paces them, and the menu is browsed before it is ordered from.',
-		icon: UtensilsCrossed,
+		icon: IconChefHat,
 		brand: { preset_id: 'rose', color_mode: 'system' },
 		terminology: RESTAURANT_TERMS,
 		storefront: {
@@ -432,15 +467,30 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 		controls: COMMON_CONTROLS
 	},
 
+	/*
+	 * HOTEL, BARBER and GENERAL are not order-shaped businesses — a hotel
+	 * takes reservations against rooms, a barber books appointments and runs
+	 * a queue, and a general business is whatever its owner turns on. None of
+	 * them has an "order acceptance mode" or a "preparation time", so
+	 * `controls` is empty and `capabilityDriven` is set: step 6 of the wizard
+	 * asks a different question for these three (which capabilities to turn
+	 * on), driven by business_type_capabilities on the server rather than by
+	 * the fixed food-operational fields below.
+	 *
+	 * `behaviour` / `payments` / `workflow` still need real values — they seed
+	 * tenant_storefront_settings columns that exist for every business type —
+	 * but the values are inert defaults here, never shown or edited in the
+	 * wizard for these three types.
+	 */
 	HOTEL: {
 		code: 'HOTEL',
 		label: 'Hotel',
-		tagline: 'In-house guests, charged to the stay',
+		tagline: 'Rooms, reservations, settled at checkout',
 		description:
-			'Hotel food and beverage service for in-house guests: room service, restaurant and bar. Guests are known, requests are attached to a stay, and settlement usually happens at checkout.',
-		icon: Hotel,
+			'Hotels and guesthouses. A guest reserves a room type, is assigned an actual room at check-in, and anything charged during the stay settles on one folio at checkout.',
+		icon: IconBed,
 		brand: { preset_id: 'cyan', color_mode: 'system' },
-		terminology: HOSPITALITY_TERMS,
+		terminology: HOTEL_TERMS,
 		storefront: {
 			theme_preset: 'classic',
 			product_layout: 'list',
@@ -450,9 +500,10 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 			card_style: 'outlined',
 			button_style: 'square'
 		},
-		// A guest is identified before they can charge anything to a room, so
-		// login is required rather than optional.
-		behaviour: { ordering_enabled: true, customer_login_mode: 'required', prep_time_minutes: 35 },
+		// A guest is identified before a room can be reserved in their name.
+		// prep_time_minutes is inert for this type (never shown, never read) —
+		// 1 rather than 0 only to stay inside the shared field's 1–240 range.
+		behaviour: { ordering_enabled: false, customer_login_mode: 'required', prep_time_minutes: 1 },
 		payments: {
 			online_payment_enabled: true,
 			cash_enabled: true,
@@ -462,19 +513,99 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 		workflow: {
 			acceptance_mode: 'MANUAL',
 			payment_requirement: 'AT_PICKUP',
-			ready_notification: true,
+			ready_notification: false,
 			auto_complete: false
 		},
-		starterCategories: ['Room service', 'Restaurant', 'Bar', 'Breakfast'],
-		// No pickup display: nobody waits at a counter for room service, so a
-		// screen of ticket numbers would have no audience.
-		modules: ['station', 'addons', 'room_charge'],
+		starterCategories: [],
+		modules: [],
 		quickActions: [
-			{ label: 'Open requests', href: '/shop/orders' },
-			{ label: 'Service desk board', href: '/shop/kitchen' },
-			{ label: 'Edit the service list', href: '/shop/menu' }
+			{ label: 'Reservations', href: '/shop/reservations' },
+			{ label: 'Rooms', href: '/shop/rooms' },
+			{ label: 'Housekeeping', href: '/shop/housekeeping' }
 		],
-		controls: COMMON_CONTROLS
+		controls: [],
+		capabilityDriven: true
+	},
+
+	BARBER: {
+		code: 'BARBER',
+		label: 'Barber Shop',
+		tagline: 'Appointments and walk-ins, one queue',
+		description:
+			'Barbers, salons and grooming studios. A customer books a service with a barber, or joins the walk-in queue — both are called from the same line.',
+		icon: IconScissors,
+		brand: { preset_id: 'pink', color_mode: 'system' },
+		terminology: BARBER_TERMS,
+		storefront: {
+			theme_preset: 'minimal',
+			product_layout: 'list',
+			hero_style: 'compact',
+			font_family: 'sora',
+			radius: 'md',
+			card_style: 'outlined',
+			button_style: 'rounded'
+		},
+		// prep_time_minutes is inert for this type — see the HOTEL comment above.
+		behaviour: { ordering_enabled: false, customer_login_mode: 'optional', prep_time_minutes: 1 },
+		payments: {
+			online_payment_enabled: true,
+			cash_enabled: true,
+			pay_at_pickup_enabled: true,
+			default_payment_method: 'CASH'
+		},
+		workflow: {
+			acceptance_mode: 'MANUAL',
+			payment_requirement: 'AT_PICKUP',
+			ready_notification: false,
+			auto_complete: false
+		},
+		starterCategories: [],
+		modules: [],
+		quickActions: [
+			{ label: 'Appointments', href: '/shop/appointments' },
+			{ label: 'Walk-in queue', href: '/shop/queue' },
+			{ label: 'Edit services', href: '/shop/services' }
+		],
+		controls: [],
+		capabilityDriven: true
+	},
+
+	GENERAL: {
+		code: 'GENERAL',
+		label: 'General',
+		tagline: 'Pick the modules this business needs',
+		description:
+			'Anything that does not fit the shapes above. Customers, staff, payments and billing are on by default; every other module — a catalogue, appointments, rooms, a queue — is the owner’s choice during setup.',
+		icon: IconBuildingStore,
+		brand: { preset_id: 'lime', color_mode: 'system' },
+		terminology: FOOD_TERMS,
+		storefront: {
+			theme_preset: 'modern',
+			product_layout: 'grid',
+			hero_style: 'compact',
+			font_family: 'inter',
+			radius: 'md',
+			card_style: 'elevated',
+			button_style: 'rounded'
+		},
+		behaviour: { ordering_enabled: false, customer_login_mode: 'optional', prep_time_minutes: 20 },
+		payments: {
+			online_payment_enabled: true,
+			cash_enabled: true,
+			pay_at_pickup_enabled: true,
+			default_payment_method: 'ONLINE'
+		},
+		workflow: {
+			acceptance_mode: 'MANUAL',
+			payment_requirement: 'BEFORE_PREPARATION',
+			ready_notification: false,
+			auto_complete: false
+		},
+		starterCategories: [],
+		modules: [],
+		quickActions: [{ label: 'Configure modules', href: '/shop/settings/business-profile' }],
+		controls: [],
+		capabilityDriven: true
 	}
 };
 
@@ -489,7 +620,7 @@ export const GENERIC_TEMPLATE: BusinessTypeTemplate = {
 	tagline: 'A working default for anything else',
 	description:
 		'Any business that does not fit the shapes above. Starts with a neutral theme, a plain catalogue and manual order acceptance — the tenant admin tunes it from there.',
-	icon: Building2,
+	icon: IconBuildingStore,
 	brand: { preset_id: 'indigo-violet', color_mode: 'system' },
 	terminology: FOOD_TERMS,
 	storefront: {

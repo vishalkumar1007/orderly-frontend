@@ -110,7 +110,7 @@
 <div style="padding-bottom:8px;">
 	<a
 		href="/menu"
-		style="display:inline-flex;align-items:center;gap:4px;margin-left:var(--sf-gutter);padding:10px 0;font-size:0.8125rem;font-weight:600;color:var(--sf-text-2);text-decoration:none;"
+		style="display:inline-flex;align-items:center;gap:4px;margin-left:var(--sf-gutter);padding:10px 0;font-size:var(--fs-body);font-weight:600;color:var(--sf-text-2);text-decoration:none;"
 	>
 		<ChevronLeft size={16} strokeWidth={2.2} aria-hidden="true" />
 		Menu
@@ -225,7 +225,7 @@
 										>
 											<Minus size={13} strokeWidth={2.6} aria-hidden="true" />
 										</button>
-										<output style="min-width:22px;font-size:0.8125rem;">{qty}</output>
+										<output style="min-width:22px;font-size:var(--fs-body);">{qty}</output>
 										<button
 											type="button"
 											style="width:32px;height:32px;"

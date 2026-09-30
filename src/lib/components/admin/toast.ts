@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 
-export type ToastKind = 'success' | 'error' | 'info';
+export type ToastKind = 'success' | 'error' | 'warn' | 'info';
 
 /** Optional inline button — used for prompts that need a decision. */
 export type ToastAction = {
@@ -39,6 +39,7 @@ function createToastStore() {
 		subscribe,
 		success: (message: string) => push(message, 'success'),
 		error: (message: string) => push(message, 'error'),
+		warn: (message: string) => push(message, 'warn'),
 		info: (message: string) => push(message, 'info'),
 		/** A prompt that stays until dismissed, optionally with one action. */
 		show: (opts: { message: string; action?: ToastAction; duration?: number }) =>

@@ -33,6 +33,8 @@
 	--sf-warn-soft: #fdf1de;
 	--sf-danger: #b42318;
 	--sf-danger-soft: #fdecea;
+	--sf-info: #1d4ed8;
+	--sf-info-soft: #eaf0fe;
 	--sf-shadow-xs: 0 1px 2px rgba(16, 18, 29, 0.05);
 	--sf-shadow-sm: 0 2px 8px rgba(16, 18, 29, 0.06);
 	--sf-shadow-md: 0 8px 24px rgba(16, 18, 29, 0.1);
@@ -96,6 +98,8 @@
 	--sf-warn-soft: rgba(217, 119, 6, 0.18);
 	--sf-danger: #f87171;
 	--sf-danger-soft: rgba(220, 38, 38, 0.18);
+	--sf-info: #7aa5ff;
+	--sf-info-soft: rgba(37, 99, 235, 0.18);
 	--sf-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
 	--sf-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
 	--sf-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
@@ -915,12 +919,17 @@
 	gap: 8px;
 	min-height: 40px;
 	padding: 8px var(--sf-gutter);
-	background: var(--sf-primary-soft);
-	color: var(--sf-primary);
+	background: var(--sf-info-soft);
+	color: var(--sf-info);
 	font-size: 0.8125rem;
 	font-weight: 600;
 	text-align: center;
 	line-height: 1.35;
+}
+
+.sf-announcement[data-tone='info'] {
+	background: var(--sf-info-soft);
+	color: var(--sf-info);
 }
 
 .sf-announcement[data-tone='success'] {
@@ -931,6 +940,12 @@
 .sf-announcement[data-tone='warn'] {
 	background: var(--sf-warn-soft);
 	color: var(--sf-warn);
+}
+
+.sf-announcement[data-tone='error'],
+.sf-announcement[data-tone='danger'] {
+	background: var(--sf-danger-soft);
+	color: var(--sf-danger);
 }
 
 .sf-hero {
@@ -1294,8 +1309,8 @@
 }
 
 .sf-alert[data-tone='info'] {
-	background: var(--sf-primary-soft);
-	color: var(--sf-primary);
+	background: var(--sf-info-soft);
+	color: var(--sf-info);
 }
 
 .sf-alert svg {
@@ -2006,13 +2021,25 @@
 	max-width: calc(100vw - 32px);
 	padding: 10px 16px;
 	border-radius: var(--sf-radius-pill);
-	background: var(--sf-text);
-	color: var(--sf-surface);
+	background: var(--sf-success);
+	color: #fff;
 	font-size: 0.8125rem;
 	font-weight: 600;
 	box-shadow: var(--sf-shadow-md);
 	pointer-events: none;
 	animation: sf-toast-in 0.18s ease-out;
+}
+
+.sf-toast[data-tone='error'] {
+	background: var(--sf-danger);
+}
+
+.sf-toast[data-tone='warn'] {
+	background: var(--sf-warn);
+}
+
+.sf-toast[data-tone='info'] {
+	background: var(--sf-info);
 }
 
 @keyframes sf-toast-in {

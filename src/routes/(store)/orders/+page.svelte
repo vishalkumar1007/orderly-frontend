@@ -61,8 +61,8 @@
 </script>
 
 <div class="sf-wrap" style="padding-top:18px;">
-	<h1 style="margin:0 0 4px;font-size:1.375rem;font-weight:800;letter-spacing:-0.02em;">Your orders</h1>
-	<p style="margin:0 0 18px;font-size:0.9375rem;color:var(--sf-text-2);">
+	<h1 style="margin:0 0 4px;font-size:var(--fs-stat);font-weight:800;letter-spacing:-0.02em;">Your orders</h1>
+	<p style="margin:0 0 18px;font-size:var(--fs-title);color:var(--sf-text-2);">
 		Track an order or start a new one.
 	</p>
 
@@ -75,8 +75,8 @@
 	{:else}
 		{#if !signedIn}
 			<div class="sf-panel" style="margin-bottom:16px;">
-				<h2 style="margin:0 0 4px;font-size:0.9375rem;">Find your orders</h2>
-				<p style="margin:0 0 12px;font-size:0.8125rem;color:var(--sf-text-2);line-height:1.45;">
+				<h2 style="margin:0 0 4px;font-size:var(--fs-title);">Find your orders</h2>
+				<p style="margin:0 0 12px;font-size:var(--fs-body);color:var(--sf-text-2);line-height:1.45;">
 					Enter the phone number you ordered with.
 				</p>
 				<form onsubmit={lookup} novalidate>
@@ -97,7 +97,7 @@
 						{looking ? 'Looking…' : 'Find my orders'}
 					</button>
 				</form>
-				<p style="margin:12px 0 0;font-size:0.8125rem;color:var(--sf-text-2);line-height:1.45;">
+				<p style="margin:12px 0 0;font-size:var(--fs-body);color:var(--sf-text-2);line-height:1.45;">
 					Signing in shows your orders without typing anything.
 				</p>
 				<a
@@ -145,7 +145,7 @@
 								{money(order.total, currency)}
 							</strong>
 						</div>
-						<p style="margin:4px 0 0;font-size:0.8125rem;color:var(--sf-text-2);">
+						<p style="margin:4px 0 0;font-size:var(--fs-body);color:var(--sf-text-2);">
 							{order.item_count} {order.item_count === 1 ? 'item' : 'items'} ·{' '}
 							{order.items.slice(0, 2).map((i) => i.name).join(', ')}
 							{order.items.length > 2 ? ` +${order.items.length - 2} more` : ''}

@@ -150,13 +150,13 @@
 	}
 
 	.panel-h {
-		font-size: 0.9rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 	}
 
 	.sub {
 		margin: 0;
-		font-size: 0.74rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 
@@ -192,7 +192,7 @@
 	}
 
 	.centre strong {
-		font-size: 1.35rem;
+		font-size: var(--fs-h1);
 		font-weight: 600;
 		color: var(--text);
 		line-height: 1;
@@ -200,7 +200,7 @@
 	}
 
 	.centre span {
-		font-size: 0.68rem;
+		font-size: var(--fs-label);
 		color: var(--text-3);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
@@ -221,7 +221,7 @@
 		display: flex;
 		align-items: center;
 		gap: 0.45rem;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 	}
 
 	.dot {
@@ -250,7 +250,7 @@
 		align-items: center;
 		justify-content: center;
 		height: 170px;
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 		color: var(--text-3);
 	}
 </style>

@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import Plus from '@lucide/svelte/icons/plus';
+	import IconPlus from '@tabler/icons-svelte/icons/plus';
 	import { getAccessToken } from '$lib/api/client';
 	import { logout, me, type User } from '$lib/auth';
 	import { fetchSettings, fetchTenants } from '$lib/admin/api';
@@ -145,7 +145,7 @@
 		{#snippet actions()}
 			{#if showOnboardAction}
 				<a class="btn btn-primary btn-sm" href="/superadmin/businesses/new">
-					<Plus size={15} strokeWidth={2.2} />
+					<IconPlus size={15} stroke={1.8} />
 					<span>Onboard business</span>
 				</a>
 			{/if}

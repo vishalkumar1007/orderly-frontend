@@ -157,13 +157,13 @@
 
 	.title {
 		margin: 0;
-		font-size: 1.05rem;
+		font-size: var(--fs-title);
 		font-weight: 650;
 	}
 
 	.sub {
 		margin: 0.2rem 0 0;
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 		color: var(--text-3);
 		max-width: 48rem;
 	}
@@ -177,7 +177,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.25rem;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		color: var(--text-3);
 	}
 
@@ -192,7 +192,7 @@
 	}
 
 	.muted-note {
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		color: var(--text-3);
 	}
 </style>

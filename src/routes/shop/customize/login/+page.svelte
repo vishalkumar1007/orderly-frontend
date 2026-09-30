@@ -73,7 +73,7 @@
 	<div class="sfctl-section">
 		<h2>What a customer gets</h2>
 		<p class="sfctl-note">This is the list your customers read on the sign-in screen.</p>
-		<ul style="margin:0;padding-left:1.1rem;display:grid;gap:0.35rem;color:var(--text-2);font-size:0.875rem;">
+		<ul style="margin:0;padding-left:1.1rem;display:grid;gap:0.35rem;color:var(--text-2);font-size:var(--fs-body);">
 			<li>Their name and phone are filled in next time, so checkout is one tap shorter.</li>
 			<li>Every order they have placed, with live tracking from the profile screen.</li>
 			<li>Later: offers, coupons and loyalty — the plumbing is per-customer already.</li>
@@ -83,7 +83,7 @@
 	<div class="sfctl-section">
 		<h2>How it works</h2>
 		<p class="sfctl-note">There is no email and no password anywhere in this flow.</p>
-		<ol style="margin:0;padding-left:1.1rem;display:grid;gap:0.35rem;color:var(--text-2);font-size:0.875rem;line-height:1.5;">
+		<ol style="margin:0;padding-left:1.1rem;display:grid;gap:0.35rem;color:var(--text-2);font-size:var(--fs-body);line-height:1.5;">
 			<li>The customer types a phone number.</li>
 			<li>They receive a six-digit code that expires in five minutes.</li>
 			<li>They enter it once and are signed in on that device.</li>

@@ -91,13 +91,13 @@
 	}
 
 	.panel-h {
-		font-size: 0.9rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 	}
 
 	.sub {
 		margin: 0;
-		font-size: 0.74rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 
@@ -115,7 +115,7 @@
 		align-items: center;
 		justify-content: center;
 		height: 190px;
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 		color: var(--text-3);
 	}
 </style>

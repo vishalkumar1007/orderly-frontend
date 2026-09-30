@@ -43,7 +43,7 @@
 			{#each [1, 2, 3] as _, i (i)}<div class="skeleton" style="height:1.5rem;"></div>{/each}
 		</div>
 	{:else if sorted.length === 0}
-		<p class="muted" style="font-size:0.83rem;margin:0;">No orders placed yet.</p>
+		<p class="muted" style="font-size:var(--fs-body);margin:0;">No orders placed yet.</p>
 	{:else}
 		<div class="pipe">
 			{#each sorted as row (row.status)}
@@ -90,7 +90,7 @@
 		display: flex;
 		align-items: baseline;
 		gap: 0.35rem;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 	}
 
 	.pipe-count strong {
@@ -98,7 +98,7 @@
 	}
 
 	.pipe-count .muted {
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 	}
 
 	.pipe-bar {

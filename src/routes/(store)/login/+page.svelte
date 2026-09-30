@@ -73,17 +73,17 @@
 <div class="sf-wrap" style="padding-top:16px;">
 	<a
 		href={safeNext}
-		style="display:inline-flex;align-items:center;gap:4px;padding:8px 0;font-size:0.8125rem;font-weight:600;color:var(--sf-text-2);text-decoration:none;"
+		style="display:inline-flex;align-items:center;gap:4px;padding:8px 0;font-size:var(--fs-body);font-weight:600;color:var(--sf-text-2);text-decoration:none;"
 	>
 		<ChevronLeft size={16} strokeWidth={2.2} aria-hidden="true" />
 		Back
 	</a>
 
 	<div style="max-width:420px;margin:8px auto 0;">
-		<h1 style="margin:0 0 6px;font-size:1.375rem;font-weight:800;letter-spacing:-0.02em;">
+		<h1 style="margin:0 0 6px;font-size:var(--fs-stat);font-weight:800;letter-spacing:-0.02em;">
 			Sign in
 		</h1>
-		<p style="margin:0 0 20px;font-size:0.9375rem;color:var(--sf-text-2);line-height:1.5;">
+		<p style="margin:0 0 20px;font-size:var(--fs-title);color:var(--sf-text-2);line-height:1.5;">
 			We'll text you a code. No password, no email.
 		</p>
 
@@ -128,8 +128,8 @@
 			</form>
 
 			<div class="sf-panel" style="margin-top:18px;background:var(--sf-surface-2);">
-				<p style="margin:0 0 4px;font-size:0.875rem;font-weight:650;">No account needed</p>
-				<p style="margin:0;font-size:0.8125rem;color:var(--sf-text-2);line-height:1.45;">
+				<p style="margin:0 0 4px;font-size:var(--fs-body);font-weight:650;">No account needed</p>
+				<p style="margin:0;font-size:var(--fs-body);color:var(--sf-text-2);line-height:1.45;">
 					You can order without signing in. Signing in just saves your details and keeps your
 					order history in one place.
 				</p>
@@ -143,7 +143,7 @@
 			</div>
 
 			<p
-				style="display:flex;align-items:center;justify-content:center;gap:5px;margin:16px 0 0;font-size:0.75rem;color:var(--sf-text-3);"
+				style="display:flex;align-items:center;justify-content:center;gap:5px;margin:16px 0 0;font-size:var(--fs-code);color:var(--sf-text-3);"
 			>
 				<Lock size={13} strokeWidth={1.9} aria-hidden="true" />
 				We only use your number for sign-in and order updates.

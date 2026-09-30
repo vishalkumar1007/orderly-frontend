@@ -230,7 +230,7 @@
 	}
 
 	.pw-label {
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		font-weight: 600;
 		color: var(--text-3);
 		min-width: 5rem;
@@ -259,14 +259,14 @@
 	}
 
 	.roles dt {
-		font-size: 0.83rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 		color: var(--text);
 	}
 
 	.roles dd {
 		margin: 0;
-		font-size: 0.79rem;
+		font-size: var(--fs-tab);
 		line-height: 1.55;
 		color: var(--text-3);
 	}

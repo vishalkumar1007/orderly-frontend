@@ -298,7 +298,7 @@
 				<tr>
 					<td>
 						<div class="cell-id">
-							<span class="cell-avatar" style="width:1.9rem;height:1.9rem;font-size:0.72rem;">
+							<span class="cell-avatar" style="width:1.9rem;height:1.9rem;font-size:var(--fs-meta);">
 								{initials(user.name || user.email)}
 							</span>
 							<span class="cell-id-txt">
@@ -313,7 +313,7 @@
 					<td class="col-md">
 						<span class="role-chip" data-role={user.role}>{user.role_label}</span>
 					</td>
-					<td class="col-sm muted" style="font-size:0.76rem;">{accessSummary(user)}</td>
+					<td class="col-sm muted" style="font-size:var(--fs-code);">{accessSummary(user)}</td>
 					<td><StatusBadge status={String(user.status)} /></td>
 					<td class="num col-md muted">{user.active_sessions}</td>
 					<td class="muted col-md">
@@ -371,7 +371,7 @@
 							<tr>
 								<td>
 									<strong style="font-weight:550;">{permission.label}</strong>
-									<span class="muted" style="display:block;font-size:0.74rem;">
+									<span class="muted" style="display:block;font-size:var(--fs-code);">
 										{permission.description}
 									</span>
 								</td>
@@ -406,7 +406,7 @@
 {/if}
 
 <Modal bind:open={inviteOpen} title="Invite to the console">
-	<p class="muted" style="margin:0 0 0.9rem;font-size:0.82rem;line-height:1.55;">
+	<p class="muted" style="margin:0 0 0.9rem;font-size:var(--fs-body);line-height:1.55;">
 		They receive a single-use link and choose their own password. No password is created here, and
 		this grants nothing inside any business.
 	</p>
@@ -486,13 +486,13 @@
 	}
 
 	.scope strong {
-		font-size: 0.86rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 	}
 
 	.scope p {
 		margin: 0.2rem 0 0;
-		font-size: 0.79rem;
+		font-size: var(--fs-tab);
 		line-height: 1.55;
 		color: var(--text-3);
 		max-width: 58rem;
@@ -509,13 +509,13 @@
 
 	.iam-head h2 {
 		margin: 0;
-		font-size: 0.95rem;
+		font-size: var(--fs-title);
 		font-weight: 600;
 	}
 
 	.iam-head p {
 		margin: 0.25rem 0 0;
-		font-size: 0.79rem;
+		font-size: var(--fs-tab);
 		line-height: 1.5;
 		color: var(--text-3);
 		max-width: 48rem;
@@ -527,7 +527,7 @@
 		border-radius: 999px;
 		background: var(--surface-3);
 		color: var(--text-3);
-		font-size: 0.62rem;
+		font-size: var(--fs-micro);
 		font-weight: 650;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
@@ -538,7 +538,7 @@
 		align-items: center;
 		padding: 0.15rem 0.5rem;
 		border-radius: 999px;
-		font-size: 0.74rem;
+		font-size: var(--fs-code);
 		font-weight: 600;
 		background: var(--surface-3);
 		color: var(--text-2);
@@ -579,7 +579,7 @@
 	}
 
 	.role-card strong {
-		font-size: 0.88rem;
+		font-size: var(--fs-body);
 		font-weight: 650;
 	}
 
@@ -588,7 +588,7 @@
 		border-radius: 999px;
 		background: var(--surface-3);
 		color: var(--text-3);
-		font-size: 0.62rem;
+		font-size: var(--fs-micro);
 		font-weight: 650;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
@@ -596,13 +596,13 @@
 
 	.role-card p {
 		margin: 0.3rem 0 0.55rem;
-		font-size: 0.77rem;
+		font-size: var(--fs-tab);
 		line-height: 1.5;
 		color: var(--text-3);
 	}
 
 	.role-count {
-		font-size: 0.7rem;
+		font-size: var(--fs-label);
 		font-weight: 600;
 		color: var(--icon-fg);
 	}
@@ -639,7 +639,7 @@
 	.matrix-note {
 		margin: 0;
 		padding: 0 1.25rem 1.25rem;
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		line-height: 1.55;
 		color: var(--text-3);
 		max-width: 52rem;

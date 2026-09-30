@@ -76,13 +76,13 @@
 	}
 
 	.panel-h {
-		font-size: 0.9rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 	}
 
 	.sub {
 		margin: 0;
-		font-size: 0.74rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 
@@ -111,7 +111,7 @@
 		border-radius: var(--radius-sm);
 		background: var(--surface-2);
 		color: var(--text-3);
-		font-size: 0.68rem;
+		font-size: var(--fs-label);
 		font-weight: 600;
 	}
 
@@ -136,7 +136,7 @@
 	}
 
 	.name {
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 		color: var(--text);
 		white-space: nowrap;
 		overflow: hidden;
@@ -145,7 +145,7 @@
 
 	.qty {
 		flex-shrink: 0;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		font-weight: 600;
 		color: var(--text);
 		font-variant-numeric: tabular-nums;
@@ -167,7 +167,7 @@
 	}
 
 	.rev {
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		color: var(--text-3);
 		font-variant-numeric: tabular-nums;
 	}
@@ -177,7 +177,7 @@
 		align-items: center;
 		justify-content: center;
 		height: 180px;
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 		color: var(--text-3);
 	}
 </style>

@@ -149,9 +149,8 @@ try {
 	eq('/shop/kitchen', nav.tenantTitle('/shop/kitchen'), 'Kitchen');
 	eq('/shop/live', nav.tenantTitle('/shop/live'), 'Live Activity');
 	eq('/shop/customize', nav.tenantTitle('/shop/customize'), 'Customize');
-	eq('/shop/storefront/hours', nav.tenantTitle('/shop/storefront/hours'), 'Operating Hours');
+	eq('/shop/storefront/launch', nav.tenantTitle('/shop/storefront/launch'), 'Launch');
 	eq('/shop/payments', nav.tenantTitle('/shop/payments'), 'Payments');
-	eq('/shop/setup', nav.tenantTitle('/shop/setup'), 'Launch checklist');
 	eq('/shop/customers', nav.tenantTitle('/shop/customers'), 'Customers');
 	eq('/shop/iam', nav.tenantTitle('/shop/iam'), 'IAM');
 
@@ -199,14 +198,13 @@ try {
 		]
 	);
 
-	// Opening hours sit under the storefront, beside Preview and QR.
 	eq(
-		'opening hours trail',
-		nav.tenantCrumbs('/shop/storefront/hours'),
+		'launch trail',
+		nav.tenantCrumbs('/shop/storefront/launch'),
 		[
 			{ label: 'Overview', href: '/shop' },
 			{ label: 'Storefront', href: '/shop/storefront' },
-			{ label: 'Operating Hours', href: null }
+			{ label: 'Launch', href: null }
 		]
 	);
 
@@ -252,7 +250,7 @@ try {
 		eq(
 			'Storefront destinations',
 			storefront?.items.map((i) => i.label),
-			['Customize', 'Operating Hours', 'Preview', 'QR & Share']
+			['Customize', 'Launch', 'QR & Share']
 		);
 	}
 

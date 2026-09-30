@@ -328,13 +328,13 @@
 	}
 
 	.ch-text strong {
-		font-size: 0.86rem;
+		font-size: var(--fs-body);
 		font-weight: 550;
 	}
 
 	.ch-text p {
 		margin: 0.15rem 0 0;
-		font-size: 0.77rem;
+		font-size: var(--fs-tab);
 		line-height: 1.5;
 		color: var(--text-3);
 	}
@@ -361,18 +361,18 @@
 	}
 
 	.msg-head strong {
-		font-size: 0.88rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 	}
 
 	.msg-head span {
-		font-size: 0.74rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 
 	.msg-body {
 		margin: 0.35rem 0 0;
-		font-size: 0.79rem;
+		font-size: var(--fs-tab);
 		line-height: 1.5;
 		color: var(--text-2);
 	}
@@ -385,7 +385,7 @@
 	}
 
 	.msg-triggers li {
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 
@@ -398,7 +398,7 @@
 		border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
 		border-radius: var(--radius-sm);
 		background: color-mix(in srgb, var(--success) 8%, transparent);
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 		color: var(--text-2);
 	}
 
@@ -409,7 +409,7 @@
 
 	.outcome .detail {
 		font-family: var(--font-mono);
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		color: var(--text-3);
 		word-break: break-word;
 	}

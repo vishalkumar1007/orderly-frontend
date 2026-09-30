@@ -481,7 +481,7 @@
 		align-items: center;
 		gap: 5px;
 		padding: 5px 10px;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		font-weight: 600;
 		border: none;
 		border-radius: 4px;
@@ -504,14 +504,14 @@
 	}
 
 	.studio-catalog-label {
-		font-size: 0.71875rem;
+		font-size: var(--fs-meta);
 		font-weight: 600;
 		color: var(--text-3);
 	}
 
 	.studio-catalog-select {
 		padding: 4px 8px;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm, 6px);
 		background: var(--surface);
@@ -523,7 +523,7 @@
 		display: flex;
 		align-items: center;
 		gap: 5px;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		font-weight: 600;
 		color: var(--accent);
 		text-decoration: none;
@@ -609,7 +609,7 @@
 	.sf-header-search-field {
 		border: none;
 		background: transparent;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		color: var(--sf-text);
 		width: 90px;
 		outline: none;
@@ -625,7 +625,7 @@
 		right: -4px;
 		background: var(--sf-primary, #5b4bdb);
 		color: var(--sf-primary-ink, #ffffff);
-		font-size: 0.65rem;
+		font-size: var(--fs-micro);
 		font-weight: 700;
 		width: 16px;
 		height: 16px;
@@ -650,7 +650,7 @@
 		backdrop-filter: blur(8px);
 		padding: 3px 8px;
 		border-radius: 999px;
-		font-size: 0.6875rem;
+		font-size: var(--fs-label);
 		font-weight: 700;
 		color: #ffffff;
 	}
@@ -661,7 +661,7 @@
 		gap: 4px;
 		padding: 3px 8px;
 		border-radius: 999px;
-		font-size: 0.6875rem;
+		font-size: var(--fs-label);
 		font-weight: 600;
 		background: rgba(255, 255, 255, 0.15);
 		color: #ffffff;
@@ -678,7 +678,7 @@
 
 	.sf-chip {
 		padding: 5px 12px;
-		font-size: 0.78125rem;
+		font-size: var(--fs-tab);
 		font-weight: 600;
 		border-radius: 999px;
 		border: 1px solid var(--sf-border, rgba(0, 0, 0, 0.1));
@@ -708,13 +708,13 @@
 	}
 
 	.sf-menu-title {
-		font-size: 0.9375rem;
+		font-size: var(--fs-title);
 		font-weight: 700;
 		margin: 0;
 	}
 
 	.sf-menu-count {
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		color: var(--sf-text-muted, #64748b);
 	}
 
@@ -727,7 +727,7 @@
 	}
 
 	.sf-business-title {
-		font-size: 0.8125rem;
+		font-size: var(--fs-body);
 		font-weight: 700;
 		margin: 0 0 8px;
 	}
@@ -742,14 +742,14 @@
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		color: var(--sf-text-muted, #64748b);
 	}
 
 	.sf-footer {
 		padding: 16px 14px;
 		text-align: center;
-		font-size: 0.6875rem;
+		font-size: var(--fs-label);
 		color: var(--sf-text-muted, #94a3b8);
 		border-top: 1px solid var(--sf-border, rgba(0, 0, 0, 0.06));
 		margin-top: auto;
@@ -781,12 +781,12 @@
 	}
 
 	.sf-cart-count-badge {
-		font-size: 0.71875rem;
+		font-size: var(--fs-meta);
 		opacity: 0.85;
 	}
 
 	.sf-cart-total-price {
-		font-size: 0.9375rem;
+		font-size: var(--fs-title);
 		font-weight: 700;
 	}
 
@@ -799,7 +799,7 @@
 		border: none;
 		border-radius: 999px;
 		padding: 6px 14px;
-		font-size: 0.8125rem;
+		font-size: var(--fs-body);
 		font-weight: 700;
 		cursor: pointer;
 	}
@@ -812,6 +812,6 @@
 		color: var(--sf-text-muted, #94a3b8);
 		text-align: center;
 		gap: 8px;
-		font-size: 0.8125rem;
+		font-size: var(--fs-body);
 	}
 </style>

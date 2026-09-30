@@ -303,7 +303,7 @@
 	.osh-login-name {
 		margin: 0;
 		font-family: var(--font-display);
-		font-size: 1.05rem;
+		font-size: var(--fs-title);
 		font-weight: 700;
 		letter-spacing: -0.01em;
 		line-height: 1.2;
@@ -313,14 +313,14 @@
 	/* With no logo above it, the name becomes the headline rather than a caption
 	   sitting under a placeholder. */
 	.osh-login-name--lead {
-		font-size: 1.7rem;
+		font-size: var(--fs-display);
 		font-weight: 800;
 		letter-spacing: -0.03em;
 	}
 
 	.osh-login-sub {
 		margin: 0.3rem 0 0;
-		font-size: 0.7rem;
+		font-size: var(--fs-label);
 		font-weight: 650;
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
@@ -333,7 +333,7 @@
 	.osh-login-title {
 		margin: 0 0 0.4rem;
 		font-family: var(--font-display);
-		font-size: 1.2rem;
+		font-size: var(--fs-h1);
 		font-weight: 700;
 		letter-spacing: -0.02em;
 		color: var(--text);
@@ -341,7 +341,7 @@
 
 	.osh-login-sub-copy {
 		margin: 0 0 1.75rem;
-		font-size: 0.86rem;
+		font-size: var(--fs-body);
 		color: var(--text-2);
 		line-height: 1.55;
 	}
@@ -352,14 +352,14 @@
 		border-radius: var(--radius-sm);
 		background: var(--surface-2);
 		border: 1px solid var(--border);
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		color: var(--text-2);
 		line-height: 1.55;
 	}
 
 	.osh-login-note code {
 		font-family: var(--font-mono);
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 	}
 
 	.osh-login-note a {
@@ -381,7 +381,7 @@
 	.osh-login-label {
 		display: block;
 		margin-bottom: 0.4rem;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		font-weight: 600;
 		letter-spacing: 0.01em;
 		color: var(--text-2);
@@ -415,7 +415,7 @@
 		background: none;
 		outline: none;
 		font: inherit;
-		font-size: 1rem;
+		font-size: var(--fs-title);
 		color: var(--text);
 		padding: 0.6rem 0 0.65rem;
 		/* 16px avoids iOS Safari zooming when a field is focused. */
@@ -456,7 +456,7 @@
 		border-radius: var(--radius-sm);
 		background: var(--danger-bg);
 		color: var(--danger);
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 		line-height: 1.45;
 	}
 
@@ -473,7 +473,7 @@
 		width: 100%;
 		min-height: 3rem;
 		margin-top: 0.35rem;
-		font-size: 0.95rem;
+		font-size: var(--fs-title);
 		/* A single primary action, so it does not need to shout twice. */
 		justify-content: center;
 	}
@@ -492,7 +492,7 @@
 
 	.osh-login-install-hint {
 		margin: 0;
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 		line-height: 1.5;
 	}

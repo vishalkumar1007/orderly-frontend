@@ -345,7 +345,7 @@
 					<td>
 						<strong style="font-weight:600;">{plan.name}</strong>
 						{#if plan.description}
-							<span class="muted" style="display:block;font-size:0.74rem;">{plan.description}</span>
+							<span class="muted" style="display:block;font-size:var(--fs-code);">{plan.description}</span>
 						{/if}
 						{#if plan.features.length > 0}
 							<span class="feat-row">
@@ -353,7 +353,7 @@
 									<span class="feat">{feature}</span>
 								{/each}
 								{#if plan.features.length > 3}
-									<span class="muted" style="font-size:0.7rem;">+{plan.features.length - 3}</span>
+									<span class="muted" style="font-size:var(--fs-label);">+{plan.features.length - 3}</span>
 								{/if}
 							</span>
 						{/if}
@@ -364,7 +364,7 @@
 					<td class="col-md" style="color:var(--text-2);">
 						{billingLabel(String(plan.billing_period))}
 						{#if plan.trial_days > 0}
-							<span class="muted" style="display:block;font-size:0.72rem;">
+							<span class="muted" style="display:block;font-size:var(--fs-meta);">
 								{plan.trial_days}-day trial
 							</span>
 						{/if}
@@ -668,7 +668,7 @@
 	bind:open={moveOpen}
 	title={moveTarget ? `Change plan — ${moveTarget.tenant_name}` : 'Change plan'}
 >
-	<p class="muted" style="margin:0 0 0.9rem;font-size:0.82rem;line-height:1.5;">
+	<p class="muted" style="margin:0 0 0.9rem;font-size:var(--fs-body);line-height:1.5;">
 		The business moves immediately and its subscription follows. Nothing is charged.
 	</p>
 	<PlanPicker plans={planOptions} bind:value={moveChoice} />
@@ -699,13 +699,13 @@
 
 	.sec-head h2 {
 		margin: 0;
-		font-size: 0.95rem;
+		font-size: var(--fs-title);
 		font-weight: 600;
 	}
 
 	.sec-head p {
 		margin: 0.25rem 0 0;
-		font-size: 0.79rem;
+		font-size: var(--fs-tab);
 		line-height: 1.5;
 		color: var(--text-3);
 		max-width: 44rem;
@@ -720,7 +720,7 @@
 	}
 
 	.feat {
-		font-size: 0.68rem;
+		font-size: var(--fs-label);
 		padding: 0.1rem 0.4rem;
 		border-radius: 999px;
 		background: var(--surface-3);
@@ -738,7 +738,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.3rem;
-		font-size: 0.74rem;
+		font-size: var(--fs-code);
 		padding: 0.2rem 0.3rem 0.2rem 0.55rem;
 		border-radius: 999px;
 		background: var(--surface-3);
@@ -764,7 +764,7 @@
 	}
 
 	.chip-toggle {
-		font-size: 0.74rem;
+		font-size: var(--fs-code);
 		font-weight: 550;
 		padding: 0.25rem 0.6rem;
 		border-radius: 999px;

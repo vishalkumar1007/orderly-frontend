@@ -49,7 +49,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.2rem;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 

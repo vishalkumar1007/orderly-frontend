@@ -74,7 +74,7 @@
 		flex: 1;
 		min-width: 0;
 		font-family: var(--font-mono);
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		word-break: break-all;
 		color: var(--text-2);
 	}

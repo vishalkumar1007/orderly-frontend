@@ -142,13 +142,13 @@
 
 	.panel-h {
 		margin: 0;
-		font-size: 0.9rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 	}
 
 	.panel-note {
 		margin: 0.2rem 0 0;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		color: var(--text-3);
 	}
 
@@ -161,7 +161,7 @@
 
 	.err {
 		margin: 0;
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 		color: var(--danger, #dc2626);
 	}
 
@@ -174,7 +174,7 @@
 		border: 1px solid color-mix(in srgb, var(--warn, #d97706) 40%, transparent);
 		border-radius: var(--radius-sm);
 		background: color-mix(in srgb, var(--warn, #d97706) 8%, transparent);
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 		color: var(--text-2);
 	}
 
@@ -206,7 +206,7 @@
 	}
 
 	.svc {
-		font-size: 0.85rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 		color: var(--text-1);
 		min-width: 7rem;
@@ -216,7 +216,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.25rem;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 

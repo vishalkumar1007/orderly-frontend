@@ -86,7 +86,7 @@
 	}
 
 	.metric-label {
-		font-size: 0.74rem;
+		font-size: var(--fs-code);
 		font-weight: 500;
 		color: var(--text-3);
 		white-space: nowrap;
@@ -95,7 +95,7 @@
 	}
 
 	.metric-trend {
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		font-weight: 600;
 		white-space: nowrap;
 	}
@@ -121,7 +121,7 @@
 	}
 
 	.metric-value {
-		font-size: 1.5rem;
+		font-size: var(--fs-stat);
 		font-weight: 600;
 		line-height: 1.1;
 		color: var(--text);
@@ -131,7 +131,7 @@
 
 	.metric-hint {
 		margin: 0.3rem 0 0;
-		font-size: 0.74rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 

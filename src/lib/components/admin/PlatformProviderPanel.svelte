@@ -335,14 +335,14 @@
 
 	.title {
 		margin: 0;
-		font-size: 1.1rem;
+		font-size: var(--fs-title);
 		font-weight: 650;
 		color: var(--text-1);
 	}
 
 	.sub {
 		margin: 0.2rem 0 0;
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 		color: var(--text-3);
 		max-width: 46rem;
 	}
@@ -359,14 +359,14 @@
 
 	.panel-h {
 		margin: 0;
-		font-size: 0.86rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 		color: var(--text-1);
 	}
 
 	.panel-note {
 		margin: 0.2rem 0 0;
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 
@@ -400,7 +400,7 @@
 		border: 1px solid color-mix(in srgb, var(--ok, #059669) 35%, transparent);
 		border-radius: var(--radius-sm);
 		background: color-mix(in srgb, var(--ok, #059669) 8%, transparent);
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 		color: var(--text-2);
 	}
 
@@ -411,7 +411,7 @@
 
 	.detail {
 		font-family: var(--font-mono);
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		color: var(--text-3);
 		word-break: break-word;
 	}

@@ -3,6 +3,10 @@
 	import { page } from '$app/stores';
 	import { onMount, untrack } from 'svelte';
 	import WifiOff from '@lucide/svelte/icons/wifi-off';
+	import AlertCircle from '@lucide/svelte/icons/alert-circle';
+	import Sparkles from '@lucide/svelte/icons/sparkles';
+	import Megaphone from '@lucide/svelte/icons/megaphone';
+	import Info from '@lucide/svelte/icons/info';
 	import SuperAdminLogin from '$lib/components/admin/SuperAdminLogin.svelte';
 	import '$lib/storefront/storefront-app.css';
 	import { createCart, loadInitialCart, provideCart } from '$lib/storefront/cart-state.svelte';
@@ -17,6 +21,15 @@
 	import StoreToast from '$lib/storefront/StoreToast.svelte';
 
 	let { data, children } = $props();
+
+	function parseBroadcast(msg: string) {
+		if (!msg) return { type: 'msg', text: '' };
+		const match = msg.match(/^\[(alert|msg|offer|others)\]\s*(.*)$/i);
+		if (match) {
+			return { type: match[1].toLowerCase(), text: match[2] };
+		}
+		return { type: 'msg', text: msg };
+	}
 
 	const slug = untrack(() => data.tenantSlug ?? '');
 	const config = $derived(data.config);
@@ -153,7 +166,7 @@
 							<button
 								class="sf-btn sf-btn-secondary"
 								type="button"
-								style="min-height:32px;font-size:0.75rem;padding:0 0.75rem;"
+								style="min-height:32px;font-size:var(--fs-code);padding:0 0.75rem;"
 								disabled={retrying}
 								onclick={() => void retryConfig()}
 							>
@@ -170,10 +183,33 @@
 						</div>
 					</div>
 				{/if}
-				{#if showStatusBanner && statusMessage}
+				{#if statusMessage}
+					{@const broadcast = parseBroadcast(statusMessage)}
 					<div class="sf-wrap sf-notice">
-						<div class="sf-alert" data-tone="info" role="status">
-							<span>{statusMessage}</span>
+						<div class="sf-alert sf-broadcast-alert" data-tone={broadcast.type} role="status">
+							{#if broadcast.type === 'alert'}
+								<AlertCircle size={17} strokeWidth={2.2} />
+							{:else if broadcast.type === 'offer'}
+								<Sparkles size={17} strokeWidth={2.2} />
+							{:else if broadcast.type === 'others'}
+								<Megaphone size={17} strokeWidth={2.2} />
+							{:else}
+								<Info size={17} strokeWidth={2.2} />
+							{/if}
+							<div class="sf-broadcast-text">
+								{#if broadcast.type === 'offer'}
+									<span class="sf-broadcast-badge offer">Special Offer</span>
+								{:else if broadcast.type === 'alert'}
+									<span class="sf-broadcast-badge alert">Store Notice</span>
+								{/if}
+								<span>{broadcast.text}</span>
+							</div>
+						</div>
+					</div>
+				{:else if showStatusBanner && (storeStatus === 'BUSY' || storeStatus === 'AWAY')}
+					<div class="sf-wrap sf-notice">
+						<div class="sf-alert" data-tone="warn" role="status">
+							<span>{storeStatus === 'BUSY' ? 'Kitchen is currently experiencing high order volume.' : 'Orders are temporarily paused.'}</span>
 						</div>
 					</div>
 				{/if}
@@ -202,6 +238,65 @@
 {/if}
 
 <style>
+	.sf-broadcast-alert {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.75rem 1rem;
+		border-radius: var(--radius-md, 10px);
+		font-size: var(--fs-body, 0.875rem);
+		line-height: 1.4;
+	}
+
+	.sf-broadcast-alert[data-tone='alert'] {
+		background: rgba(239, 68, 68, 0.1);
+		border: 1px solid rgba(239, 68, 68, 0.3);
+		color: #ef4444;
+	}
+
+	.sf-broadcast-alert[data-tone='offer'] {
+		background: rgba(139, 92, 246, 0.12);
+		border: 1px solid rgba(139, 92, 246, 0.3);
+		color: #7c3aed;
+	}
+
+	.sf-broadcast-alert[data-tone='msg'] {
+		background: var(--sf-info-soft, rgba(59, 130, 246, 0.1));
+		border: 1px solid color-mix(in srgb, var(--sf-info, #1d4ed8) 28%, transparent);
+		color: var(--sf-info, #1d4ed8);
+	}
+
+	.sf-broadcast-alert[data-tone='others'] {
+		background: var(--sf-warn-soft, rgba(245, 158, 11, 0.1));
+		border: 1px solid color-mix(in srgb, var(--sf-warn, #9a5b00) 28%, transparent);
+		color: var(--sf-warn, #9a5b00);
+	}
+
+	.sf-broadcast-text {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+
+	.sf-broadcast-badge {
+		font-size: 0.68rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		padding: 2px 7px;
+		border-radius: 4px;
+	}
+
+	.sf-broadcast-badge.offer {
+		background: #8b5cf6;
+		color: #ffffff;
+	}
+
+	.sf-broadcast-badge.alert {
+		background: #ef4444;
+		color: #ffffff;
+	}
 	.sf-unpublished {
 		min-height: 100dvh;
 		display: flex;
@@ -230,7 +325,7 @@
 	.sf-unpublished h1 {
 		margin: 0 0 0.5rem;
 		font-family: var(--font-display);
-		font-size: 1.25rem;
+		font-size: var(--fs-h1);
 		font-weight: 700;
 		letter-spacing: -0.02em;
 		color: var(--text);
@@ -238,7 +333,7 @@
 
 	.sf-unpublished p {
 		margin: 0;
-		font-size: 0.875rem;
+		font-size: var(--fs-body);
 		color: var(--text-2);
 		line-height: 1.5;
 	}

@@ -848,14 +848,14 @@
 
 	.studio-section-header h3 {
 		margin: 0;
-		font-size: 0.9375rem;
+		font-size: var(--fs-title);
 		font-weight: 700;
 		color: var(--text);
 	}
 
 	.studio-section-header p {
 		margin: 2px 0 0;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 		line-height: 1.4;
 	}
@@ -905,13 +905,13 @@
 	}
 
 	.studio-preset-name {
-		font-size: 0.8125rem;
+		font-size: var(--fs-body);
 		font-weight: 700;
 		color: var(--text);
 	}
 
 	.studio-preset-desc {
-		font-size: 0.6875rem;
+		font-size: var(--fs-label);
 		color: var(--text-3);
 		line-height: 1.3;
 	}
@@ -937,7 +937,7 @@
 
 	.studio-choice-pill {
 		padding: 6px 12px;
-		font-size: 0.8125rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 		border: 1px solid var(--border);
 		border-radius: 999px;
@@ -989,14 +989,14 @@
 
 	.studio-option-title {
 		display: block;
-		font-size: 0.8125rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 		color: var(--text);
 	}
 
 	.studio-option-hint {
 		display: block;
-		font-size: 0.71875rem;
+		font-size: var(--fs-meta);
 		color: var(--text-3);
 		line-height: 1.35;
 	}
@@ -1022,7 +1022,7 @@
 	}
 
 	.studio-label {
-		font-size: 0.78125rem;
+		font-size: var(--fs-tab);
 		font-weight: 600;
 		color: var(--text);
 	}
@@ -1030,7 +1030,7 @@
 	.studio-input,
 	.studio-select {
 		padding: 7px 10px;
-		font-size: 0.84375rem;
+		font-size: var(--fs-body);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm, 6px);
 		background: var(--surface);
@@ -1047,7 +1047,7 @@
 	}
 
 	.studio-hint {
-		font-size: 0.71875rem;
+		font-size: var(--fs-meta);
 		color: var(--text-3);
 		line-height: 1.35;
 	}
@@ -1065,7 +1065,7 @@
 	}
 
 	.studio-color-label {
-		font-size: 0.71875rem;
+		font-size: var(--fs-meta);
 		font-weight: 600;
 		color: var(--text-2);
 	}
@@ -1089,7 +1089,7 @@
 	.studio-hex-input {
 		flex: 1;
 		padding: 5px 8px;
-		font-size: 0.78125rem;
+		font-size: var(--fs-tab);
 		font-family: monospace;
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm, 6px);
@@ -1103,7 +1103,7 @@
 
 	.studio-micro-label {
 		display: block;
-		font-size: 0.71875rem;
+		font-size: var(--fs-meta);
 		font-weight: 600;
 		color: var(--text-3);
 		margin-bottom: 6px;
@@ -1150,14 +1150,14 @@
 
 	.studio-switch-title {
 		display: block;
-		font-size: 0.8125rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 		color: var(--text);
 	}
 
 	.studio-switch-desc {
 		display: block;
-		font-size: 0.71875rem;
+		font-size: var(--fs-meta);
 		color: var(--text-3);
 	}
 
@@ -1215,14 +1215,14 @@
 
 	.studio-section-type {
 		display: block;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		font-weight: 700;
 		color: var(--text);
 		text-transform: capitalize;
 	}
 
 	.studio-inline-input {
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		padding: 2px 6px;
 		border: 1px solid var(--border);
 		border-radius: 4px;

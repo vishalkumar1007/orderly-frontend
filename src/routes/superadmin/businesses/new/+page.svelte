@@ -1,15 +1,19 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { beforeNavigate } from '$app/navigation';
+	import { beforeNavigate, goto } from '$app/navigation';
 	import {
+		checkEmailAvailable,
 		checkSlugAvailable,
 		createTenant,
+		fetchBusinessTypeCapabilities,
 		fetchPlans,
 		fetchSettings,
 		fetchTenantTypes,
 		offeredTo,
-		toPlanOption
+		toPlanOption,
+		uploadAdminAsset
 	} from '$lib/admin/api';
+	import { fetchPlatformConfigs } from '$lib/admin/configApi';
 	import {
 		CONTROL_LABELS,
 		onboardingTypes,
@@ -25,36 +29,61 @@
 		configFromTemplate,
 		defaultDraft,
 		loadOnboardDraft,
+		loadOnboardSuccess,
 		saveOnboardDraft,
 		saveOnboardSuccess
 	} from '$lib/admin/onboardStore';
 	import { joinTenantSetupUrl, rewriteFrontendPort, slugify } from '$lib/admin/format';
-	import type { CreatedTenant, Plan, PlanOption, TenantType } from '$lib/admin/types';
+	import type { CapabilityRow, CreatedTenant, Plan, PlanOption, TenantType } from '$lib/admin/types';
 	import { THEME_PRESETS } from '$lib/storefront/admin';
 	import { api } from '$lib/api/client';
-	import type { ThemePreset as ConsolePreset } from '$lib/brandTheme';
-	import Building2 from '@lucide/svelte/icons/building-2';
-	import CircleCheck from '@lucide/svelte/icons/circle-check';
-	import ExternalLink from '@lucide/svelte/icons/external-link';
-	import Palette from '@lucide/svelte/icons/palette';
-	import Rocket from '@lucide/svelte/icons/rocket';
-	import Shapes from '@lucide/svelte/icons/shapes';
-	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
-	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
-	import UserRound from '@lucide/svelte/icons/user-round';
-	import StorefrontThemePicker from '$lib/components/admin/StorefrontThemePicker.svelte';
-	import BusinessTypeCard from '$lib/components/admin/BusinessTypeCard.svelte';
-	import CredentialCard from '$lib/components/admin/CredentialCard.svelte';
+	import { consoleAppearance } from '$lib/appearance.svelte';
+	import { getCachedBrandTheme, type ThemePreset as ConsolePreset } from '$lib/brandTheme';
 	import FormField from '$lib/components/admin/FormField.svelte';
-	import OnboardLayout from '$lib/components/admin/OnboardLayout.svelte';
-	import PlanPicker from '$lib/components/admin/PlanPicker.svelte';
+	import PortalPreview from '$lib/components/admin/PortalPreview.svelte';
 	import SelectField from '$lib/components/admin/SelectField.svelte';
 	import SlugField from '$lib/components/admin/SlugField.svelte';
-	import StatusBadge from '$lib/components/admin/StatusBadge.svelte';
 	import Switch from '$lib/components/admin/Switch.svelte';
 	import TextArea from '$lib/components/admin/TextArea.svelte';
 	import TextInput from '$lib/components/admin/TextInput.svelte';
 	import { toast } from '$lib/components/admin/toast';
+
+	import OnboardAlert from '$lib/components/admin/onboard/OnboardAlert.svelte';
+	import OnboardShell from '$lib/components/admin/onboard/OnboardShell.svelte';
+	import OnboardPlanPicker from '$lib/components/admin/onboard/OnboardPlanPicker.svelte';
+	import ThemePicker from '$lib/components/admin/onboard/ThemePicker.svelte';
+	import TypePicker from '$lib/components/admin/onboard/TypePicker.svelte';
+	import LeaveDraftModal from '$lib/components/admin/onboard/LeaveDraftModal.svelte';
+
+	import IconAlertCircle from '@tabler/icons-svelte/icons/alert-circle';
+	import IconAlertTriangle from '@tabler/icons-svelte/icons/alert-triangle';
+	import IconArrowLeft from '@tabler/icons-svelte/icons/arrow-left';
+	import IconArrowRight from '@tabler/icons-svelte/icons/arrow-right';
+	import IconBuildingStore from '@tabler/icons-svelte/icons/building-store';
+	import IconCheck from '@tabler/icons-svelte/icons/check';
+	import IconCircleCheck from '@tabler/icons-svelte/icons/circle-check';
+	import IconCopy from '@tabler/icons-svelte/icons/copy';
+	import IconExternalLink from '@tabler/icons-svelte/icons/external-link';
+	import IconKey from '@tabler/icons-svelte/icons/key';
+	import IconLayoutDashboard from '@tabler/icons-svelte/icons/layout-dashboard';
+	import IconLink from '@tabler/icons-svelte/icons/link';
+	import IconPencil from '@tabler/icons-svelte/icons/pencil';
+	import IconPhoto from '@tabler/icons-svelte/icons/photo';
+	import IconPlus from '@tabler/icons-svelte/icons/plus';
+	import IconSettings from '@tabler/icons-svelte/icons/settings';
+	import IconTrash from '@tabler/icons-svelte/icons/trash';
+	import IconUpload from '@tabler/icons-svelte/icons/upload';
+
+	/*
+	 * The wizard's design system, in one place.
+	 *
+	 * Imported here rather than left inside the page's own `<style>` because it is
+	 * shared by six child components, and a `<style>` block in a Svelte component
+	 * is scoped to that component's markup — the children could not have used it.
+	 * The page is the only place that knows all six are in play at once, so the
+	 * import belongs to the page.
+	 */
+	import '$lib/components/admin/onboard/onboarding.css';
 
 	/**
 	 * Onboarding.
@@ -66,18 +95,23 @@
 	 * administrator and its configured storefront either all exist or none of
 	 * them do.
 	 *
+	 * The right column is not decoration: it is the same claim the platform
+	 * makes everywhere else — that business type drives the UI — made visible
+	 * while you are still filling in the form, from state the wizard already
+	 * holds, not a second fetch.
+	 *
 	 * Nothing here ever shows or sends a password. The administrator receives a
 	 * one-time link and chooses their own.
 	 */
 
 	const steps = [
-		{ id: 'type', label: 'Business type', description: 'Sets every default' },
-		{ id: 'business', label: 'Business details', description: 'Name and subdomain' },
-		{ id: 'owner', label: 'Owner & admin', description: 'Who signs in first' },
-		{ id: 'plan', label: 'Plan', description: 'Limits and trial' },
-		{ id: 'theme', label: 'Storefront theme', description: 'How the shop looks' },
-		{ id: 'config', label: 'Configuration', description: 'How it operates' },
-		{ id: 'review', label: 'Review', description: 'Confirm and create' }
+		{ id: 'type', label: 'Business Type' },
+		{ id: 'business', label: 'Business Details' },
+		{ id: 'owner', label: 'Admin Account' },
+		{ id: 'plan', label: 'Subscription' },
+		{ id: 'theme', label: 'Branding' },
+		{ id: 'config', label: 'Operations' },
+		{ id: 'review', label: 'Review' }
 	];
 
 	const CURRENCIES = [
@@ -111,6 +145,10 @@
 	let slugStatus = $state<SlugStatus>('idle');
 	let slugTimer: ReturnType<typeof setTimeout> | undefined;
 
+	type EmailStatus = 'idle' | 'checking' | 'available' | 'taken';
+	let emailStatus = $state<EmailStatus>('idle');
+	let emailTimer: ReturnType<typeof setTimeout> | undefined;
+
 	let step = $state(0);
 	let types = $state<TenantType[]>([]);
 	let allPlans = $state<Plan[]>([]);
@@ -128,9 +166,165 @@
 	let admin = $state(initial.admin);
 	let plan = $state(initial.plan);
 	let theme = $state(initial.theme);
+	/** Tracks if the admin has explicitly chosen a theme preset in Step 4 */
+	let themeSelectedByUser = $state(false);
+
+	// Platform configuration mappings (SMTP and Storage status)
+	let smtpConfigured = $state(false);
+	let storageConfigured = $state(false);
+	let configsLoaded = $state(false);
+
+	// Logo upload state
+	let logoMode = $state<'upload' | 'url'>('upload');
+	let isUploadingLogo = $state(false);
+	let logoUploadError = $state<string | null>(null);
+	let isDragOverLogo = $state(false);
+	let logoFileInput = $state<HTMLInputElement | null>(null);
+
+	async function handleLogoFile(file: File) {
+		if (!file) return;
+		logoUploadError = null;
+
+		if (file.size > 5 * 1024 * 1024) {
+			logoUploadError = 'File exceeds maximum size of 5MB';
+			return;
+		}
+
+		const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
+		if (!validTypes.includes(file.type) && !file.name.match(/\.(png|jpe?g|webp|svg)$/i)) {
+			logoUploadError = 'Please upload a valid image file (PNG, JPG, WebP, or SVG)';
+			return;
+		}
+
+		if (!storageConfigured) {
+			const reader = new FileReader();
+			reader.onload = (e) => {
+				if (typeof e.target?.result === 'string') {
+					theme.logo_url = e.target.result;
+					dirty = true;
+					themeSelectedByUser = true;
+				}
+			};
+			reader.readAsDataURL(file);
+			toast.info('Storage is not configured; logo loaded as direct data asset.');
+			return;
+		}
+
+		isUploadingLogo = true;
+		try {
+			const res = await uploadAdminAsset(file);
+			theme.logo_url = res.url;
+			dirty = true;
+			themeSelectedByUser = true;
+			toast.success('Business logo uploaded successfully');
+		} catch (err) {
+			logoUploadError = err instanceof Error ? err.message : 'Failed to upload logo';
+			toast.error(logoUploadError);
+		} finally {
+			isUploadingLogo = false;
+		}
+	}
+
+	function onLogoFileSelected(e: Event) {
+		const input = e.target as HTMLInputElement;
+		if (input.files && input.files[0]) {
+			void handleLogoFile(input.files[0]);
+		}
+	}
+
+	function onLogoDrop(e: DragEvent) {
+		e.preventDefault();
+		isDragOverLogo = false;
+		if (e.dataTransfer?.files && e.dataTransfer.files[0]) {
+			void handleLogoFile(e.dataTransfer.files[0]);
+		}
+	}
+
+	function removeLogo() {
+		theme.logo_url = '';
+		logoUploadError = null;
+		dirty = true;
+		if (logoFileInput) logoFileInput.value = '';
+	}
+
+	function getSuperAdminTheme() {
+		const appearanceTheme = consoleAppearance.appearance?.theme ?? getCachedBrandTheme('platform');
+		const mode: 'light' | 'dark' =
+			consoleAppearance.mode ||
+			(typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+
+		const primary = appearanceTheme?.tokens?.accent || '#6366f1';
+		const secondary = appearanceTheme?.tokens?.accent2 || '#8b5cf6';
+		const accent = appearanceTheme?.tokens?.accent || '#4f46e5';
+		const preset = appearanceTheme?.preset_id || 'modern';
+		const matchingPreset = THEME_PRESETS.find((p) => p.id === preset) ?? THEME_PRESETS[1];
+
+		return {
+			preset,
+			mode,
+			primary,
+			secondary,
+			accent,
+			font: matchingPreset.font,
+			radius: matchingPreset.radius,
+			button: matchingPreset.button_style,
+			card: matchingPreset.card_style,
+			hero: matchingPreset.hero_style
+		};
+	}
+
+	const currentPortalTheme = $derived.by(() => {
+		const appearanceTheme = consoleAppearance.appearance?.theme ?? getCachedBrandTheme('platform');
+		const mode: 'light' | 'dark' =
+			consoleAppearance.mode ||
+			(typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+
+		const primary = appearanceTheme?.tokens?.accent || '#6366f1';
+		const secondary = appearanceTheme?.tokens?.accent2 || '#8b5cf6';
+		const accent = appearanceTheme?.tokens?.accent || '#4f46e5';
+		const preset = appearanceTheme?.preset_id || 'modern';
+
+		return {
+			preset,
+			mode,
+			primary,
+			secondary,
+			accent
+		};
+	});
+
+	const activePreviewTheme = $derived.by(() => {
+		if (themeSelectedByUser) {
+			return {
+				preset: theme.preset,
+				mode: theme.mode,
+				primary: theme.primary,
+				secondary: theme.secondary,
+				accent: theme.accent
+			};
+		}
+		return currentPortalTheme;
+	});
+
+	// Keep theme state synchronized with SuperAdmin portal theme unless explicitly chosen
+	$effect(() => {
+		if (!themeSelectedByUser) {
+			theme.mode = currentPortalTheme.mode;
+			theme.primary = currentPortalTheme.primary;
+			theme.secondary = currentPortalTheme.secondary;
+			theme.accent = currentPortalTheme.accent;
+			theme.preset = currentPortalTheme.preset;
+		}
+	});
+
 	/** The console theme catalogue, for seeding the business's own console. */
 	let consolePresets = $state<ConsolePreset[]>([]);
 	let config = $state(initial.config);
+	/** Capability-driven types only (Barber, Hotel, General) — see step 6. */
+	let capabilityOverrides = $state(initial.capabilityOverrides);
+	let capabilityRows = $state<CapabilityRow[]>([]);
+	let capabilitiesLoading = $state(false);
+	let termsAccepted = $state(initial.termsAccepted);
 	let errors = $state<Record<string, string>>({});
 	let touched = $state<Record<string, boolean>>({});
 
@@ -141,19 +335,41 @@
 	/* ---------- catalogue ---------- */
 
 	onMount(async () => {
+		const savedSuccess = loadOnboardSuccess<CreatedTenant>();
+		if (savedSuccess && savedSuccess.tenant?.id) {
+			created = savedSuccess;
+			dirty = false;
+		}
+
 		const draft = loadOnboardDraft();
-		if (draft) {
+		if (draft && !created) {
 			type = draft.type;
 			org = draft.org;
 			admin = draft.admin;
-			theme = draft.theme;
 			config = draft.config;
+			capabilityOverrides = draft.capabilityOverrides;
+			termsAccepted = draft.termsAccepted;
 			plan = draft.plan;
 			step = Math.min(draft.step, steps.length - 1);
 			dirty = true;
+			if (templateFor(draft.type).capabilityDriven) void loadCapabilitiesFor(draft.type);
+
+			// Synchronize with SuperAdmin theme until admin explicitly selects a theme in Step 4
+			if (draft.themeSelectedByUser) {
+				theme = draft.theme;
+				themeSelectedByUser = true;
+			} else {
+				const superadminTheme = getSuperAdminTheme();
+				theme = {
+					...draft.theme,
+					...superadminTheme,
+					product_layout: templateFor(draft.type).storefront.product_layout
+				};
+				themeSelectedByUser = false;
+			}
 		}
 		try {
-			const [loadedTypes, loadedPlans, settings, presets] = await Promise.all([
+			const [loadedTypes, loadedPlans, settings, presets, platformConfigs] = await Promise.all([
 				fetchTenantTypes(),
 				fetchPlans(),
 				fetchSettings(),
@@ -161,6 +377,10 @@
 				// onto the theme the new owner's own console will open with.
 				api<{ presets: ConsolePreset[] }>('/api/v1/admin/theme-presets').catch(() => ({
 					presets: [] as ConsolePreset[]
+				})),
+				fetchPlatformConfigs().catch(() => ({
+					configurations: [],
+					encryption: { enabled: false }
 				}))
 			]);
 			consolePresets = presets.presets ?? [];
@@ -170,6 +390,25 @@
 			baseDomain = settings.platform.base_domain || 'localhost';
 			if (!org.currency) org.currency = settings.general.default_currency || 'INR';
 			if (!org.timezone) org.timezone = settings.general.timezone || 'Asia/Kolkata';
+
+			if (platformConfigs?.configurations) {
+				const smtp = platformConfigs.configurations.find((c) => c.service === 'SMTP');
+				smtpConfigured =
+					!!smtp &&
+					(smtp.status === 'ENABLED' || smtp.status === 'CONFIGURED') &&
+					smtp.enabled;
+
+				const storage = platformConfigs.configurations.find((c) => c.service === 'STORAGE');
+				storageConfigured =
+					!!storage &&
+					(storage.status === 'ENABLED' || storage.status === 'CONFIGURED') &&
+					storage.enabled;
+
+				if (!storageConfigured && !theme.logo_url) {
+					logoMode = 'url';
+				}
+			}
+			configsLoaded = true;
 		} catch (err) {
 			failure = errorLines(err, 'load the onboarding options');
 		} finally {
@@ -188,28 +427,70 @@
 	const selectedPlan = $derived(plans.find((p) => p.code === plan));
 
 	/**
-	 * Choosing a type resets the branding and configuration defaults.
-	 *
-	 * Resetting rather than merging is the point: the defaults are the type's
-	 * opinion, and carrying a grocery's 45-minute pick-up window into a cafe
-	 * would be worse than either default on its own. Anything already typed by
-	 * hand (name, owner, subdomain) is untouched.
+	 * Choosing a type configures terminology and modules for the business.
+	 * The theme remains cleanly synchronized with the SuperAdmin portal theme
+	 * until the admin explicitly selects a business theme in Step 4.
 	 */
 	function chooseType(code: string) {
 		if (code === type) return;
 		dirty = true;
 		type = code;
 		const next = templateFor(code);
-		theme = {
-			...themeFromTemplate(next, THEME_PRESETS),
-			// Anything the operator typed by hand survives a type change.
-			logo_url: theme.logo_url,
-			favicon_url: theme.favicon_url
-		};
+		if (themeSelectedByUser) {
+			theme = {
+				...theme,
+				product_layout: next.storefront.product_layout
+			};
+		} else {
+			const superadminTheme = getSuperAdminTheme();
+			theme = {
+				...theme,
+				...superadminTheme,
+				product_layout: next.storefront.product_layout,
+				logo_url: theme.logo_url,
+				favicon_url: theme.favicon_url
+			};
+		}
 		config = configFromTemplate(next);
 		// A plan restricted to other business types is no longer a valid choice.
 		if (plan && !plans.some((p) => p.code === plan)) plan = '';
+		// The previous type's module choices do not carry over — a Hotel's
+		// housekeeping toggle means nothing once the type becomes a Barber shop.
+		capabilityOverrides = {};
+		capabilityRows = [];
+		if (next.capabilityDriven) void loadCapabilitiesFor(code);
 	}
+
+	/**
+	 * Loads the chosen type's capability matrix and seeds capabilityOverrides
+	 * with each configurable row's default, so the toggles below open already
+	 * showing what a plain onboarding would produce rather than an unset state.
+	 */
+	async function loadCapabilitiesFor(code: string) {
+		capabilitiesLoading = true;
+		try {
+			capabilityRows = await fetchBusinessTypeCapabilities(code);
+			const next = { ...capabilityOverrides };
+			for (const row of capabilityRows) {
+				if (row.configurable && !(row.code in next)) next[row.code] = row.default_enabled;
+			}
+			capabilityOverrides = next;
+		} catch (err) {
+			capabilityRows = [];
+			failure = errorLines(err, 'load this business type’s modules');
+		} finally {
+			capabilitiesLoading = false;
+		}
+	}
+
+	/** Fixed capabilities a capability-driven type always includes. */
+	const includedCapabilities = $derived(capabilityRows.filter((c) => !c.configurable));
+	/** Capabilities the owner can choose to turn on for this type. */
+	const optionalCapabilities = $derived(capabilityRows.filter((c) => c.configurable));
+	/** Everything actually enabled — feeds both the review step and the live preview. */
+	const enabledCapabilities = $derived(
+		capabilityRows.filter((c) => !c.configurable || (capabilityOverrides[c.code] ?? c.default_enabled))
+	);
 
 	/** Fall back to the platform default plan once the catalogue is known. */
 	$effect(() => {
@@ -219,6 +500,30 @@
 		});
 	});
 
+	/* ---------- theme preset ---------- */
+
+	/** Nothing is charged; the plan records what the business is provisioned for. */
+	function choosePlan(code: string) {
+		if (code === plan) return;
+		dirty = true;
+		plan = code;
+	}
+
+	function applyPreset(p: (typeof THEME_PRESETS)[number]) {
+		dirty = true;
+		themeSelectedByUser = true;
+		theme.preset = p.id;
+		theme.mode = p.mode;
+		theme.primary = p.primary;
+		theme.secondary = p.secondary;
+		theme.accent = p.accent;
+		theme.font = p.font;
+		theme.radius = p.radius;
+		theme.button = p.button_style;
+		theme.card = p.card_style;
+		theme.hero = p.hero_style;
+	}
+
 	/* ---------- draft persistence ---------- */
 
 	$effect(() => {
@@ -226,15 +531,29 @@
 		org;
 		admin;
 		theme;
+		themeSelectedByUser;
 		config;
+		capabilityOverrides;
+		termsAccepted;
 		plan;
 		step;
-		if (dirty && !created) saveOnboardDraft({ type, org, admin, theme, config, plan, step });
+		if (dirty && !created) {
+			saveOnboardDraft({ type, org, admin, theme, themeSelectedByUser, config, capabilityOverrides, termsAccepted, plan, step });
+		}
 	});
+
+	const LEAVE_CONFIRM_KEY = 'orderly-onboard-skip-leave-confirm';
+	let showLeaveModal = $state(false);
+	let rememberLeaveChoice = $state(false);
+	let pendingNavigationUrl = $state<string | null>(null);
+	let isLeavingConfirmed = $state(false);
 
 	onMount(() => {
 		const handler = (e: BeforeUnloadEvent) => {
 			if (dirty && !created) {
+				if (typeof localStorage !== 'undefined' && localStorage.getItem(LEAVE_CONFIRM_KEY) === 'true') {
+					return;
+				}
 				e.preventDefault();
 				e.returnValue = '';
 			}
@@ -244,12 +563,39 @@
 	});
 
 	beforeNavigate((nav) => {
-		if (dirty && !created) {
-			if (!confirm('This business has not been created yet. Leave and lose the draft?')) nav.cancel();
+		if (isLeavingConfirmed || !dirty || created) return;
+
+		// Check if user previously checked "Don't show popup again"
+		if (typeof localStorage !== 'undefined' && localStorage.getItem(LEAVE_CONFIRM_KEY) === 'true') {
+			return;
 		}
+
+		// Prevent browser navigation and open our custom confirmation modal
+		nav.cancel();
+		pendingNavigationUrl = nav.to?.url?.href ?? null;
+		showLeaveModal = true;
 	});
 
-	/* ---------- slug availability ---------- */
+	function confirmLeave() {
+		if (rememberLeaveChoice && typeof localStorage !== 'undefined') {
+			localStorage.setItem(LEAVE_CONFIRM_KEY, 'true');
+		}
+		showLeaveModal = false;
+		isLeavingConfirmed = true;
+
+		if (pendingNavigationUrl) {
+			void goto(pendingNavigationUrl);
+		} else {
+			void goto('/superadmin/businesses');
+		}
+	}
+
+	function cancelLeave() {
+		showLeaveModal = false;
+		pendingNavigationUrl = null;
+	}
+
+	/* ---------- slug & email availability ---------- */
 
 	$effect(() => {
 		const slug = org.slug.trim().toLowerCase();
@@ -280,6 +626,30 @@
 		return () => clearTimeout(slugTimer);
 	});
 
+	$effect(() => {
+		const email = admin.admin_email.trim().toLowerCase();
+		clearTimeout(emailTimer);
+		if (!email || !EMAIL_RE.test(email)) {
+			emailStatus = 'idle';
+			return;
+		}
+		emailStatus = 'checking';
+		emailTimer = setTimeout(async () => {
+			try {
+				const r = await checkEmailAvailable(email);
+				emailStatus = r.available ? 'available' : 'taken';
+				if (!r.available) {
+					errors.admin_email = 'This administrator email is already registered';
+				} else if (errors.admin_email === 'This administrator email is already registered') {
+					delete errors.admin_email;
+				}
+			} catch {
+				emailStatus = 'idle';
+			}
+		}, 350);
+		return () => clearTimeout(emailTimer);
+	});
+
 	/* ---------- validation ---------- */
 
 	function validateField(key: string): string {
@@ -294,8 +664,7 @@
 				if (!SLUG_RE.test(slug)) return 'Use lowercase letters, numbers and hyphens';
 				if (slugStatus === 'taken') return 'Another business already uses this subdomain';
 				if (slugStatus === 'reserved') return 'This subdomain is reserved by the platform';
-				if (slugStatus === 'checking') return 'Checking whether this subdomain is free…';
-				if (slugStatus !== 'available') return 'This subdomain is not available';
+				if (slugStatus === 'invalid') return 'Use lowercase letters, numbers and hyphens';
 				return '';
 			}
 			case 'email':
@@ -321,7 +690,9 @@
 			case 'admin_email': {
 				const v = admin.admin_email.trim();
 				if (!v) return "The administrator's email is required";
-				return EMAIL_RE.test(v) ? '' : 'Enter a valid email address';
+				if (!EMAIL_RE.test(v)) return 'Enter a valid email address';
+				if (emailStatus === 'taken') return 'This administrator email is already registered';
+				return '';
 			}
 			case 'admin_phone':
 				if (!admin.admin_phone.trim()) return '';
@@ -333,13 +704,17 @@
 			case 'favicon_url':
 				return isUrl(theme.favicon_url) ? '' : 'Enter a valid http(s) URL';
 			case 'prep_time':
+				if (template.capabilityDriven || !config.ordering_enabled) return '';
 				return config.prep_time_minutes >= 1 && config.prep_time_minutes <= 240
 					? ''
 					: 'Choose between 1 and 240 minutes';
 			case 'payment_methods':
+				if (template.capabilityDriven || !config.ordering_enabled) return '';
 				return config.online_payment_enabled || config.cash_enabled
 					? ''
 					: 'Enable at least one way for customers to pay';
+			case 'terms':
+				return termsAccepted ? '' : 'Confirm the terms to create this business';
 			default:
 				return '';
 		}
@@ -355,19 +730,32 @@
 		}
 	}
 
-	const STEP_FIELDS: Record<number, string[]> = {
-		0: ['type'],
-		1: ['name', 'slug', 'phone', 'email', 'short_description', 'currency', 'timezone', 'language'],
-		2: ['owner_name', 'admin_name', 'admin_email', 'admin_phone'],
-		3: ['plan'],
-		4: ['logo_url', 'favicon_url'],
-		5: ['prep_time', 'payment_methods'],
-		6: []
-	};
+	function stepFields(i: number): string[] {
+		switch (i) {
+			case 0:
+				return ['type'];
+			case 1:
+				return ['name', 'slug', 'phone', 'email', 'short_description', 'currency', 'timezone', 'language'];
+			case 2:
+				return ['owner_name', 'admin_name', 'admin_email', 'admin_phone'];
+			case 3:
+				return ['plan'];
+			case 4:
+				return ['logo_url', 'favicon_url'];
+			case 5:
+				if (template.capabilityDriven || !config.ordering_enabled) return [];
+				return ['prep_time', 'payment_methods'];
+			case 6:
+				return ['terms'];
+			default:
+				return [];
+		}
+	}
 
 	function validateStep(i: number, force = false): boolean {
 		const next = { ...errors };
-		for (const key of STEP_FIELDS[i] ?? []) {
+		const fields = stepFields(i);
+		for (const key of fields) {
 			// Untouched fields stay quiet until the operator leaves them or
 			// tries to continue; a form that turns red as you arrive is hostile.
 			if (!force && !touched[key]) continue;
@@ -376,7 +764,7 @@
 			else delete next[key];
 		}
 		errors = next;
-		return (STEP_FIELDS[i] ?? []).every((k) => !validateField(k));
+		return fields.every((k) => !validateField(k));
 	}
 
 	function onBlurField(key: string) {
@@ -403,14 +791,16 @@
 		config.prep_time_minutes;
 		config.online_payment_enabled;
 		config.cash_enabled;
+		termsAccepted;
 		plan;
 		slugStatus;
+		emailStatus;
 
 		if (!dirty || created) return;
 		untrack(() => validateStep(step));
 	});
 
-	const stepValid = $derived((STEP_FIELDS[step] ?? []).every((k) => !validateField(k)));
+	const stepValid = $derived(stepFields(step).every((k) => !validateField(k)));
 
 	/* ---------- navigation ---------- */
 
@@ -426,7 +816,7 @@
 	}
 
 	function goNext() {
-		for (const k of STEP_FIELDS[step] ?? []) touched[k] = true;
+		for (const k of stepFields(step)) touched[k] = true;
 		if (!validateStep(step, true)) {
 			toast.error('Fix the highlighted fields to continue');
 			return;
@@ -446,8 +836,8 @@
 	/* ---------- create ---------- */
 
 	async function create() {
-		for (let i = 0; i < steps.length - 1; i++) {
-			for (const k of STEP_FIELDS[i]) touched[k] = true;
+		for (let i = 0; i < steps.length; i++) {
+			for (const k of stepFields(i)) touched[k] = true;
 			if (!validateStep(i, true)) {
 				step = i;
 				toast.error('Fix the highlighted fields before creating the business');
@@ -486,6 +876,8 @@
 				timezone: org.timezone,
 				language: org.language,
 				store_status: config.ordering_enabled ? 'OPEN' : 'CLOSED',
+				terms_accepted: termsAccepted,
+				...(template.capabilityDriven ? { capability_overrides: capabilityOverrides } : {}),
 				// The storefront template, applied in the same transaction.
 				configuration: {
 					...template.storefront,
@@ -525,11 +917,19 @@
 		} catch (err) {
 			failure = errorLines(err, 'create the business');
 			toast.error(failure.title);
-			// A slug conflict is the one failure worth sending them back for:
-			// nothing else on the form needs to change.
-			if (failure.detail.toLowerCase().includes('subdomain')) {
+			const detail = (failure.detail || '').toLowerCase();
+			if (detail.includes('subdomain') || detail.includes('slug')) {
 				slugStatus = 'taken';
+				errors.slug = 'Another business already uses this subdomain';
+				touched.slug = true;
 				step = 1;
+				toast.error('The subdomain is already in use. Please choose another.');
+			} else if (detail.includes('admin email') || detail.includes('email already exists') || detail.includes('email')) {
+				emailStatus = 'taken';
+				errors.admin_email = 'This administrator email is already registered';
+				touched.admin_email = true;
+				step = 2;
+				toast.error('This administrator email is already registered. Please use another.');
 			}
 		} finally {
 			submitting = false;
@@ -545,7 +945,11 @@
 		org = fresh.org;
 		admin = fresh.admin;
 		theme = fresh.theme;
+		themeSelectedByUser = false;
 		config = fresh.config;
+		capabilityOverrides = fresh.capabilityOverrides;
+		capabilityRows = [];
+		termsAccepted = fresh.termsAccepted;
 		plan = plans.find((p) => p.code === defaultPlan)?.code ?? plans[0]?.code ?? '';
 		errors = {};
 		touched = {};
@@ -554,33 +958,28 @@
 		dirty = false;
 	}
 
+	let copiedKey = $state<string | null>(null);
+
+	async function copyUrl(url: string, key: string, label: string) {
+		try {
+			await navigator.clipboard.writeText(url);
+			copiedKey = key;
+			toast.success(`${label} copied`);
+			setTimeout(() => {
+				if (copiedKey === key) copiedKey = null;
+			}, 2000);
+		} catch {
+			toast.error(`Could not copy ${label.toLowerCase()}`);
+		}
+	}
+
 	/* ---------- derived display ---------- */
 
-	const selectedPreset = $derived(THEME_PRESETS.find((p) => p.id === theme.preset));
-	const primary = $derived(theme.primary);
-	const secondary = $derived(theme.secondary);
 	const storefrontUrl = $derived(`http://${org.slug || 'subdomain'}.${baseDomain}:5173`);
 	const loginUrl = $derived(`${storefrontUrl}/shop/login`);
 	const isTrial = $derived(selectedPlan?.billingPeriod === 'trial' || plan === 'TRIAL');
 	const trialDays = $derived(selectedPlan?.trialDays ?? 0);
-	const subscriptionStatus = $derived(isTrial ? 'TRIAL' : 'ACTIVE');
 	const shows = (control: string) => template.controls.includes(control as never);
-
-	/** Human label for a plan's billing period. */
-	function billingLabel(period: string): string {
-		switch (period) {
-			case 'trial':
-				return 'Trial only';
-			case 'monthly':
-				return 'Monthly';
-			case 'yearly':
-				return 'Yearly';
-			case 'one_time':
-				return 'One-time';
-			default:
-				return period;
-		}
-	}
 
 	/** One line describing how customers pay, for the review card. */
 	function paymentSummary(): string {
@@ -588,8 +987,7 @@
 		if (config.online_payment_enabled) methods.push('online');
 		if (config.cash_enabled) methods.push('cash');
 		if (methods.length === 0) return 'No payment method enabled';
-		const when =
-			config.payment_requirement === 'AT_PICKUP' ? 'at pickup' : 'before preparation';
+		const when = config.payment_requirement === 'AT_PICKUP' ? 'at pickup' : 'before preparation';
 		return `${methods.join(' or ')}, ${when}`;
 	}
 </script>
@@ -597,288 +995,529 @@
 {#if created}
 	{@const tenantUrl = rewriteFrontendPort(created.tenant_url)}
 	{@const setupUrl = joinTenantSetupUrl(created.tenant_url, created.setup_path)}
-	<div class="done fade-in">
-		<section class="panel done-head">
-			<span class="done-mark"><CircleCheck size={24} strokeWidth={2} /></span>
-			<div>
-				<h2>Business created successfully</h2>
-				<p>
-					{created.tenant.name} exists, is configured for a {template.label.toLowerCase()}, and its
-					administrator can set a password with the link below. No password was ever generated or
-					stored in plain text.
+	{@const adminLoginUrl = rewriteFrontendPort(created.login_url || `${created.tenant_url}/login`)}
+	{@const superadminUrl = `/superadmin/businesses/${created.tenant.id}`}
+	{@const superadminFullUrl = typeof window !== 'undefined' ? `${window.location.origin}${superadminUrl}` : superadminUrl}
+	
+	<div class="onb-success-page">
+		<!-- Page Navigation Bar -->
+		<div class="onb-success-nav">
+			<div class="onb-success-nav-left">
+				<a href="/superadmin/businesses" class="btn btn-ghost btn-sm">
+					<IconArrowLeft size={14} stroke={2} />
+					<span>Back to Businesses</span>
+				</a>
+			</div>
+			<div class="onb-success-nav-right">
+				<button type="button" class="btn btn-ghost btn-sm" onclick={createAnother}>
+					<IconPlus size={14} stroke={2} />
+					<span>Onboard Another</span>
+				</button>
+				<a class="btn btn-primary btn-sm" href={superadminUrl}>
+					<span>Manage Business</span>
+					<IconArrowRight size={14} stroke={2} />
+				</a>
+			</div>
+		</div>
+
+		<!-- Page Header -->
+		<div class="onb-success-header">
+			<div class="onb-success-icon-badge">
+				<IconCircleCheck size={26} stroke={1.8} />
+			</div>
+			<div class="onb-success-title-box">
+				<div class="onb-success-status-pill">
+					<span class="onb-status-dot"></span>
+					<span>Tenant Provisioned & Active</span>
+				</div>
+				<h1 class="onb-success-title">{created.tenant.name} is Live</h1>
+				<p class="onb-success-subtitle">
+					Provisioned as a {template.label.toLowerCase()} on the {selectedPlan?.label || created.plan || 'Standard'} plan. Secure initialization credentials generated.
 				</p>
 			</div>
-		</section>
+		</div>
 
-		<section class="panel">
-			<h3 class="panel-h">Summary</h3>
-			<dl class="dl">
-				<div><dt>Business</dt><dd>{created.tenant.name}</dd></div>
-				<div><dt>Business type</dt><dd>{template.label}</dd></div>
-				<div>
-					<dt>Store URL</dt>
-					<dd>
-						<a href={tenantUrl} target="_blank" rel="noopener" class="mono">{tenantUrl}</a>
-					</dd>
-				</div>
-				<div><dt>Administrator</dt><dd class="mono">{created.admin_email}</dd></div>
-				<div><dt>Plan</dt><dd>{selectedPlan?.label ?? plan}</dd></div>
-				<div>
-					<dt>Status</dt>
-					<dd>
-						<span class="badge-cluster">
-							<StatusBadge status={created.tenant.status ?? 'ACTIVE'} />
-							<StatusBadge status={subscriptionStatus} dot={false} />
+		<!-- High-Density Specification Manifest -->
+		<div class="onb-success-spec">
+			<div class="onb-success-spec-col">
+				<span class="onb-success-spec-k">Organization</span>
+				<span class="onb-success-spec-v" title={created.tenant.name}>{created.tenant.name}</span>
+			</div>
+			<div class="onb-success-spec-col">
+				<span class="onb-success-spec-k">Subdomain</span>
+				<span class="onb-success-spec-v" title={created.tenant.slug}>{created.tenant.slug}.localhost</span>
+			</div>
+			<div class="onb-success-spec-col">
+				<span class="onb-success-spec-k">Administrator</span>
+				<span class="onb-success-spec-v" title={created.admin_email}>{created.admin_email}</span>
+			</div>
+			<div class="onb-success-spec-col">
+				<span class="onb-success-spec-k">Operating Model</span>
+				<span class="onb-success-spec-v">{template.label} · {selectedPlan?.label || created.plan || 'Standard'}</span>
+			</div>
+			<div class="onb-success-spec-col">
+				<span class="onb-success-spec-k">Currency / Timezone</span>
+				<span class="onb-success-spec-v">{org.currency || 'INR'} · {org.timezone || 'Asia/Kolkata'}</span>
+			</div>
+		</div>
+
+		<!-- Endpoints & Access Links -->
+		<div class="onb-links-group">
+			<div class="onb-links-header">
+				<span class="onb-links-title">System Endpoints & Access Links</span>
+				<span class="onb-links-count">4 endpoints ready</span>
+			</div>
+
+			<!-- Link 1: Administrator Setup Link -->
+			<div class="onb-endpoint-row onb-endpoint-highlight">
+				<div class="onb-endpoint-meta">
+					<div class="onb-endpoint-icon">
+						<IconKey size={16} stroke={2} />
+					</div>
+					<div class="onb-endpoint-info">
+						<div class="onb-endpoint-title-row">
+							<span class="onb-endpoint-title">Administrator Setup Link</span>
+							{#if created.email_sent}
+								<span class="onb-badge onb-badge-ok">Emailed to {created.admin_email}</span>
+							{:else}
+								<span class="onb-badge onb-badge-warn">Email not sent because it's not configured</span>
+							{/if}
+						</div>
+						<span class="onb-endpoint-desc">
+							Single-use initialization link for tenant owner to establish their password and policy acceptance.
 						</span>
-					</dd>
+						{#if !created.email_sent}
+							<div class="onb-email-unsent-banner">
+								<IconAlertCircle size={15} stroke={2} />
+								<span>
+									<strong>Email not sent:</strong> Platform email (SMTP) is not configured. Please copy this setup link and share it directly with <strong>{created.admin_email}</strong>.
+								</span>
+							</div>
+						{/if}
+					</div>
 				</div>
-			</dl>
-		</section>
+				<div class="onb-endpoint-url-bar">
+					<code class="onb-endpoint-code" title={setupUrl}>{setupUrl}</code>
+					<div class="onb-endpoint-actions">
+						<button
+							type="button"
+							class="onb-link-btn"
+							class:is-copied={copiedKey === 'setup'}
+							onclick={() => copyUrl(setupUrl, 'setup', 'Administrator setup link')}
+							title="Copy setup link"
+						>
+							{#if copiedKey === 'setup'}
+								<IconCheck size={13} stroke={2.5} />
+								<span>Copied</span>
+							{:else}
+								<IconCopy size={13} stroke={2} />
+								<span>Copy</span>
+							{/if}
+						</button>
+						<a
+							class="onb-link-btn onb-link-btn-ghost"
+							href={setupUrl}
+							target="_blank"
+							rel="noreferrer"
+							title="Open setup link in new tab"
+						>
+							<span>Open</span>
+							<IconExternalLink size={12} stroke={2} />
+						</a>
+					</div>
+				</div>
+			</div>
 
-		<CredentialCard
-			tenantName={created.tenant.name}
-			slug={created.tenant.slug}
-			adminEmail={created.admin_email}
-			{setupUrl}
-			loginUrl={rewriteFrontendPort(created.login_url)}
-			storefrontUrl={tenantUrl}
-			plan={selectedPlan?.label ?? plan}
-			emailSent={created.email_sent}
-			emailError={created.email_error || ''}
-			setupStatus="PENDING"
-		/>
+			<!-- Link 2: Tenant Admin Portal -->
+			<div class="onb-endpoint-row">
+				<div class="onb-endpoint-meta">
+					<div class="onb-endpoint-icon">
+						<IconLayoutDashboard size={16} stroke={2} />
+					</div>
+					<div class="onb-endpoint-info">
+						<div class="onb-endpoint-title-row">
+							<span class="onb-endpoint-title">Tenant Admin Portal</span>
+							<span class="onb-badge onb-badge-neutral">Staff Console</span>
+						</div>
+						<span class="onb-endpoint-desc">
+							Staff and management portal for catalog items, incoming orders, and daily business operations.
+						</span>
+					</div>
+				</div>
+				<div class="onb-endpoint-url-bar">
+					<code class="onb-endpoint-code" title={adminLoginUrl}>{adminLoginUrl}</code>
+					<div class="onb-endpoint-actions">
+						<button
+							type="button"
+							class="onb-link-btn"
+							class:is-copied={copiedKey === 'admin'}
+							onclick={() => copyUrl(adminLoginUrl, 'admin', 'Tenant admin portal link')}
+							title="Copy admin login link"
+						>
+							{#if copiedKey === 'admin'}
+								<IconCheck size={13} stroke={2.5} />
+								<span>Copied</span>
+							{:else}
+								<IconCopy size={13} stroke={2} />
+								<span>Copy</span>
+							{/if}
+						</button>
+						<a
+							class="onb-link-btn onb-link-btn-ghost"
+							href={adminLoginUrl}
+							target="_blank"
+							rel="noreferrer"
+							title="Open admin console in new tab"
+						>
+							<span>Open</span>
+							<IconExternalLink size={12} stroke={2} />
+						</a>
+					</div>
+				</div>
+			</div>
 
-		<div class="done-actions">
-			<a class="btn btn-primary" href={`/superadmin/businesses/${created.tenant.id}`}>
-				Open business
-			</a>
-			<a class="btn btn-ghost" href={tenantUrl} target="_blank" rel="noopener">
-				<ExternalLink size={14} strokeWidth={2} />
-				Open store
-			</a>
-			<a class="btn btn-ghost" href="/superadmin/businesses">Back to businesses</a>
-			<button type="button" class="btn btn-quiet" onclick={createAnother}>
-				Onboard another
+			<!-- Link 3: Customer Storefront -->
+			<div class="onb-endpoint-row">
+				<div class="onb-endpoint-meta">
+					<div class="onb-endpoint-icon">
+						<IconBuildingStore size={16} stroke={2} />
+					</div>
+					<div class="onb-endpoint-info">
+						<div class="onb-endpoint-title-row">
+							<span class="onb-endpoint-title">Public Storefront</span>
+							<span class="onb-badge onb-badge-neutral">Storefront</span>
+						</div>
+						<span class="onb-endpoint-desc">
+							Customer-facing responsive storefront and menu ordering portal.
+						</span>
+					</div>
+				</div>
+				<div class="onb-endpoint-url-bar">
+					<code class="onb-endpoint-code" title={tenantUrl}>{tenantUrl}</code>
+					<div class="onb-endpoint-actions">
+						<button
+							type="button"
+							class="onb-link-btn"
+							class:is-copied={copiedKey === 'store'}
+							onclick={() => copyUrl(tenantUrl, 'store', 'Storefront link')}
+							title="Copy storefront link"
+						>
+							{#if copiedKey === 'store'}
+								<IconCheck size={13} stroke={2.5} />
+								<span>Copied</span>
+							{:else}
+								<IconCopy size={13} stroke={2} />
+								<span>Copy</span>
+							{/if}
+						</button>
+						<a
+							class="onb-link-btn onb-link-btn-ghost"
+							href={tenantUrl}
+							target="_blank"
+							rel="noreferrer"
+							title="Open storefront in new tab"
+						>
+							<span>Open</span>
+							<IconExternalLink size={12} stroke={2} />
+						</a>
+					</div>
+				</div>
+			</div>
+
+			<!-- Link 4: SuperAdmin Management Console -->
+			<div class="onb-endpoint-row">
+				<div class="onb-endpoint-meta">
+					<div class="onb-endpoint-icon">
+						<IconSettings size={16} stroke={2} />
+					</div>
+					<div class="onb-endpoint-info">
+						<div class="onb-endpoint-title-row">
+							<span class="onb-endpoint-title">SuperAdmin Tenant Console</span>
+							<span class="onb-badge onb-badge-neutral">Platform Governance</span>
+						</div>
+						<span class="onb-endpoint-desc">
+							Platform oversight, capability toggles, subscription management, and audit logs.
+						</span>
+					</div>
+				</div>
+				<div class="onb-endpoint-url-bar">
+					<code class="onb-endpoint-code" title={superadminUrl}>{superadminUrl}</code>
+					<div class="onb-endpoint-actions">
+						<button
+							type="button"
+							class="onb-link-btn"
+							class:is-copied={copiedKey === 'superadmin'}
+							onclick={() => copyUrl(superadminFullUrl, 'superadmin', 'Superadmin management link')}
+							title="Copy superadmin tenant link"
+						>
+							{#if copiedKey === 'superadmin'}
+								<IconCheck size={13} stroke={2.5} />
+								<span>Copied</span>
+							{:else}
+								<IconCopy size={13} stroke={2} />
+								<span>Copy</span>
+							{/if}
+						</button>
+						<a
+							class="onb-link-btn onb-link-btn-ghost"
+							href={superadminUrl}
+							title="Open tenant console in SuperAdmin"
+						>
+							<span>Manage</span>
+							<IconArrowRight size={12} stroke={2} />
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Operational Next Steps Guidance -->
+		<div class="onb-guidance-panel">
+			<div class="onb-guidance-head">
+				<span>Next Operational Steps</span>
+			</div>
+			<div class="onb-guidance-list">
+				<div class="onb-guidance-step">
+					<span class="onb-step-num">1</span>
+					<div class="onb-step-text">
+						{#if !created.email_sent}
+							<strong>Share Setup Link:</strong> Email was not sent because SMTP is not configured. Share the single-use setup URL directly with <strong>{created.admin_email}</strong>.
+						{:else}
+							<strong>Send Initialization Link:</strong> Share the single-use setup URL directly with <strong>{created.admin_email}</strong>.
+						{/if}
+					</div>
+				</div>
+				<div class="onb-guidance-step">
+					<span class="onb-step-num">2</span>
+					<div class="onb-step-text">
+						<strong>Admin Password & Policy:</strong> Tenant owner establishes their admin password and accepts platform agreements.
+					</div>
+				</div>
+				<div class="onb-guidance-step">
+					<span class="onb-step-num">3</span>
+					<div class="onb-step-text">
+						<strong>Go-Live Readiness:</strong> Staff can sign into the Tenant Admin Portal to configure catalog, schedule, and launch.
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Footer Actions -->
+		<div class="onb-success-actions">
+			<button type="button" class="btn btn-ghost" onclick={createAnother}>
+				<IconPlus size={14} stroke={2} />
+				<span>Onboard Another</span>
 			</button>
+			<a class="btn btn-ghost" href="/superadmin/businesses">
+				Back to Businesses
+			</a>
+			<a class="btn btn-primary" href={superadminUrl}>
+				<span>Manage Business</span>
+				<IconArrowRight size={14} stroke={2} />
+			</a>
 		</div>
 	</div>
 {:else}
-	{#if failure}
-		<div class="alert alert-danger" style="margin-bottom:0.85rem;align-items:flex-start;">
-			<TriangleAlert size={16} strokeWidth={1.9} />
-			<span>
-				<strong style="color:var(--text);">{failure.title}</strong>
-				<span style="display:block;margin-top:0.15rem;">{failure.detail}</span>
-			</span>
-		</div>
-	{/if}
+	<OnboardShell
+		{steps}
+		{step}
+		{stepValid}
+		{submitting}
+		blocked={optionsLoading}
+		canfinish={termsAccepted}
+		themeColors={{
+			primary: activePreviewTheme.primary,
+			secondary: activePreviewTheme.secondary,
+			accent: activePreviewTheme.accent
+		}}
+		onstepselect={jumpTo}
+		onback={goBack}
+		onnext={goNext}
+		oncreate={create}
+	>
+		{#snippet preview()}
+			<PortalPreview
+				{template}
+				businessName={org.name}
+				slug={org.slug}
+				{baseDomain}
+				capabilityLabels={enabledCapabilities}
+				primary={activePreviewTheme.primary}
+				secondary={activePreviewTheme.secondary}
+				accent={activePreviewTheme.accent}
+				themePreset={activePreviewTheme.preset}
+				mode={activePreviewTheme.mode}
+				logoUrl={theme.logo_url}
+			/>
+		{/snippet}
 
-	<OnboardLayout {steps} current={step} onStepSelect={jumpTo}>
-		{#snippet form()}
-			{#if optionsLoading}
-				<div style="display:flex;flex-direction:column;gap:0.9rem;">
-					{#each [1, 2, 3, 4] as _, i (i)}
-						<div class="skeleton" style="height:2.5rem;"></div>
-					{/each}
-				</div>
-
-				<!-- 1. BUSINESS TYPE -->
-			{:else if step === 0}
-				<h3 class="panel-h">
-					<span style="display:flex;align-items:center;gap:0.5rem;">
-						<Shapes size={16} strokeWidth={1.9} />
-						What kind of business is this?
-					</span>
-				</h3>
-				<p class="panel-note">
-					This is the one choice that configures everything else. It sets the theme, the
-					storefront layout, what products and categories are called, the starting order
-					workflow and how customers pay. The owner can change any of it later.
+		{#if optionsLoading}
+			<div class="onb-skeletons">
+				{#each [1, 2, 3, 4] as i (i)}
+					<div class="onb-skeleton onb-skeleton-card"></div>
+				{/each}
+			</div>
+		{:else if step === 0}
+			<div class="onb-step-in">
+				<h1 class="onb-title">Business Category</h1>
+				<p class="onb-sub">
+					Select the operating model and industry template for this organization.
 				</p>
-
-				<div class="bt-grid" role="radiogroup" aria-label="Business type">
-					{#each typeOptions as option (option.code)}
-						<BusinessTypeCard
-							template={option}
-							selected={type === option.code}
-							onselect={chooseType}
-						/>
-					{/each}
-				</div>
-
-				{#if errors.type}<p class="field-error" style="margin-top:0.6rem;">{errors.type}</p>{/if}
-
-				{#if type}
-					<div class="tpl-summary">
-						<strong>What {template.label.toLowerCase()} sets up</strong>
-						<dl class="dl">
-							<div><dt>Catalogue</dt><dd>{terms.catalog}, grouped into {terms.groups.toLowerCase()}</dd></div>
-							<div><dt>Storefront</dt><dd>{template.storefront.theme_preset} theme, {template.storefront.product_layout} layout</dd></div>
-							<div>
-								<dt>Orders</dt>
-								<dd>{CONTROL_LABELS.acceptance_mode[template.workflow.acceptance_mode]}</dd>
-							</div>
-							<div>
-								<dt>Customers</dt>
-								<dd>{CONTROL_LABELS.customer_login_mode[template.behaviour.customer_login_mode]}</dd>
-							</div>
-						</dl>
-						{#if template.starterCategories.length > 0}
-							<p class="tpl-cats">
-								Suggested {terms.groups.toLowerCase()}:
-								{#each template.starterCategories as c, i (c)}<span class="bt-chip">{c}</span>{/each}
-							</p>
-						{/if}
-					</div>
+				{#if errors.type}
+					<p class="onb-error" id="type-error" role="alert">{errors.type}</p>
 				{/if}
-
-				<!-- 2. BUSINESS INFORMATION -->
-			{:else if step === 1}
-				<h3 class="panel-h">
-					<span style="display:flex;align-items:center;gap:0.5rem;">
-						<Building2 size={16} strokeWidth={1.9} />
-						Business details
-					</span>
-				</h3>
-				<p class="panel-note">
-					The business itself, and the subdomain its storefront will live on. The subdomain is
-					permanent — every customer link, QR code and staff bookmark is built from it.
+				<TypePicker
+					templates={typeOptions}
+					value={type}
+					describedby={errors.type ? 'type-error' : ''}
+					onselect={chooseType}
+				/>
+			</div>
+		{:else if step === 1}
+			<div class="onb-step-in">
+				<h1 class="onb-title">Organization Profile</h1>
+				<p class="onb-sub">
+					Configure business identity, tenant subdomain, and regional settings.
 				</p>
 
-				<div style="display:flex;flex-direction:column;gap:0.9rem;">
-					<FormField label="Business name" htmlFor="org-name" required error={errors.name}>
+				<FormField label="Business name" htmlFor="org-name" required error={errors.name}>
+					{#snippet children(control)}
 						<TextInput
 							id="org-name"
 							bind:value={org.name}
 							placeholder="Momo Magic"
+							autocomplete="organization"
 							onblur={() => {
 								autoSlug();
 								onBlurField('name');
 							}}
+							{...control}
 						/>
-					</FormField>
+					{/snippet}
+				</FormField>
 
-					<SlugField
-						bind:value={org.slug}
-						{baseDomain}
-						status={slugStatus}
-						error={errors.slug ?? ''}
-					/>
+				<SlugField
+					id="org-slug"
+					bind:value={org.slug}
+					{baseDomain}
+					status={slugStatus}
+					error={errors.slug ?? ''}
+					onslugchange={() => (dirty = true)}
+					onblur={() => onBlurField('slug')}
+				/>
 
-					<div
-						style="display:grid;gap:0.9rem;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));"
-					>
-						<FormField label="Phone" htmlFor="org-phone" error={errors.phone}>
+				<div class="onb-row-2">
+					<FormField label="Phone" htmlFor="org-phone" error={errors.phone}>
+						{#snippet children(control)}
 							<TextInput
 								id="org-phone"
 								type="tel"
+								inputmode="tel"
 								bind:value={org.phone}
 								placeholder="9876543210"
+								autocomplete="tel"
 								onblur={() => onBlurField('phone')}
+								{...control}
 							/>
-						</FormField>
-						<FormField
-							label="Business email"
-							htmlFor="org-email"
-							error={errors.email}
-							hint="Shown to customers. Defaults to the administrator's address."
-						>
+						{/snippet}
+					</FormField>
+					<FormField label="Business email" htmlFor="org-email" error={errors.email}>
+						{#snippet children(control)}
 							<TextInput
 								id="org-email"
 								type="email"
 								bind:value={org.email}
 								placeholder="hello@example.com"
+								autocomplete="email"
 								onblur={() => onBlurField('email')}
+								{...control}
 							/>
-						</FormField>
-					</div>
-
-					<FormField label="Address" htmlFor="org-address">
-						<TextArea id="org-address" bind:value={org.address} rows={2} />
+						{/snippet}
 					</FormField>
-
-					<FormField
-						label="Short description"
-						htmlFor="org-desc"
-						error={errors.short_description}
-						hint={`${org.short_description.length}/160 — shown under the name on the storefront.`}
-					>
-						<TextArea
-							id="org-desc"
-							bind:value={org.short_description}
-							rows={2}
-							placeholder="Fast, fresh momo made to order."
-						/>
-					</FormField>
-
-					<div
-						style="display:grid;gap:0.9rem;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));"
-					>
-						<FormField label="Currency" htmlFor="org-currency" required error={errors.currency}>
-							<SelectField id="org-currency" bind:value={org.currency} options={CURRENCIES} />
-						</FormField>
-						<FormField label="Timezone" htmlFor="org-tz" required error={errors.timezone}>
-							<SelectField id="org-tz" bind:value={org.timezone} options={TIMEZONES} />
-						</FormField>
-						<FormField label="Language" htmlFor="org-lang" required error={errors.language}>
-							<SelectField id="org-lang" bind:value={org.language} options={LANGUAGES} />
-						</FormField>
-					</div>
 				</div>
 
-				<!-- 3. OWNER / ADMIN -->
-			{:else if step === 2}
-				<h3 class="panel-h">
-					<span style="display:flex;align-items:center;gap:0.5rem;">
-						<UserRound size={16} strokeWidth={1.9} />
-						Owner and administrator
-					</span>
-				</h3>
-				<p class="panel-note">
-					The owner is who the business belongs to. The administrator is the first person who can
-					sign in at <strong class="mono">{loginUrl}</strong>; they receive a one-time link and
-					choose their own password. No password is ever created, shown or stored here.
+				<FormField
+					label="Short description"
+					htmlFor="org-desc"
+					error={errors.short_description}
+					hint={`${org.short_description.length}/160`}
+				>
+					{#snippet children(control)}
+						<TextArea
+							id="org-desc"
+							rows={2}
+							bind:value={org.short_description}
+							placeholder="Fast, fresh momo made to order."
+							{...control}
+						/>
+					{/snippet}
+				</FormField>
+
+				<div class="onb-row-3">
+					<FormField label="Currency" htmlFor="org-currency" error={errors.currency}>
+						{#snippet children(control)}
+							<SelectField id="org-currency" bind:value={org.currency} options={CURRENCIES} {...control} />
+						{/snippet}
+					</FormField>
+					<FormField label="Timezone" htmlFor="org-tz" error={errors.timezone}>
+						{#snippet children(control)}
+							<SelectField id="org-tz" bind:value={org.timezone} options={TIMEZONES} {...control} />
+						{/snippet}
+					</FormField>
+					<FormField label="Language" htmlFor="org-lang" error={errors.language}>
+						{#snippet children(control)}
+							<SelectField id="org-lang" bind:value={org.language} options={LANGUAGES} {...control} />
+						{/snippet}
+					</FormField>
+				</div>
+			</div>
+		{:else if step === 2}
+			<div class="onb-step-in">
+				<h1 class="onb-title">Administrator Account</h1>
+				<p class="onb-sub">
+					Designate administrative contact. A secure setup link will be generated.
 				</p>
 
-				<div style="display:flex;flex-direction:column;gap:0.9rem;">
-					<FormField label="Owner name" htmlFor="own-name" required error={errors.owner_name}>
+				<FormField label="Owner name" htmlFor="own-name" required error={errors.owner_name}>
+					{#snippet children(control)}
 						<TextInput
 							id="own-name"
 							bind:value={admin.owner_name}
 							placeholder="Rahul Sharma"
+							autocomplete="off"
 							onblur={() => {
-								// Most small businesses are run by their owner, so the
-								// administrator defaults to the same person rather than
-								// asking the same question twice.
 								if (!admin.admin_name.trim()) admin.admin_name = admin.owner_name;
 								onBlurField('owner_name');
 							}}
+							{...control}
 						/>
-					</FormField>
+					{/snippet}
+				</FormField>
 
-					<div
-						style="display:grid;gap:0.9rem;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));"
+				<div class="onb-row-2">
+					<FormField
+						label="Administrator name"
+						htmlFor="adm-name"
+						required
+						error={errors.admin_name}
 					>
-						<FormField
-							label="Administrator name"
-							htmlFor="adm-name"
-							required
-							error={errors.admin_name}
-						>
+						{#snippet children(control)}
 							<TextInput
 								id="adm-name"
 								bind:value={admin.admin_name}
 								autocomplete="off"
 								onblur={() => onBlurField('admin_name')}
+								{...control}
 							/>
-						</FormField>
-						<FormField
-							label="Administrator email"
-							htmlFor="adm-email"
-							required
-							error={errors.admin_email}
-							hint="The setup link is sent here."
-						>
+						{/snippet}
+					</FormField>
+					<FormField
+						label="Administrator email"
+						htmlFor="adm-email"
+						required
+						error={errors.admin_email}
+					>
+						{#snippet children(control)}
 							<TextInput
 								id="adm-email"
 								type="email"
@@ -886,194 +1525,336 @@
 								placeholder="rahul@example.com"
 								autocomplete="off"
 								onblur={() => onBlurField('admin_email')}
+								{...control}
 							/>
-						</FormField>
-					</div>
-
-					<div
-						style="display:grid;gap:0.9rem;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));"
-					>
-						<FormField label="Administrator phone" htmlFor="adm-phone" error={errors.admin_phone}>
-							<TextInput
-								id="adm-phone"
-								type="tel"
-								bind:value={admin.admin_phone}
-								placeholder="9876543210"
-								onblur={() => onBlurField('admin_phone')}
-							/>
-						</FormField>
-						<FormField label="Role" htmlFor="adm-role" hint="Fixed during onboarding.">
-							<input id="adm-role" class="input" value="Business administrator" disabled />
-						</FormField>
-					</div>
+						{/snippet}
+					</FormField>
 				</div>
 
-				<!-- 4. PLAN -->
-			{:else if step === 3}
-				<h3 class="panel-h">
-					<span style="display:flex;align-items:center;gap:0.5rem;">
-						<Rocket size={16} strokeWidth={1.9} />
-						Plan
-					</span>
-				</h3>
-				<p class="panel-note">
-					Nothing is charged — the plan records what this business is provisioned for, and its
-					limits are enforced as staff and {terms.items.toLowerCase()} are added.
+				{#if configsLoaded && !smtpConfigured}
+					<div class="onb-warning-callout">
+						<div class="onb-warning-callout-icon">
+							<IconAlertTriangle size={17} stroke={2} />
+						</div>
+						<div class="onb-warning-callout-content">
+							<div class="onb-warning-callout-title">Email service (SMTP) is not configured</div>
+							<div class="onb-warning-callout-text">
+								The tenant will still be created, but the invitation email will not be sent because SMTP is not configured on the platform. You will be provided with a single-use setup link after creation to share directly with the administrator.
+								<a href="/superadmin/providers" target="_blank" rel="noreferrer" class="onb-warning-callout-link">Configure SMTP in Providers &rarr;</a>
+							</div>
+						</div>
+					</div>
+				{/if}
+
+				<FormField label="Administrator phone" htmlFor="adm-phone" error={errors.admin_phone}>
+					{#snippet children(control)}
+						<TextInput
+							id="adm-phone"
+							type="tel"
+							inputmode="tel"
+							bind:value={admin.admin_phone}
+							placeholder="9876543210"
+							autocomplete="off"
+							onblur={() => onBlurField('admin_phone')}
+							{...control}
+						/>
+					{/snippet}
+				</FormField>
+			</div>
+		{:else if step === 3}
+			<div class="onb-step-in">
+				<h1 class="onb-title">Subscription Plan</h1>
+				<p class="onb-sub">
+					Assign an initial subscription tier and resource allocation for this tenant.
 				</p>
 
 				{#if plans.length === 0}
-					<div class="alert alert-warn">
-						<TriangleAlert size={16} strokeWidth={1.9} />
-						<span>
-							No active plan is offered to a {template.label.toLowerCase()}. Add or enable one
-							under <a href="/superadmin/plans">Plans &amp; subscriptions</a>.
-						</span>
-					</div>
+					<OnboardAlert tone="warn">
+						No active plan is offered to a {template.label.toLowerCase()}. Add or enable one under
+						<a href="/superadmin/plans">Plans &amp; subscriptions</a>.
+					</OnboardAlert>
 				{:else}
-					<PlanPicker {plans} bind:value={plan} defaultCode={defaultPlan} />
-					{#if errors.plan}<p class="field-error">{errors.plan}</p>{/if}
-
-					{#if selectedPlan}
-						<div class="plan-detail">
-							<dl class="dl">
-								<div><dt>Billing</dt><dd>{billingLabel(selectedPlan.billingPeriod)}</dd></div>
-								<div>
-									<dt>Trial</dt>
-									<dd>{trialDays > 0 ? `${trialDays} days` : 'No trial'}</dd>
-								</div>
-								<div>
-									<dt>Subscription starts as</dt>
-									<dd><StatusBadge status={subscriptionStatus} /></dd>
-								</div>
-								<div>
-									<dt>Limits</dt>
-									<dd>
-										{selectedPlan.maxStaff ?? '—'} staff · {selectedPlan.maxProducts ?? '—'}
-										{terms.items.toLowerCase()}
-									</dd>
-								</div>
-							</dl>
-							{#if selectedPlan.features.length > 0}
-								<ul class="plan-features">
-									{#each selectedPlan.features as feature (feature)}
-										<li>{feature}</li>
-									{/each}
-								</ul>
-							{/if}
-						</div>
+					{#if errors.plan}
+						<p class="onb-error" id="plan-error" role="alert">{errors.plan}</p>
 					{/if}
+					<OnboardPlanPicker
+						{plans}
+						value={plan}
+						describedby={errors.plan ? 'plan-error' : ''}
+						onselect={choosePlan}
+					/>
 				{/if}
-
-				<!-- 5. STOREFRONT THEME -->
-			{:else if step === 4}
-				<h3 class="panel-h">
-					<span style="display:flex;align-items:center;gap:0.5rem;">
-						<Palette size={16} strokeWidth={1.9} />
-						Storefront theme
-					</span>
-				</h3>
-				<p class="panel-note">
-					How the shop looks to customers, pre-set from the {template.label.toLowerCase()}
-					template. This is the same picker the owner gets under Customize → Theme, so what
-					you choose here is exactly what they will find.
+			</div>
+		{:else if step === 4}
+			<div class="onb-step-in">
+				<h1 class="onb-title">Branding &amp; Theme</h1>
+				<p class="onb-sub">
+					Select default styling for storefront and admin console. Customizable anytime.
 				</p>
 
-				<StorefrontThemePicker
-					compact
-					storeName={org.name || 'Your shop'}
-					bind:preset={theme.preset}
-					bind:mode={theme.mode}
-					bind:primary={theme.primary}
-					bind:secondary={theme.secondary}
-					bind:accent={theme.accent}
-					bind:font={theme.font}
-					bind:radius={theme.radius}
-					bind:button={theme.button}
-					bind:card={theme.card}
-					bind:hero={theme.hero}
-					bind:layout={theme.product_layout}
-					bind:filterStyle={theme.filter_style}
-				/>
+				<ThemePicker value={theme.preset} onselect={(id) => {
+					const preset = THEME_PRESETS.find((candidate) => candidate.id === id);
+					if (preset) applyPreset(preset);
+				}} />
 
-				<div class="theme-assets">
-					<FormField
-						label="Logo URL"
-						htmlFor="brand-logo"
-						error={errors.logo_url}
-						hint="Optional. The owner can upload a file once they sign in."
-					>
-						<TextInput
-							id="brand-logo"
-							type="url"
-							bind:value={theme.logo_url}
-							placeholder="https://…"
-							onblur={() => onBlurField('logo_url')}
-						/>
+				<div class="onb-row-2">
+					<FormField label="Theme Mode" htmlFor="theme-mode">
+						{#snippet children(control)}
+							<SelectField
+								id="theme-mode"
+								bind:value={theme.mode}
+								onchange={() => {
+									dirty = true;
+									themeSelectedByUser = true;
+								}}
+								options={[
+									{ value: 'light', label: 'Light' },
+									{ value: 'dark', label: 'Dark' },
+									{ value: 'system', label: 'System' }
+								]}
+								{...control}
+							/>
+						{/snippet}
 					</FormField>
-					<FormField label="Favicon URL" htmlFor="brand-favicon" error={errors.favicon_url}>
-						<TextInput
-							id="brand-favicon"
-							type="url"
-							bind:value={theme.favicon_url}
-							placeholder="https://…"
-							onblur={() => onBlurField('favicon_url')}
-						/>
+					<FormField label="Favicon URL (Optional)" htmlFor="favicon-url" error={errors.favicon_url}>
+						{#snippet children(control)}
+							<TextInput
+								id="favicon-url"
+								type="url"
+								bind:value={theme.favicon_url}
+								placeholder="https://…/favicon.ico"
+								autocomplete="off"
+								onblur={() => onBlurField('favicon_url')}
+								{...control}
+							/>
+						{/snippet}
 					</FormField>
 				</div>
 
-				<!-- 6. CONFIGURATION -->
-			{:else if step === 5}
-				<h3 class="panel-h">
-					<span style="display:flex;align-items:center;gap:0.5rem;">
-						<SlidersHorizontal size={16} strokeWidth={1.9} />
-						How this business operates
-					</span>
-				</h3>
-				<p class="panel-note">
-					Pre-set for a {template.label.toLowerCase()}. Only the settings that matter for this
-					business type are shown; everything else keeps its default and stays editable by the
-					owner.
-				</p>
-
-				<div class="cfg">
-					{#if shows('ordering')}
-						<div class="cfg-row">
-							<Switch
-								bind:checked={config.ordering_enabled}
-								label="Accept orders from customers"
-								hint="Turn off to launch with a browse-only storefront."
-							/>
+				<!-- Business Logo Uploader Section -->
+				<div class="onb-logo-uploader">
+					<div class="onb-logo-header">
+						<div class="onb-logo-label-group">
+							<span class="onb-logo-label">Business Logo</span>
+							<span class="onb-logo-hint">Displayed on storefront header, invoices, and customer communications</span>
 						</div>
+						<div class="onb-logo-tabs" role="tablist">
+							<button
+								type="button"
+								class="onb-logo-tab"
+								class:is-active={logoMode === 'upload'}
+								onclick={() => (logoMode = 'upload')}
+							>
+								<IconUpload size={13} stroke={2} />
+								<span>Upload File</span>
+							</button>
+							<button
+								type="button"
+								class="onb-logo-tab"
+								class:is-active={logoMode === 'url'}
+								onclick={() => (logoMode = 'url')}
+							>
+								<IconLink size={13} stroke={2} />
+								<span>Image URL</span>
+							</button>
+						</div>
+					</div>
+
+					{#if logoMode === 'upload'}
+						<input
+							type="file"
+							bind:this={logoFileInput}
+							accept="image/png,image/jpeg,image/webp,image/svg+xml"
+							class="sr-only"
+							style="display: none;"
+							onchange={onLogoFileSelected}
+						/>
+
+						{#if configsLoaded && !storageConfigured}
+							<div class="onb-warning-callout" style="margin-top: 0; margin-bottom: 0.5rem;">
+								<div class="onb-warning-callout-icon">
+									<IconAlertTriangle size={16} stroke={2} />
+								</div>
+								<div class="onb-warning-callout-content">
+									<div class="onb-warning-callout-title">Storage provider is not configured</div>
+									<div class="onb-warning-callout-text">
+										Platform storage is not yet connected. Uploaded files will be embedded directly, or you can switch to the <strong>Image URL</strong> tab.
+										<a href="/superadmin/providers" target="_blank" rel="noreferrer" class="onb-warning-callout-link">Configure Storage in Providers &rarr;</a>
+									</div>
+								</div>
+							</div>
+						{/if}
+
+						{#if isUploadingLogo}
+							<div class="onb-upload-loading">
+								<div class="spinner" style="width: 16px; height: 16px;"></div>
+								<span>Uploading logo to platform storage...</span>
+							</div>
+						{:else if theme.logo_url}
+							<div class="onb-logo-preview-card">
+								<div class="onb-logo-preview-thumb">
+									<img src={theme.logo_url} alt="Logo preview" />
+								</div>
+								<div class="onb-logo-preview-info">
+									<span class="onb-logo-preview-name">Active Business Logo</span>
+									<span class="onb-logo-preview-url" title={theme.logo_url}>{theme.logo_url}</span>
+								</div>
+								<div class="onb-logo-preview-actions">
+									<button
+										type="button"
+										class="onb-logo-btn"
+										onclick={() => logoFileInput?.click()}
+										title="Replace with another file"
+									>
+										<IconUpload size={12} stroke={2} />
+										<span>Change</span>
+									</button>
+									<button
+										type="button"
+										class="onb-logo-btn onb-logo-btn-danger"
+										onclick={removeLogo}
+										title="Remove logo"
+									>
+										<IconTrash size={12} stroke={2} />
+										<span>Remove</span>
+									</button>
+								</div>
+							</div>
+						{:else}
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div
+								class="onb-logo-dropzone"
+								class:is-dragover={isDragOverLogo}
+								onclick={() => logoFileInput?.click()}
+								ondragover={(e) => { e.preventDefault(); isDragOverLogo = true; }}
+								ondragleave={() => (isDragOverLogo = false)}
+								ondrop={onLogoDrop}
+							>
+								<div class="onb-logo-dropzone-icon">
+									<IconPhoto size={20} stroke={1.8} />
+								</div>
+								<span class="onb-logo-dropzone-text">
+									Drop your business logo here, or <span style="color: var(--portal-accent, #6366f1); text-decoration: underline;">browse file</span>
+								</span>
+								<span class="onb-logo-dropzone-sub">
+									PNG, JPG, WebP, or SVG up to 5MB (transparent background recommended)
+								</span>
+							</div>
+						{/if}
+
+						{#if logoUploadError}
+							<p class="onb-error" role="alert" style="margin-top: 0.25rem;">{logoUploadError}</p>
+						{/if}
+					{:else}
+						<FormField label="Direct Image URL" htmlFor="logo-url" error={errors.logo_url}>
+							{#snippet children(control)}
+								<TextInput
+									id="logo-url"
+									type="url"
+									bind:value={theme.logo_url}
+									placeholder="https://example.com/logo.png"
+									autocomplete="off"
+									oninput={() => {
+										dirty = true;
+										themeSelectedByUser = true;
+									}}
+									onblur={() => onBlurField('logo_url')}
+									{...control}
+								/>
+							{/snippet}
+						</FormField>
+					{/if}
+				</div>
+			</div>
+		{:else if step === 5}
+			<div class="onb-step-in">
+				{#if template.capabilityDriven}
+					<h1 class="onb-title">Enabled Modules</h1>
+					<p class="onb-sub">
+						Configure default capabilities and optional modules for this {template.label.toLowerCase()}.
+					</p>
+
+					{#if capabilitiesLoading}
+						<div class="onb-skeletons">
+							{#each [1, 2, 3] as i (i)}<div class="onb-skeleton"></div>{/each}
+						</div>
+					{:else}
+						{#if includedCapabilities.length > 0}
+							<div class="onb-group">
+								<span class="onb-label">Always included</span>
+								<div class="onb-tags">
+									{#each includedCapabilities as cap (cap.code)}
+										<span class="onb-tag onb-tag-acc">{cap.label}</span>
+									{/each}
+								</div>
+							</div>
+						{/if}
+						{#if optionalCapabilities.length > 0}
+							<fieldset class="onb-group">
+								<legend class="onb-label">Optional</legend>
+								{#each optionalCapabilities as cap (cap.code)}
+									<Switch
+										bind:checked={capabilityOverrides[cap.code]}
+										label={cap.label}
+										onchange={() => {
+											dirty = true;
+											touched.prep_time = true;
+										}}
+									/>
+								{/each}
+							</fieldset>
+						{/if}
+						{#if includedCapabilities.length === 0 && optionalCapabilities.length === 0}
+							<p class="onb-hint">
+								No capability matrix is configured for this business type yet — it will be
+								created with no modules enabled.
+							</p>
+						{/if}
+					{/if}
+				{:else}
+					<h1 class="onb-title">Operational Settings</h1>
+					<p class="onb-sub">
+						Configure order workflows, fulfillment rules, and payment options.
+					</p>
+
+					{#if shows('ordering')}
+						<Switch bind:checked={config.ordering_enabled} label="Accept orders from customers" />
 					{/if}
 
 					{#if shows('customer_login')}
-						<div class="cfg-row">
-							<FormField
-								label="Customer accounts"
-								htmlFor="cfg-login"
-								hint="Required accounts identify the customer before they can order."
-							>
+						<FormField label="Customer accounts" htmlFor="cfg-login">
+							{#snippet children(control)}
 								<SelectField
 									id="cfg-login"
 									bind:value={config.customer_login_mode}
 									options={[
-										{ value: 'off', label: CONTROL_LABELS.customer_login_mode.off },
-										{ value: 'optional', label: CONTROL_LABELS.customer_login_mode.optional },
-										{ value: 'required', label: CONTROL_LABELS.customer_login_mode.required }
+										{
+											value: 'off',
+											label: CONTROL_LABELS.customer_login_mode.off
+										},
+										{
+											value: 'optional',
+											label: CONTROL_LABELS.customer_login_mode.optional
+										},
+										{
+											value: 'required',
+											label: CONTROL_LABELS.customer_login_mode.required
+										}
 									]}
+									{...control}
 								/>
-							</FormField>
-						</div>
+							{/snippet}
+						</FormField>
 					{/if}
 
 					{#if shows('prep_time')}
-						<div class="cfg-row">
-							<FormField
-								label="Typical preparation time"
-								htmlFor="cfg-prep"
-								error={errors.prep_time}
-								hint="Shown to customers as the wait after an order is accepted."
-							>
+						<FormField
+							label="Typical preparation time"
+							htmlFor="cfg-prep"
+							error={errors.prep_time}
+						>
+							{#snippet children(control)}
 								<TextInput
 									id="cfg-prep"
 									type="number"
@@ -1082,23 +1863,20 @@
 									suffix="min"
 									value={String(config.prep_time_minutes)}
 									oninput={(e) => {
-										config.prep_time_minutes = Number(
-											(e.currentTarget as HTMLInputElement).value
-										);
+										config.prep_time_minutes = Number((e.currentTarget as HTMLInputElement).value);
+										dirty = true;
 										touched.prep_time = true;
+										validateStep(step);
 									}}
+									{...control}
 								/>
-							</FormField>
-						</div>
+							{/snippet}
+						</FormField>
 					{/if}
 
 					{#if shows('acceptance')}
-						<div class="cfg-row">
-							<FormField
-								label="Order acceptance"
-								htmlFor="cfg-accept"
-								hint="Automatic acceptance suits a counter that never refuses an order."
-							>
+						<FormField label="Order acceptance" htmlFor="cfg-accept">
+							{#snippet children(control)}
 								<SelectField
 									id="cfg-accept"
 									bind:value={config.acceptance_mode}
@@ -1106,41 +1884,26 @@
 										{ value: 'MANUAL', label: CONTROL_LABELS.acceptance_mode.MANUAL },
 										{ value: 'AUTO', label: CONTROL_LABELS.acceptance_mode.AUTO }
 									]}
+									{...control}
 								/>
-							</FormField>
-						</div>
+							{/snippet}
+						</FormField>
 					{/if}
 
 					{#if shows('payment_methods')}
-						<div class="cfg-row">
-							<p class="field-label" style="margin-bottom:0.5rem;">Payment methods</p>
-							<div style="display:flex;flex-direction:column;gap:0.6rem;">
-								<Switch bind:checked={config.online_payment_enabled} label="Online payment" />
-								<Switch bind:checked={config.cash_enabled} label="Cash" />
-							</div>
+						<fieldset class="onb-group" aria-describedby={errors.payment_methods ? 'pay-error' : undefined}>
+							<legend class="onb-label">Payment methods</legend>
+							<Switch bind:checked={config.online_payment_enabled} label="Online payment" />
+							<Switch bind:checked={config.cash_enabled} label="Cash" />
 							{#if errors.payment_methods}
-								<p class="field-error">{errors.payment_methods}</p>
+								<p class="onb-error" id="pay-error" role="alert">{errors.payment_methods}</p>
 							{/if}
-							{#if config.online_payment_enabled && config.cash_enabled}
-								<div style="margin-top:0.7rem;max-width:16rem;">
-									<FormField label="Default method" htmlFor="cfg-default-pay">
-										<SelectField
-											id="cfg-default-pay"
-											bind:value={config.default_payment_method}
-											options={[
-												{ value: 'ONLINE', label: 'Online' },
-												{ value: 'CASH', label: 'Cash' }
-											]}
-										/>
-									</FormField>
-								</div>
-							{/if}
-						</div>
+						</fieldset>
 					{/if}
 
 					{#if shows('payment_timing')}
-						<div class="cfg-row">
-							<FormField label="When customers pay" htmlFor="cfg-timing">
+						<FormField label="When customers pay" htmlFor="cfg-timing">
+							{#snippet children(control)}
 								<SelectField
 									id="cfg-timing"
 									bind:value={config.payment_requirement}
@@ -1151,433 +1914,189 @@
 										},
 										{ value: 'AT_PICKUP', label: CONTROL_LABELS.payment_requirement.AT_PICKUP }
 									]}
+									{...control}
 								/>
-							</FormField>
-						</div>
+							{/snippet}
+						</FormField>
 					{/if}
 
 					{#if shows('ready_notification')}
-						<div class="cfg-row">
-							<Switch
-								bind:checked={config.ready_notification}
-								label="Notify the customer when the order is ready"
-							/>
-						</div>
+						<Switch
+							bind:checked={config.ready_notification}
+							label="Notify the customer when ready"
+						/>
 					{/if}
 
 					{#if shows('auto_complete')}
-						<div class="cfg-row">
-							<Switch
-								bind:checked={config.auto_complete}
-								label="Complete orders automatically once ready"
-								hint="Suits a counter where nobody marks collection."
-							/>
-						</div>
+						<Switch
+							bind:checked={config.auto_complete}
+							label="Complete orders automatically once ready"
+						/>
 					{/if}
-				</div>
-
-				<!-- 7. REVIEW -->
-			{:else}
-				<h3 class="panel-h">
-					<span style="display:flex;align-items:center;gap:0.5rem;">
-						<CircleCheck size={16} strokeWidth={1.9} />
-						Review and create
-					</span>
-				</h3>
-				<p class="panel-note">
-					The business, its subscription, its administrator and its configured storefront are
-					created together. If anything fails, nothing is created.
-				</p>
-
-				<div class="review-grid">
-					<section class="review-block">
-						<h4>Business type</h4>
-						<dl class="dl">
-							<div><dt>Type</dt><dd>{template.label}</dd></div>
-							<div><dt>Catalogue</dt><dd>{terms.catalog}</dd></div>
-							<div><dt>Layout</dt><dd>{template.storefront.product_layout}</dd></div>
-						</dl>
-						<button type="button" class="btn btn-quiet btn-sm" onclick={() => (step = 0)}>
-							Edit
-						</button>
-					</section>
-
-					<section class="review-block">
-						<h4>Business</h4>
-						<dl class="dl">
-							<div><dt>Name</dt><dd>{org.name || '—'}</dd></div>
-							<div><dt>Subdomain</dt><dd class="mono">{org.slug || '—'}</dd></div>
-							<div><dt>Phone</dt><dd>{org.phone || '—'}</dd></div>
-							<div><dt>Email</dt><dd>{org.email || admin.admin_email || '—'}</dd></div>
-							<div><dt>Currency</dt><dd>{org.currency}</dd></div>
-							<div><dt>Timezone</dt><dd>{org.timezone}</dd></div>
-						</dl>
-						<button type="button" class="btn btn-quiet btn-sm" onclick={() => (step = 1)}>
-							Edit
-						</button>
-					</section>
-
-					<section class="review-block">
-						<h4>Owner &amp; admin</h4>
-						<dl class="dl">
-							<div><dt>Owner</dt><dd>{admin.owner_name || '—'}</dd></div>
-							<div><dt>Administrator</dt><dd>{admin.admin_name || '—'}</dd></div>
-							<div><dt>Email</dt><dd class="mono">{admin.admin_email || '—'}</dd></div>
-							<div><dt>Phone</dt><dd>{admin.admin_phone || '—'}</dd></div>
-						</dl>
-						<button type="button" class="btn btn-quiet btn-sm" onclick={() => (step = 2)}>
-							Edit
-						</button>
-					</section>
-
-					<section class="review-block">
-						<h4>Plan</h4>
-						<dl class="dl">
-							<div><dt>Plan</dt><dd>{selectedPlan?.label ?? plan ?? '—'}</dd></div>
-							<div>
-								<dt>Price</dt>
-								<dd>
-									{selectedPlan
-										? selectedPlan.price === 0
-											? 'Free'
-											: `₹${selectedPlan.price.toLocaleString('en-IN')}`
-										: '—'}
-								</dd>
-							</div>
-							<div><dt>Trial</dt><dd>{trialDays > 0 ? `${trialDays} days` : 'None'}</dd></div>
-							<div><dt>Status</dt><dd><StatusBadge status={subscriptionStatus} /></dd></div>
-						</dl>
-						<button type="button" class="btn btn-quiet btn-sm" onclick={() => (step = 3)}>
-							Edit
-						</button>
-					</section>
-
-					<section class="review-block">
-						<h4>Storefront theme</h4>
-						<div class="swatch-row">
-							<span class="swatch" style:background={primary}></span>
-							<span class="swatch" style:background={secondary}></span>
-							<span class="swatch" style:background={theme.accent}></span>
-							<span class="muted" style="font-size:0.72rem;">
-								{selectedPreset?.name ?? theme.preset}
-							</span>
-						</div>
-						<dl class="dl" style="margin-top:0.35rem;">
-							<div><dt>Mode</dt><dd style="text-transform:capitalize;">{theme.mode}</dd></div>
-							<div>
-								<dt>Menu</dt>
-								<dd style="text-transform:capitalize;">{theme.product_layout}</dd>
-							</div>
-							<div><dt>Font</dt><dd style="text-transform:capitalize;">{theme.font}</dd></div>
-						</dl>
-						<button type="button" class="btn btn-quiet btn-sm" onclick={() => (step = 4)}>
-							Edit
-						</button>
-					</section>
-
-					<section class="review-block">
-						<h4>Configuration</h4>
-						<dl class="dl">
-							<div>
-								<dt>Ordering</dt>
-								<dd>{config.ordering_enabled ? 'Enabled' : 'Browse only'}</dd>
-							</div>
-							<div>
-								<dt>Customers</dt>
-								<dd>{CONTROL_LABELS.customer_login_mode[config.customer_login_mode]}</dd>
-							</div>
-							<div>
-								<dt>Acceptance</dt>
-								<dd>{CONTROL_LABELS.acceptance_mode[config.acceptance_mode]}</dd>
-							</div>
-							<div>
-								<dt>Payment</dt>
-								<dd>{paymentSummary()}</dd>
-							</div>
-							<div><dt>Prep time</dt><dd>{config.prep_time_minutes} min</dd></div>
-						</dl>
-						<button type="button" class="btn btn-quiet btn-sm" onclick={() => (step = 5)}>
-							Edit
-						</button>
-					</section>
-				</div>
-
-				<div class="handoff">
-					<strong>What happens when you create it</strong>
-					<ol>
-						<li>The business, its subscription and its administrator are created in one transaction.</li>
-						<li>Its storefront is configured from the {template.label.toLowerCase()} template.</li>
-						<li>A one-time setup link is generated, and emailed if email is configured.</li>
-						<li>
-							The administrator signs in, adds the {terms.catalog.toLowerCase()}, and publishes the
-							storefront.
-						</li>
-					</ol>
-				</div>
-			{/if}
-		{/snippet}
-
-		{#snippet footer()}
-			<span class="wizard-progress">
-				Step {step + 1} of {steps.length} · {steps[step].label}
-			</span>
-			<div class="wizard-foot-actions">
-				<button
-					type="button"
-					class="btn btn-ghost"
-					disabled={step === 0 || submitting}
-					onclick={goBack}
-				>
-					Back
-				</button>
-				{#if step < steps.length - 1}
-					<button
-						type="button"
-						class="btn btn-primary"
-						disabled={optionsLoading || !stepValid}
-						onclick={goNext}
-					>
-						Continue
-					</button>
-				{:else}
-					<button
-						type="button"
-						class="btn btn-primary"
-						disabled={submitting || optionsLoading}
-						onclick={create}
-					>
-						{#if submitting}
-							Creating business…
-						{:else}
-							<Building2 size={15} strokeWidth={2.2} />
-							Create business
-						{/if}
-					</button>
 				{/if}
 			</div>
-		{/snippet}
-	</OnboardLayout>
+		{:else}
+			<div class="onb-step-in">
+				<div class="onb-review-header-block">
+					<h1 class="onb-title">Review &amp; Provision</h1>
+					<p class="onb-sub">
+						Verify the organization specification below before initializing the tenant.
+					</p>
+				</div>
+
+				<div class="onb-review-main">
+					<div class="onb-review-spec">
+						<!-- Row 1: Business Identity & Template -->
+						<div class="onb-spec-row">
+							<span class="onb-spec-label">Business</span>
+							<div class="onb-spec-body">
+								<div class="onb-spec-main">
+									<span>{org.name || 'Untitled Business'}</span>
+									<span class="onb-spec-badge">{template.label}</span>
+								</div>
+								<div class="onb-spec-meta">
+									<code>https://{org.slug || 'slug'}.{baseDomain}</code>
+									<span class="onb-spec-dot">·</span>
+									<span>Currency: {org.currency || 'INR'}</span>
+									<span class="onb-spec-dot">·</span>
+									<span>{org.timezone || 'Asia/Kolkata'}</span>
+								</div>
+							</div>
+							<button type="button" class="onb-spec-edit" onclick={() => (step = 1)} title="Edit Business">
+								<span>Edit</span>
+								<IconPencil size={11} stroke={2} />
+							</button>
+						</div>
+
+						<!-- Row 2: Admin & Ownership -->
+						<div class="onb-spec-row">
+							<span class="onb-spec-label">Admin</span>
+							<div class="onb-spec-body">
+								<div class="onb-spec-main">
+									<span>{admin.owner_name || 'Owner'}</span>
+									<span class="onb-spec-badge">Tenant Admin</span>
+								</div>
+								<div class="onb-spec-meta">
+									<span>{admin.admin_email || '—'}</span>
+									<span class="onb-spec-dot">·</span>
+									{#if configsLoaded && !smtpConfigured}
+										<span class="onb-spec-warn-badge">Email not configured · Manual setup link</span>
+									{:else}
+										<span>Immediate credentials dispatch via SMTP</span>
+									{/if}
+								</div>
+							</div>
+							<button type="button" class="onb-spec-edit" onclick={() => (step = 2)} title="Edit Admin">
+								<span>Edit</span>
+								<IconPencil size={11} stroke={2} />
+							</button>
+						</div>
+
+						<!-- Row 3: Subscription & Billing -->
+						<div class="onb-spec-row">
+							<span class="onb-spec-label">Plan</span>
+							<div class="onb-spec-body">
+								<div class="onb-spec-main">
+									<span>{selectedPlan?.label ?? plan ?? 'Standard'}</span>
+								</div>
+								<div class="onb-spec-meta">
+									<span>{isTrial ? `${trialDays}-Day Free Trial (Trial Provisioning)` : 'Active Subscription (Immediate Billing)'}</span>
+								</div>
+							</div>
+							<button type="button" class="onb-spec-edit" onclick={() => (step = 3)} title="Edit Plan">
+								<span>Edit</span>
+								<IconPencil size={11} stroke={2} />
+							</button>
+						</div>
+
+						<!-- Row 4: Brand & Visual Theme -->
+						<div class="onb-spec-row">
+							<span class="onb-spec-label">Branding</span>
+							<div class="onb-spec-body">
+								<div class="onb-spec-main">
+									<span>{THEME_PRESETS.find((p) => p.id === theme.preset)?.name || 'Modern'} Theme</span>
+									<span class="onb-spec-swatches" aria-label="Palette colors">
+										<span class="onb-spec-swatch" style:background={theme.primary} title={`Primary: ${theme.primary}`}></span>
+										<span class="onb-spec-swatch" style:background={theme.secondary} title={`Secondary: ${theme.secondary}`}></span>
+										<span class="onb-spec-swatch" style:background={theme.accent} title={`Accent: ${theme.accent}`}></span>
+									</span>
+								</div>
+								<div class="onb-spec-meta">
+									<span class="capitalize">{theme.mode} Mode</span>
+									<span class="onb-spec-dot">·</span>
+									<span>Primary: {theme.primary}</span>
+									{#if theme.logo_url}
+										<span class="onb-spec-dot">·</span>
+										<span>Logo configured</span>
+									{/if}
+								</div>
+							</div>
+							<button type="button" class="onb-spec-edit" onclick={() => (step = 4)} title="Edit Theme">
+								<span>Edit</span>
+								<IconPencil size={11} stroke={2} />
+							</button>
+						</div>
+
+						<!-- Row 5: Operations & Governance -->
+						<div class="onb-spec-row">
+							<span class="onb-spec-label">Operations</span>
+							<div class="onb-spec-body">
+								{#if template.capabilityDriven}
+									<div class="onb-spec-main">
+										<span>{enabledCapabilities.length} capabilities enabled</span>
+									</div>
+									<div class="onb-spec-meta">
+										<span>{enabledCapabilities.map((c) => c.label).join(' · ')}</span>
+									</div>
+								{:else}
+									<div class="onb-spec-main">
+										<span>{config.ordering_enabled ? 'Ordering Enabled' : 'Browse Only'}</span>
+									</div>
+									<div class="onb-spec-meta">
+										<span>{paymentSummary()}</span>
+									</div>
+								{/if}
+							</div>
+							<button type="button" class="onb-spec-edit" onclick={() => (step = 5)} title="Edit Operations">
+								<span>Edit</span>
+								<IconPencil size={11} stroke={2} />
+							</button>
+						</div>
+					</div>
+
+					<label class="onb-terms-row">
+						<input
+							type="checkbox"
+							class="onb-terms-check"
+							bind:checked={termsAccepted}
+							aria-invalid={errors.terms ? 'true' : undefined}
+							aria-describedby={errors.terms ? 'terms-error' : undefined}
+							onchange={() => {
+								dirty = true;
+								touched.terms = true;
+								validateStep(step);
+							}}
+						/>
+						<span class="onb-terms-text">
+							I confirm I am authorized to provision <strong>{org.name || 'this business'}</strong> under Orderly's <strong>Master Services Agreement</strong> and <strong>Business Operations Policy</strong>. Access credentials and initialization keys will be dispatched to <strong>{admin.admin_email || 'the owner'}</strong>.
+						</span>
+					</label>
+					{#if errors.terms}
+						<p class="onb-error" id="terms-error" role="alert">{errors.terms}</p>
+					{/if}
+				</div>
+			</div>
+		{/if}
+
+		{#if failure}
+			<OnboardAlert tone="error" title={failure.title}>{failure.detail}</OnboardAlert>
+		{/if}
+	</OnboardShell>
 {/if}
 
-
-<style>
-	.bt-grid {
-		display: grid;
-		gap: 0.65rem;
-		grid-template-columns: minmax(0, 1fr);
-	}
-
-	@media (min-width: 560px) {
-		.bt-grid {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
-	}
-
-	@media (min-width: 960px) {
-		.bt-grid {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-		}
-	}
-
-	.tpl-summary {
-		margin-top: 1.1rem;
-		padding: 0.85rem 0.95rem;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		background: var(--surface-2);
-	}
-
-	.tpl-summary strong {
-		display: block;
-		margin-bottom: 0.5rem;
-		font-size: 0.7rem;
-		font-weight: 650;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--text-3);
-	}
-
-	.tpl-cats {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 0.3rem;
-		margin: 0.7rem 0 0;
-		font-size: 0.76rem;
-		color: var(--text-3);
-	}
-
-	.bt-chip {
-		font-size: 0.68rem;
-		font-weight: 550;
-		padding: 0.15rem 0.45rem;
-		border-radius: 999px;
-		background: var(--surface-3);
-		color: var(--text-2);
-	}
-
-	.plan-detail {
-		margin-top: 1.1rem;
-		padding-top: 1rem;
-		border-top: 1px solid var(--border);
-	}
-
-	.plan-features {
-		margin: 0.75rem 0 0;
-		padding-left: 1.05rem;
-		display: grid;
-		gap: 0.25rem;
-	}
-
-	.plan-features li {
-		font-size: 0.78rem;
-		color: var(--text-2);
-	}
-
-	.cfg {
-		display: flex;
-		flex-direction: column;
-	}
-
-	.cfg-row {
-		padding: 0.85rem 0;
-		border-bottom: 1px solid var(--border-subtle);
-	}
-
-	.cfg-row:last-child {
-		border-bottom: 0;
-	}
-
-	.review-grid {
-		display: grid;
-		gap: 0.75rem;
-		grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-	}
-
-	.review-block {
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		padding: 0.8rem 0.85rem;
-		background: var(--surface-2);
-		display: flex;
-		flex-direction: column;
-		gap: 0.45rem;
-		align-items: flex-start;
-	}
-
-	.review-block h4 {
-		margin: 0;
-		font-size: 0.7rem;
-		font-weight: 650;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--text-3);
-	}
-
-	.review-block .dl {
-		width: 100%;
-		flex: 1;
-	}
-
-	.theme-assets {
-		display: grid;
-		gap: 0.9rem;
-		grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-		margin-top: 1.5rem;
-		padding-top: 1.25rem;
-		border-top: 1px solid var(--border-subtle);
-	}
-
-	.swatch-row {
-		display: flex;
-		align-items: center;
-		gap: 0.45rem;
-		font-size: 0.78rem;
-	}
-
-	.swatch {
-		width: 1.1rem;
-		height: 1.1rem;
-		border-radius: 5px;
-		border: 1px solid var(--border);
-		flex-shrink: 0;
-	}
-
-	.handoff {
-		margin-top: 1.1rem;
-		padding: 0.8rem 0.9rem;
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		background: var(--surface-2);
-	}
-
-	.handoff strong {
-		font-size: 0.7rem;
-		font-weight: 650;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--text-3);
-	}
-
-	.handoff ol {
-		margin: 0.5rem 0 0;
-		padding-left: 1.1rem;
-		display: grid;
-		gap: 0.28rem;
-	}
-
-	.handoff li {
-		font-size: 0.78rem;
-		line-height: 1.45;
-		color: var(--text-2);
-	}
-
-	/* ---------- success ---------- */
-
-	.done {
-		display: flex;
-		flex-direction: column;
-		gap: 0.85rem;
-		max-width: 46rem;
-		margin: 0 auto;
-	}
-
-	.done-head {
-		display: flex;
-		align-items: flex-start;
-		gap: 0.9rem;
-	}
-
-	.done-mark {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 2.6rem;
-		height: 2.6rem;
-		border-radius: 999px;
-		background: var(--success-bg);
-		color: var(--success);
-		flex-shrink: 0;
-	}
-
-	.done-head h2 {
-		margin: 0 0 0.25rem;
-		font-family: var(--font-display);
-		font-size: 1.15rem;
-		font-weight: 600;
-		letter-spacing: -0.02em;
-	}
-
-	.done-head p {
-		margin: 0;
-		font-size: 0.84rem;
-		line-height: 1.55;
-		color: var(--text-3);
-	}
-
-	.done-actions {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-	}
-</style>
+<LeaveDraftModal
+	bind:open={showLeaveModal}
+	bind:rememberChoice={rememberLeaveChoice}
+	onconfirm={confirmLeave}
+	oncancel={cancelLeave}
+/>

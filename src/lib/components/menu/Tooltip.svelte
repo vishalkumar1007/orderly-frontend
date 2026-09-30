@@ -38,7 +38,7 @@
 		padding: 0.35rem 0.6rem;
 		background: var(--text);
 		color: var(--bg);
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		font-weight: 500;
 		line-height: 1.4;
 		border-radius: 6px;

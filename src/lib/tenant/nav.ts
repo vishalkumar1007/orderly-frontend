@@ -2,14 +2,13 @@ import type { Component } from 'svelte';
 import Activity from '@lucide/svelte/icons/activity';
 import ChefHat from '@lucide/svelte/icons/chef-hat';
 import ClipboardList from '@lucide/svelte/icons/clipboard-list';
-import Clock from '@lucide/svelte/icons/clock';
 import CreditCard from '@lucide/svelte/icons/credit-card';
-import Eye from '@lucide/svelte/icons/eye';
 import History from '@lucide/svelte/icons/history';
 import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 import LayoutTemplate from '@lucide/svelte/icons/layout-template';
 import MonitorPlay from '@lucide/svelte/icons/monitor-play';
 import QrCode from '@lucide/svelte/icons/qr-code';
+import Rocket from '@lucide/svelte/icons/rocket';
 import Settings from '@lucide/svelte/icons/settings';
 import Shield from '@lucide/svelte/icons/shield';
 import Store from '@lucide/svelte/icons/store';
@@ -77,8 +76,8 @@ export type ShopNavGroup = {
 export const STAFF_OPS_HREFS = new Set(['/shop/orders', '/shop/kitchen']);
 
 /**
- * Legacy staff shell nav. Kept for check_nav and any leftover ShopShell usage;
- * the org portal uses TENANT_NAV. Kitchen now lives under /shop/kitchen.
+ * Legacy staff shell nav, still validated by check_nav. The org portal uses
+ * TENANT_NAV. Kitchen now lives under /shop/kitchen.
  */
 export const SHOP_NAV: ShopNavGroup[] = [
 	{
@@ -205,7 +204,7 @@ const TITLES: Array<[string, string]> = [
 	['/shop/kitchen', 'Kitchen'],
 	['/shop/orders', 'Selling'],
 	['/shop/menu', 'Menu'],
-	['/shop/setup', 'Launch checklist'],
+	['/shop/storefront/launch', 'Launch'],
 	['/shop', 'Dashboard']
 ];
 
@@ -311,23 +310,9 @@ export const TENANT_NAV: ShopNavGroup[] = [
 				permission: 'storefront'
 			},
 			{
-				/*
-				 * Opening hours sit with the storefront because that is what
-				 * they change: whether a customer can order right now. The
-				 * capability stays `organization` because that is what the API
-				 * enforces on the write — the rail groups by what a screen is
-				 * about, never by who may open it.
-				 */
-				href: '/shop/storefront/hours',
-				label: 'Operating Hours',
-				icon: Clock,
-				exact: true,
-				permission: 'organization'
-			},
-			{
-				href: '/shop/storefront/preview',
-				label: 'Preview',
-				icon: Eye,
+				href: '/shop/storefront/launch',
+				label: 'Launch',
+				icon: Rocket,
 				exact: true,
 				permission: 'storefront'
 			},
@@ -489,7 +474,8 @@ export function tenantCrumbs(pathname: string, businessType?: string | null): Te
 
 	rest.forEach((seg, i) => {
 		const isLast = i === rest.length - 1;
-		const href = '/' + ['shop', ...rest.slice(0, i + 1)].join('/');
+		let href = '/' + ['shop', ...rest.slice(0, i + 1)].join('/');
+		if (href === '/shop/storefront') href = '/shop/customize';
 		const label = segmentLabel(segments, i + 1, businessType);
 		crumbs.push({ label, href: isLast ? null : href });
 	});

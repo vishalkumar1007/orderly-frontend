@@ -315,7 +315,7 @@
 		align-items: center;
 		gap: 0.4rem;
 		margin-top: 0.4rem;
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 	}
 
 	.bt-tag {
@@ -352,7 +352,7 @@
 		display: flex;
 		align-items: baseline;
 		gap: 0.4rem;
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		min-width: 0;
 	}
 
@@ -382,7 +382,7 @@
 	}
 
 	.bt-foot {
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 </style>

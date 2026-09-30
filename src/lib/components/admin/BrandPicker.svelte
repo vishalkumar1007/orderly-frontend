@@ -352,7 +352,7 @@
 	}
 
 	.theme-card-name {
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -400,7 +400,7 @@
 	}
 
 	.theme-field-label {
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		font-weight: 600;
 		color: var(--text-2);
 	}
@@ -424,7 +424,7 @@
 		background: transparent;
 		color: var(--text-3);
 		font-family: inherit;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		font-weight: 550;
 		cursor: pointer;
 		transition: background 0.15s ease, color 0.15s ease;

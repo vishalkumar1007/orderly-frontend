@@ -101,7 +101,7 @@
 				-->
 				{@html qr.qr.svg}
 			{:else}
-				<div style="padding:1.5rem;text-align:center;color:var(--text-2);font-size:0.8125rem;">
+				<div style="padding:1.5rem;text-align:center;color:var(--text-2);font-size:var(--fs-body);">
 					<p style="margin:0 0 0.5rem;">QR code unavailable</p>
 					<button class="btn btn-secondary btn-sm" type="button" onclick={load}>Generate QR</button>
 				</div>
@@ -142,7 +142,7 @@
 
 			<div>
 				<p class="field-label" style="margin:0 0 0.3rem;">Printing</p>
-				<ul style="margin:0;padding-left:1.1rem;display:grid;gap:0.25rem;color:var(--text-2);font-size:0.8125rem;line-height:1.5;">
+				<ul style="margin:0;padding-left:1.1rem;display:grid;gap:0.25rem;color:var(--text-2);font-size:var(--fs-body);line-height:1.5;">
 					<li>Print at least 4 cm across so a phone camera locks on.</li>
 					<li>Keep it on a light background; a dark panel behind the code will not scan.</li>
 					<li>Test it with your own phone before you print a batch.</li>
@@ -151,7 +151,7 @@
 
 			<div>
 				<p class="field-label" style="margin:0 0 0.3rem;">Text version</p>
-				<p style="margin:0;font-size:0.8125rem;color:var(--text-2);line-height:1.5;">
+				<p style="margin:0;font-size:var(--fs-body);color:var(--text-2);line-height:1.5;">
 					Some customers will type it in rather than scan it. The address is
 					<span style="font-family:var(--font-mono);word-break:break-all;">{effectiveHost || effectiveUrl || 'your store link'}</span>
 				</p>

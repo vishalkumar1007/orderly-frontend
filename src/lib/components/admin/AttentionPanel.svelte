@@ -251,13 +251,13 @@
 	}
 
 	.att-text strong {
-		font-size: 0.84rem;
+		font-size: var(--fs-body);
 		font-weight: 550;
 		line-height: 1.35;
 	}
 
 	.att-text span {
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 		line-height: 1.45;
 	}
@@ -270,13 +270,13 @@
 	}
 
 	.att-clear strong {
-		font-size: 0.86rem;
+		font-size: var(--fs-body);
 		font-weight: 550;
 	}
 
 	.att-clear p {
 		margin: 0.2rem 0 0;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		color: var(--text-3);
 		line-height: 1.5;
 		max-width: 34rem;
@@ -285,7 +285,7 @@
 	.att-more {
 		margin: 0;
 		padding: 0 1.25rem 1rem;
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 

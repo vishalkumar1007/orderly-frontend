@@ -127,7 +127,7 @@
 </script>
 
 <div class="sf-wrap" style="padding-top:16px;">
-	<h1 style="margin:8px 0 4px;font-size:1.375rem;font-weight:800;letter-spacing:-0.02em;">
+	<h1 style="margin:8px 0 4px;font-size:var(--fs-stat);font-weight:800;letter-spacing:-0.02em;">
 		Payment
 	</h1>
 

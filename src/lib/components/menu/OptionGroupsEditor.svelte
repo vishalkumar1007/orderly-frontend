@@ -271,12 +271,12 @@
 	}
 	.og-empty p {
 		margin: 0;
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 		color: var(--text-2);
 	}
 	.og-hint {
 		color: var(--text-3) !important;
-		font-size: 0.75rem !important;
+		font-size: var(--fs-code) !important;
 	}
 	.og-group {
 		padding: 0.75rem;
@@ -310,7 +310,7 @@
 		flex-wrap: wrap;
 		gap: 0.65rem 1rem;
 		align-items: center;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		color: var(--text-2);
 	}
 	.og-radio,
@@ -340,7 +340,7 @@
 		gap: 0.2rem;
 		flex-shrink: 0;
 		color: var(--text-3);
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 	}
 	.og-opt-price .input {
 		width: 4.5rem;

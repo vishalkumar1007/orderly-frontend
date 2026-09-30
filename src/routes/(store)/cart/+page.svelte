@@ -183,9 +183,9 @@
 				</div>
 			</div>
 			{#if quoting}
-				<p style="margin:10px 0 0;font-size:0.75rem;color:var(--sf-text-3);">Updating total…</p>
+				<p style="margin:10px 0 0;font-size:var(--fs-code);color:var(--sf-text-3);">Updating total…</p>
 			{:else if quoteError}
-				<p style="margin:10px 0 0;font-size:0.75rem;color:var(--sf-warn);">
+				<p style="margin:10px 0 0;font-size:var(--fs-code);color:var(--sf-warn);">
 					{quoteError} The final amount is confirmed when you place the order.
 				</p>
 			{/if}

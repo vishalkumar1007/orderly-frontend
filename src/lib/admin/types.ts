@@ -111,6 +111,24 @@ export type CreateTenantPayload = {
 	 * the wizard sends what it built rather than a translated copy.
 	 */
 	configuration?: TenantConfigurationPayload;
+	/** Required: the Super Admin confirms the platform's terms on the business's behalf. */
+	terms_accepted: boolean;
+	/**
+	 * Per-capability on/off choices for capability-driven business types
+	 * (Barber, Hotel, General). Only applied server-side where
+	 * business_type_capabilities marks the capability configurable for the
+	 * chosen type — everything else in this map is ignored, never a way to
+	 * force on a module the business type structurally does not have.
+	 */
+	capability_overrides?: Record<string, boolean>;
+};
+
+/** One row of business_type_capabilities, as the onboarding wizard reads it. */
+export type CapabilityRow = {
+	code: string;
+	label: string;
+	default_enabled: boolean;
+	configurable: boolean;
 };
 
 export type TenantConfigurationPayload = {

@@ -228,7 +228,7 @@
 				<tr>
 					<td>
 						<div class="cell-id">
-							<span class="cell-avatar" style="width:1.9rem;height:1.9rem;font-size:0.72rem;">
+							<span class="cell-avatar" style="width:1.9rem;height:1.9rem;font-size:var(--fs-meta);">
 								{initials(u.name || u.email)}
 							</span>
 							<span class="cell-id-txt">
@@ -339,7 +339,7 @@
 
 	.staff-lead {
 		margin: 0 0 0.45rem;
-		font-size: 0.9rem;
+		font-size: var(--fs-body);
 		line-height: 1.45;
 	}
 
@@ -347,7 +347,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.75rem;
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 		color: var(--text-2);
 	}
 

@@ -162,7 +162,7 @@
 <div class="sf-wrap" style="padding-top:16px;">
 	<a
 		href="/cart"
-		style="display:inline-flex;align-items:center;gap:4px;padding:8px 0;font-size:0.8125rem;font-weight:600;color:var(--sf-text-2);text-decoration:none;"
+		style="display:inline-flex;align-items:center;gap:4px;padding:8px 0;font-size:var(--fs-body);font-weight:600;color:var(--sf-text-2);text-decoration:none;"
 	>
 		<ArrowLeft size={16} strokeWidth={2.2} aria-hidden="true" />
 		Cart
@@ -176,7 +176,7 @@
 		</div>
 	{:else}
 		<form onsubmit={placeOrder} novalidate>
-			<h1 style="margin:10px 0 16px;font-size:1.375rem;font-weight:800;letter-spacing:-0.02em;">
+			<h1 style="margin:10px 0 16px;font-size:var(--fs-stat);font-weight:800;letter-spacing:-0.02em;">
 				Checkout
 			</h1>
 
@@ -204,7 +204,7 @@
 						<span style="min-width:0;">
 							{line.quantity} × {line.name}
 							{#if line.addons.length}
-								<span style="display:block;font-size:0.75rem;color:var(--sf-text-3);">
+								<span style="display:block;font-size:var(--fs-code);color:var(--sf-text-3);">
 									{line.addons.map((a) => a.name).join(', ')}
 								</span>
 							{/if}
@@ -325,10 +325,10 @@
 
 			{#if !signedIn && (config?.ordering?.customer_login_mode ?? 'optional') === 'optional'}
 				<div class="sf-panel" style="margin-top:18px;background:var(--sf-surface-2);">
-					<p style="margin:0 0 4px;font-size:0.875rem;font-weight:650;color:var(--sf-text);">
+					<p style="margin:0 0 4px;font-size:var(--fs-body);font-weight:650;color:var(--sf-text);">
 						Save your details for next time
 					</p>
-					<p style="margin:0;font-size:0.8125rem;color:var(--sf-text-2);line-height:1.45;">
+					<p style="margin:0;font-size:var(--fs-body);color:var(--sf-text-2);line-height:1.45;">
 						Sign in with your phone to get faster checkout and order history.
 					</p>
 					<div class="sf-btn-row" style="margin-top:12px;">
@@ -358,7 +358,7 @@
 			</button>
 
 			<p
-				style="display:flex;align-items:center;justify-content:center;gap:5px;margin:12px 0 0;font-size:0.75rem;color:var(--sf-text-3);text-align:center;line-height:1.4;"
+				style="display:flex;align-items:center;justify-content:center;gap:5px;margin:12px 0 0;font-size:var(--fs-code);color:var(--sf-text-3);text-align:center;line-height:1.4;"
 			>
 				<Lock size={13} strokeWidth={1.9} aria-hidden="true" />
 				Your details are used only for this order.

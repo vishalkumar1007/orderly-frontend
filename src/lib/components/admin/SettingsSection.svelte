@@ -112,7 +112,7 @@
 		gap: 0.5rem;
 		margin: 0;
 		font-family: var(--font-display);
-		font-size: 0.95rem;
+		font-size: var(--fs-title);
 		font-weight: 600;
 		letter-spacing: -0.015em;
 		color: var(--text);
@@ -132,7 +132,7 @@
 
 	.set-head p {
 		margin: 0.35rem 0 0;
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 		line-height: 1.55;
 		color: var(--text-3);
 		max-width: 40rem;
@@ -168,7 +168,7 @@
 
 	.set-state {
 		margin-right: auto;
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 

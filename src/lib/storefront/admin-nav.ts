@@ -97,6 +97,7 @@ export const STOREFRONT_SEGMENT_LABELS: Record<string, string> = {
 	login: 'Customer login',
 	'store-info': 'Business Profile',
 	hours: 'Operating Hours',
+	launch: 'Launch',
 	payments: 'Payments',
 	workflow: 'Order Workflow',
 	qr: 'QR & Share',

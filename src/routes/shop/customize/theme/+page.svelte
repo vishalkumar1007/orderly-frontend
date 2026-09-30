@@ -186,7 +186,7 @@
 					{#if hero !== 'none'}
 						<section class="sf-hero" data-style={hero}>
 							<div class="sf-hero-inner">
-								<h1 style="font-size:1.25rem;">{config.store.name}</h1>
+								<h1 style="font-size:var(--fs-h1);">{config.store.name}</h1>
 								{#if config.store.tagline}<p>{config.store.tagline}</p>{/if}
 							</div>
 						</section>
@@ -194,7 +194,7 @@
 
 					<div style="padding:12px;">
 						<div class="sf-section-head" style="padding:0;margin-bottom:8px;">
-							<h2 style="font-size:0.875rem;">Popular right now</h2>
+							<h2 style="font-size:var(--fs-body);">Popular right now</h2>
 						</div>
 						<nav class="sf-filter-bar" data-style={filterStyle} aria-label="Filters preview">
 							<span class="sf-filter-chip" data-active="true">All</span>
@@ -220,10 +220,10 @@
 						</div>
 
 						<div style="display:grid;gap:6px;margin-top:12px;">
-							<span class="sf-btn sf-btn-primary" style="min-height:40px;font-size:0.8125rem;">
+							<span class="sf-btn sf-btn-primary" style="min-height:40px;font-size:var(--fs-body);">
 								Place order · ₹360
 							</span>
-							<span class="sf-btn sf-btn-secondary" style="min-height:36px;font-size:0.75rem;">
+							<span class="sf-btn sf-btn-secondary" style="min-height:36px;font-size:var(--fs-code);">
 								Continue shopping
 							</span>
 						</div>
@@ -286,7 +286,7 @@
 						</span>
 						<input
 							class="input"
-							style="font-family:var(--font-mono);font-size:0.75rem;text-transform:lowercase;"
+							style="font-family:var(--font-mono);font-size:var(--fs-code);text-transform:lowercase;"
 							bind:value={primary}
 							maxlength={7}
 							spellcheck="false"
@@ -311,7 +311,7 @@
 						</span>
 						<input
 							class="input"
-							style="font-family:var(--font-mono);font-size:0.75rem;text-transform:lowercase;"
+							style="font-family:var(--font-mono);font-size:var(--fs-code);text-transform:lowercase;"
 							bind:value={secondary}
 							maxlength={7}
 							spellcheck="false"
@@ -336,7 +336,7 @@
 						</span>
 						<input
 							class="input"
-							style="font-family:var(--font-mono);font-size:0.75rem;text-transform:lowercase;"
+							style="font-family:var(--font-mono);font-size:var(--fs-code);text-transform:lowercase;"
 							bind:value={accent}
 							maxlength={7}
 							spellcheck="false"

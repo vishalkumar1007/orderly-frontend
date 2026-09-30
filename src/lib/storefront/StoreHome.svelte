@@ -156,7 +156,7 @@
 
 <!-- Announcement Banner -->
 {#if announcement && read(announcement, 'text')}
-	<div class="sf-announcement" data-tone={announceTone === 'info' ? undefined : announceTone}>
+	<div class="sf-announcement" data-tone={announceTone}>
 		<Sparkles size={16} strokeWidth={2.2} aria-hidden="true" />
 		<span>{read(announcement, 'text')}</span>
 	</div>

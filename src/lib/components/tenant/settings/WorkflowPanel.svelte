@@ -188,7 +188,7 @@
 		display: grid;
 		gap: 0.3rem;
 		color: var(--text-2);
-		font-size: 0.875rem;
+		font-size: var(--fs-body);
 		line-height: 1.5;
 	}
 

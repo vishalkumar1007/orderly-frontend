@@ -228,14 +228,14 @@
 
 	.ai-title {
 		margin: 0;
-		font-size: 1rem;
+		font-size: var(--fs-title);
 		font-weight: 700;
 		color: var(--text);
 	}
 
 	.ai-subtitle {
 		margin: 2px 0 0;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 
@@ -270,7 +270,7 @@
 	.ai-input {
 		flex: 1;
 		padding: 8px 12px;
-		font-size: 0.875rem;
+		font-size: var(--fs-body);
 		border: 1.5px solid var(--border);
 		border-radius: var(--radius-sm, 8px);
 		background: var(--surface);
@@ -288,7 +288,7 @@
 		align-items: center;
 		gap: 6px;
 		padding: 8px 14px;
-		font-size: 0.8125rem;
+		font-size: var(--fs-body);
 		font-weight: 700;
 		background: linear-gradient(135deg, #6366f1, #8b5cf6);
 		color: #ffffff;
@@ -310,7 +310,7 @@
 	}
 
 	.ai-suggestions-label {
-		font-size: 0.71875rem;
+		font-size: var(--fs-meta);
 		font-weight: 600;
 		color: var(--text-3);
 	}
@@ -322,7 +322,7 @@
 	}
 
 	.ai-chip {
-		font-size: 0.71875rem;
+		font-size: var(--fs-meta);
 		padding: 5px 10px;
 		border-radius: 999px;
 		border: 1px solid var(--border);
@@ -356,13 +356,13 @@
 	}
 
 	.ai-proposal-title {
-		font-size: 0.84375rem;
+		font-size: var(--fs-body);
 		font-weight: 700;
 		color: var(--text);
 	}
 
 	.ai-proposal-badge {
-		font-size: 0.6875rem;
+		font-size: var(--fs-label);
 		font-weight: 700;
 		background: #6366f1;
 		color: #ffffff;
@@ -372,7 +372,7 @@
 
 	.ai-proposal-summary {
 		margin: 0;
-		font-size: 0.78125rem;
+		font-size: var(--fs-tab);
 		color: var(--text-2);
 		line-height: 1.4;
 	}
@@ -388,7 +388,7 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 	}
 
 	.ai-change-field {

@@ -41,7 +41,7 @@
 </script>
 
 {#if plans.length === 0}
-	<p class="muted" style="font-size:0.85rem;margin:0;">
+	<p class="muted" style="font-size:var(--fs-body);margin:0;">
 		No plan is on offer. Create or activate one under
 		<a href="/superadmin/plans" style="color:var(--accent-dark);">Plans &amp; subscriptions</a>.
 	</p>
@@ -151,7 +151,7 @@
 	}
 
 	.plan-option-name {
-		font-size: 0.9rem;
+		font-size: var(--fs-body);
 		font-weight: 650;
 		letter-spacing: -0.01em;
 	}
@@ -164,7 +164,7 @@
 		border-radius: 4px;
 		background: var(--surface-3);
 		color: var(--text-3);
-		font-size: 0.62rem;
+		font-size: var(--fs-micro);
 		font-weight: 650;
 		letter-spacing: 0.04em;
 		text-transform: uppercase;
@@ -190,20 +190,20 @@
 
 	.plan-amount {
 		font-family: var(--font-display);
-		font-size: 1.3rem;
+		font-size: var(--fs-h1);
 		font-weight: 700;
 		letter-spacing: -0.02em;
 		line-height: 1.1;
 	}
 
 	.plan-per {
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 
 	.plan-desc {
 		margin: 0;
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		line-height: 1.45;
 		color: var(--text-3);
 	}
@@ -222,7 +222,7 @@
 		border-radius: 4px;
 		background: var(--surface-3);
 		color: var(--text-2);
-		font-size: 0.68rem;
+		font-size: var(--fs-label);
 		font-weight: 550;
 	}
 
@@ -237,7 +237,7 @@
 	.plan-features li {
 		position: relative;
 		padding-left: 0.8rem;
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		line-height: 1.4;
 		color: var(--text-2);
 	}

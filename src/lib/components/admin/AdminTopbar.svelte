@@ -30,8 +30,7 @@
 					{/if}
 				{/each}
 			</nav>
-		{/if}
-		{#if title?.trim()}
+		{:else if title?.trim()}
 			<h2 class="topbar-title">{title}</h2>
 		{/if}
 	</div>

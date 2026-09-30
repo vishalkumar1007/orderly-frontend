@@ -194,7 +194,7 @@
 	}
 	.muted {
 		color: var(--text-3);
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 	}
 	.price {
 		font-weight: 600;

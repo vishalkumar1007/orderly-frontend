@@ -116,14 +116,14 @@
 	}
 
 	.panel-h {
-		font-size: 0.9rem;
+		font-size: var(--fs-body);
 		font-weight: 600;
 		color: var(--text);
 	}
 
 	.sub {
 		margin: 0.2rem 0 0;
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 		font-variant-numeric: tabular-nums;
 	}
@@ -142,7 +142,7 @@
 		border-radius: calc(var(--radius-sm) - 1px);
 		background: transparent;
 		color: var(--text-3);
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 		font-weight: 500;
 		cursor: pointer;
 	}
@@ -181,14 +181,14 @@
 		align-items: center;
 		justify-content: center;
 		height: 230px;
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 		color: var(--text-3);
 	}
 
 	.foot {
 		margin: 0;
 		padding: 0.1rem 1rem 0.85rem;
-		font-size: 0.74rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 </style>

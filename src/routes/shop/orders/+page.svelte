@@ -183,7 +183,7 @@
 
 	.selling-lead {
 		margin: 0 0 0.55rem;
-		font-size: 0.85rem;
+		font-size: var(--fs-body);
 		line-height: 1.45;
 	}
 
@@ -191,7 +191,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.45rem 0.75rem;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 	}
 
 	.selling-stat strong {
@@ -215,14 +215,14 @@
 
 	.selling-empty h2 {
 		font-family: var(--font-display);
-		font-size: 1.05rem;
+		font-size: var(--fs-title);
 		font-weight: 650;
 		margin: 0;
 	}
 
 	.selling-empty p {
 		margin: 0;
-		font-size: 0.85rem;
+		font-size: var(--fs-body);
 		max-width: 28rem;
 	}
 
@@ -263,7 +263,7 @@
 	.osh-col-head h2 {
 		margin: 0;
 		font-family: var(--font-display);
-		font-size: 0.95rem;
+		font-size: var(--fs-title);
 		font-weight: 650;
 		letter-spacing: -0.01em;
 	}
@@ -272,7 +272,7 @@
 		margin: 0;
 		padding: 1.25rem 0.85rem;
 		text-align: center;
-		font-size: 0.82rem;
+		font-size: var(--fs-body);
 		color: var(--text-3);
 		background: var(--surface);
 		border: 1px dashed var(--border);

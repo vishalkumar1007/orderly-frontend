@@ -125,7 +125,7 @@
 
 <div class="sf-wrap" style="padding-top:16px;">
 	<div style="max-width:420px;margin:8px auto 0;text-align:center;">
-		<h1 style="margin:0 0 6px;font-size:1.375rem;font-weight:800;letter-spacing:-0.02em;">
+		<h1 style="margin:0 0 6px;font-size:var(--fs-stat);font-weight:800;letter-spacing:-0.02em;">
 			{sent ? 'Enter the code' : 'Confirm your number'}
 		</h1>
 		<p class="sf-otp-note" style="margin-bottom:20px;">

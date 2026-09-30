@@ -129,21 +129,21 @@
 	.hero h2 {
 		margin: 0;
 		font-family: var(--font-display);
-		font-size: 1.05rem;
+		font-size: var(--fs-title);
 		font-weight: 600;
 		letter-spacing: -0.02em;
 	}
 
 	.hero p {
 		margin: 0.2rem 0 0;
-		font-size: 0.79rem;
+		font-size: var(--fs-tab);
 		line-height: 1.5;
 		color: var(--text-3);
 	}
 
 	.foot-note {
 		margin: 0.85rem 0 0;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		color: var(--text-3);
 		line-height: 1.5;
 	}

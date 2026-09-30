@@ -81,7 +81,7 @@
 		border-radius: 999px;
 		background: var(--surface);
 		color: var(--text-2);
-		font-size: 0.8rem;
+		font-size: var(--fs-body);
 		font-weight: 550;
 		font-family: inherit;
 		white-space: nowrap;
@@ -111,7 +111,7 @@
 		border-radius: 999px;
 		background: var(--surface-3);
 		color: var(--text-3);
-		font-size: 0.68rem;
+		font-size: var(--fs-label);
 		font-weight: 650;
 	}
 	.cat-tab.active .cat-tab-count {

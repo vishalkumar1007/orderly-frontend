@@ -296,12 +296,12 @@
 	}
 
 	.prov-title strong {
-		font-size: 0.92rem;
+		font-size: var(--fs-title);
 		font-weight: 600;
 	}
 
 	.prov-title span {
-		font-size: 0.73rem;
+		font-size: var(--fs-meta);
 		color: var(--text-3);
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -310,7 +310,7 @@
 
 	.prov-purpose {
 		margin: 0;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		line-height: 1.5;
 		color: var(--text-2);
 	}
@@ -326,7 +326,7 @@
 		align-items: baseline;
 		justify-content: space-between;
 		gap: 0.6rem;
-		font-size: 0.76rem;
+		font-size: var(--fs-code);
 	}
 
 	.prov-facts dt {
@@ -344,7 +344,7 @@
 		border-radius: var(--radius-sm);
 		background: var(--danger-bg);
 		color: var(--danger);
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		font-family: var(--font-mono);
 		word-break: break-word;
 	}
@@ -354,7 +354,7 @@
 		align-items: center;
 		gap: 0.3rem;
 		margin-top: auto;
-		font-size: 0.78rem;
+		font-size: var(--fs-tab);
 		font-weight: 600;
 		color: var(--accent-dark);
 	}
@@ -383,13 +383,13 @@
 	}
 
 	.un-row strong {
-		font-size: 0.86rem;
+		font-size: var(--fs-body);
 		font-weight: 550;
 	}
 
 	.un-row p {
 		margin: 0.15rem 0 0;
-		font-size: 0.77rem;
+		font-size: var(--fs-tab);
 		line-height: 1.5;
 		color: var(--text-3);
 	}

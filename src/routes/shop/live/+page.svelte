@@ -295,18 +295,18 @@
 
 	.live-activity-brand strong {
 		display: block;
-		font-size: 1.05rem;
+		font-size: var(--fs-title);
 		font-weight: 700;
 	}
 
 	.live-activity-fs .live-activity-brand strong {
-		font-size: 1.5rem;
+		font-size: var(--fs-stat);
 		letter-spacing: 0.02em;
 	}
 
 	.live-activity-brand p {
 		margin: 0.2rem 0 0;
-		font-size: 0.85rem;
+		font-size: var(--fs-body);
 	}
 
 	.live-activity-board {
@@ -335,7 +335,7 @@
 
 	.live-col h2 {
 		margin: 0 0 0.85rem;
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		font-weight: 750;
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
@@ -343,7 +343,7 @@
 	}
 
 	.live-activity-fs .live-col h2 {
-		font-size: 1rem;
+		font-size: var(--fs-title);
 		color: color-mix(in srgb, #f4f6fb 60%, transparent);
 	}
 
@@ -356,7 +356,7 @@
 	}
 
 	.live-ticket {
-		font-size: 1.35rem;
+		font-size: var(--fs-h1);
 		font-weight: 750;
 		padding: 0.65rem 0.85rem;
 		border-radius: 10px;
@@ -380,18 +380,18 @@
 
 	.live-empty {
 		margin: 0;
-		font-size: 0.9rem;
+		font-size: var(--fs-body);
 		color: var(--muted, var(--text-2));
 	}
 
 	.live-activity-fs .live-empty {
-		font-size: 1.15rem;
+		font-size: var(--fs-h1);
 		color: color-mix(in srgb, #f4f6fb 45%, transparent);
 	}
 
 	.live-hint {
 		margin: 0;
-		font-size: 0.85rem;
+		font-size: var(--fs-body);
 	}
 
 	.live-activity-actions {
@@ -434,7 +434,7 @@
 	}
 
 	.live-ticket-meta {
-		font-size: 0.75rem;
+		font-size: var(--fs-code);
 		font-weight: 550;
 		color: var(--text-3);
 		white-space: nowrap;
@@ -446,7 +446,7 @@
 	}
 
 	.live-activity-board[data-size='large'] .live-ticket {
-		font-size: 1.9rem;
+		font-size: var(--fs-display);
 		padding: 0.9rem 1.1rem;
 	}
 
@@ -473,19 +473,19 @@
 	}
 
 	.live-paused strong {
-		font-size: 1.1rem;
+		font-size: var(--fs-title);
 		font-weight: 700;
 		color: var(--text);
 	}
 
 	.live-activity-fs .live-paused strong {
 		color: #f4f6fb;
-		font-size: 1.6rem;
+		font-size: var(--fs-stat);
 	}
 
 	.live-paused p {
 		margin: 0;
-		font-size: 0.85rem;
+		font-size: var(--fs-body);
 		max-width: 26rem;
 	}
 

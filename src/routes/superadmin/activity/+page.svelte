@@ -325,14 +325,14 @@
 				<tr>
 					<td>
 						<strong style="font-weight:550;">{log.action.replaceAll('_', ' ')}</strong>
-						<span class="muted" style="display:block;font-size:0.74rem;">
+						<span class="muted" style="display:block;font-size:var(--fs-code);">
 							{log.resource}{log.resource_id ? ` · ${log.resource_id}` : ''}
 						</span>
 					</td>
 					<td>
 						{log.actor || 'System'}
 						{#if log.actor_email}
-							<span class="muted" style="display:block;font-size:0.74rem;">{log.actor_email}</span>
+							<span class="muted" style="display:block;font-size:var(--fs-code);">{log.actor_email}</span>
 						{/if}
 					</td>
 					<td class="col-sm" style="color:var(--text-2);">{log.tenant || '—'}</td>
@@ -400,13 +400,13 @@
 
 	.sec-head h2 {
 		margin: 0;
-		font-size: 0.95rem;
+		font-size: var(--fs-title);
 		font-weight: 600;
 	}
 
 	.sec-head p {
 		margin: 0.25rem 0 0;
-		font-size: 0.79rem;
+		font-size: var(--fs-tab);
 		line-height: 1.5;
 		color: var(--text-3);
 		max-width: 48rem;
@@ -430,7 +430,7 @@
 	}
 
 	.day-head span:first-child {
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		font-weight: 650;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
@@ -438,7 +438,7 @@
 	}
 
 	.day-count {
-		font-size: 0.72rem;
+		font-size: var(--fs-meta);
 		color: var(--text-3);
 	}
 
@@ -463,7 +463,7 @@
 	.ev-avatar {
 		width: 1.75rem;
 		height: 1.75rem;
-		font-size: 0.65rem;
+		font-size: var(--fs-micro);
 		color: #fff;
 		border-radius: 999px;
 		flex-shrink: 0;
@@ -477,7 +477,7 @@
 
 	.ev-line {
 		margin: 0;
-		font-size: 0.83rem;
+		font-size: var(--fs-body);
 		line-height: 1.45;
 		color: var(--text-2);
 	}
@@ -498,7 +498,7 @@
 		align-items: center;
 		gap: 0.35rem;
 		margin: 0.15rem 0 0;
-		font-size: 0.73rem;
+		font-size: var(--fs-meta);
 		color: var(--text-3);
 	}
 
