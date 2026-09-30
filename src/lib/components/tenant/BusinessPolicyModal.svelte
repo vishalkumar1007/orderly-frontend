@@ -37,7 +37,8 @@
 
 	$effect(() => {
 		if (open && tenantSlug) {
-			currentSignature = policyStore.getSignature(tenantSlug);
+			const next = policyStore.getSignature(tenantSlug);
+			currentSignature = next;
 			if (!signerName && userName) {
 				signerName = userName;
 			}

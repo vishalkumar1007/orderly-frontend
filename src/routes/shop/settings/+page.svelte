@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import Rocket from '@lucide/svelte/icons/rocket';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
 	import { me, type User } from '$lib/auth';
 	import type { ConfigService } from '$lib/admin/configTypes';
@@ -181,13 +180,6 @@
 				</button>
 			{/each}
 		{/each}
-
-		<!-- Not a section: a place to go, not a form to fill in. It keeps its
-		     own screen and stays findable from here. -->
-		<a class="set-rail-link set-rail-out" href="/shop/storefront/launch">
-			<Rocket size={15} strokeWidth={1.9} />
-			Launch checklist
-		</a>
 	</nav>
 
 	<div class="set-main">
@@ -308,17 +300,6 @@
 		background: var(--accent-soft);
 		color: var(--accent-dark);
 		font-weight: 600;
-	}
-
-	.set-rail-out {
-		margin-top: 0.6rem;
-		color: var(--text-3);
-	}
-
-	@media (max-width: 999px) {
-		.set-rail-out {
-			margin-top: 0;
-		}
 	}
 
 	.set-main {

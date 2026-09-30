@@ -107,20 +107,17 @@
 	let policySigned = $state(false);
 	let showPolicyModal = $state(false);
 
-	$effect(() => {
-		if (tenantSlug) {
-			policySignature = policyStore.getSignature(tenantSlug);
-			policySigned = !!policySignature?.signed;
-		}
-	});
+	function syncPolicyFromStore() {
+		const slug = tenantSlug;
+		if (!slug) return;
+		const next = policyStore.getSignature(slug);
+		policySignature = next;
+		policySigned = !!next?.signed;
+	}
 
 	onMount(() => {
-		return policyStore.subscribe(() => {
-			if (tenantSlug) {
-				policySignature = policyStore.getSignature(tenantSlug);
-				policySigned = !!policySignature?.signed;
-			}
-		});
+		syncPolicyFromStore();
+		return policyStore.subscribe(() => syncPolicyFromStore());
 	});
 
 	const CHECKLIST: { key: SetupStepKey | 'policy'; label: string; href: string }[] = [

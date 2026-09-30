@@ -44,7 +44,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
 		icon: Store,
 		group: 'Business',
 		permission: 'organization',
-		lede: 'Where customers collect, whether you are taking orders, and the figures applied to every bill.'
+		lede: 'Pickup address and phone customers see when collecting an order.'
 	},
 	{
 		id: 'workflow',

@@ -135,10 +135,11 @@ async function withStorefrontFallback<T>(primary: () => Promise<T>, fallback: ()
 }
 
 export const storefrontAdminApi = {
+	/** Prefer the stable storefront path; customize is an alias for older clients. */
 	get: () =>
 		withStorefrontFallback(
-			() => api<AdminStorefront>('/api/v1/tenant/customize'),
-			() => api<AdminStorefront>('/api/v1/tenant/storefront')
+			() => api<AdminStorefront>('/api/v1/tenant/storefront'),
+			() => api<AdminStorefront>('/api/v1/tenant/customize')
 		),
 
 	saveIdentity: (payload: {

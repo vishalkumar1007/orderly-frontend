@@ -46,32 +46,21 @@ export function invalidateStorefrontAdmin(): void {
  * Load the storefront admin document.
  * - Cache hit returns immediately unless `force`.
  * - One shared in-flight request for non-force callers.
- * - Hard timeout so navigation UI is never blocked forever.
+ * - Relies on the shared api client timeout (default 8s) — no shorter
+ *   outer race, so a brief refresh / proxy blip does not false-alarm.
  */
 export function loadStorefrontAdmin(force = false): Promise<AdminStorefront> {
 	if (!force && cached && fromServer) return Promise.resolve(cached);
 	if (!force && inflight) return inflight;
 
-	const TIMEOUT_MS = 3_500;
-	let timer: ReturnType<typeof setTimeout> | undefined;
-
-	const request = storefrontAdminApi.get();
-	const timeout = new Promise<never>((_, reject) => {
-		timer = setTimeout(() => {
-			reject(
-				new Error('Storefront is taking too long to load. Check that the API is running and try again.')
-			);
-		}, TIMEOUT_MS);
-	});
-
-	const p = Promise.race([request, timeout])
+	const p = storefrontAdminApi
+		.get()
 		.then((config) => {
 			cached = config;
 			fromServer = true;
 			return config;
 		})
 		.finally(() => {
-			if (timer) clearTimeout(timer);
 			if (inflight === p) inflight = null;
 		});
 

@@ -52,9 +52,18 @@ export function tenantApiBase(slug: string): string {
  */
 export function apiBaseURL(hostSlug?: string | null): string {
 	const configured = configuredApiOrigin();
+	// SSR / explicit slug: rewrite origin so Host carries the tenant.
 	if (hostSlug) return tenantApiBase(hostSlug);
 
 	if (typeof window === 'undefined') return configured;
+
+	// Browser local dev: always use the Vite proxy (`/api` → :8080). The proxy
+	// keeps the page Host (e.g. momo-magic.localhost:5173) so MatchHostTenant
+	// still works. Hitting `{slug}.localhost:8080` directly is much slower —
+	// extra DNS, CORS preflight, and flaky *.localhost resolution on macOS.
+	if (import.meta.env.DEV) {
+		return '';
+	}
 
 	const info = parseHost(window.location.hostname, BASE_DOMAIN());
 	if (info.kind === 'tenant' && info.slug) {
@@ -65,10 +74,6 @@ export function apiBaseURL(hostSlug?: string | null): string {
 		} catch {
 			return `http://${info.slug}.${BASE_DOMAIN()}:8080`;
 		}
-	}
-	// Super Admin + platform pages: avoid api.localhost DNS/CORS issues in local dev.
-	if (import.meta.env.DEV) {
-		return '';
 	}
 	return configured;
 }
@@ -180,18 +185,27 @@ export function clearTokens() {
 async function refreshAccess(): Promise<boolean> {
 	const refresh = getRefreshToken();
 	if (!refresh) return false;
-	const res = await fetch(`${apiBaseURL()}/api/v1/auth/refresh`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ refresh_token: refresh })
-	});
-	if (!res.ok) {
-		clearTokens();
+	const controller = new AbortController();
+	const timer = setTimeout(() => controller.abort(), 5_000);
+	try {
+		const res = await fetch(`${apiBaseURL()}/api/v1/auth/refresh`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ refresh_token: refresh }),
+			signal: controller.signal
+		});
+		if (!res.ok) {
+			clearTokens();
+			return false;
+		}
+		const data = await res.json();
+		setTokens(data.tokens);
+		return true;
+	} catch {
 		return false;
+	} finally {
+		clearTimeout(timer);
 	}
-	const data = await res.json();
-	setTokens(data.tokens);
-	return true;
 }
 
 export async function api<T>(

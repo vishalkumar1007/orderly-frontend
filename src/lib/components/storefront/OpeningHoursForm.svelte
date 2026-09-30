@@ -33,16 +33,27 @@
 	let alwaysOpen = $state(seed(() => ctx.config.hours.always_open));
 	let timezone = $state(seed(() => ctx.config.hours.timezone || 'Asia/Kolkata'));
 	let schedule = $state<Record<string, string[]>>(
-		seed(() =>
-			Object.fromEntries(
-				Object.entries(ctx.config.hours.schedule ?? {}).map(([day, shifts]) => [
-					day,
-					[...(shifts as string[])]
-				])
-			)
-		)
+		seed(() => flattenSchedule(ctx.config.hours.schedule))
 	);
 	let saving = $state(false);
+
+	/** API returns nested [[open,close],…] or legacy flat [open,close,…]; editor stores flat. */
+	function flattenSchedule(raw: Record<string, unknown> | undefined | null): Record<string, string[]> {
+		const out: Record<string, string[]> = {};
+		for (const [day, shifts] of Object.entries(raw ?? {})) {
+			if (!Array.isArray(shifts)) continue;
+			const flat: string[] = [];
+			for (const entry of shifts) {
+				if (Array.isArray(entry) && entry.length >= 2) {
+					flat.push(String(entry[0]), String(entry[1]));
+				} else if (typeof entry === 'string') {
+					flat.push(entry);
+				}
+			}
+			out[day] = flat;
+		}
+		return out;
+	}
 
 	function shiftsFor(day: string): string[][] {
 		const rows = schedule[day] ?? [];
