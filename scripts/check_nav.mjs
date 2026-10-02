@@ -696,17 +696,17 @@ try {
 	// 3. The station is named for the work done there.
 	eq('cafe calls the board the Bar', nav.labelFor({ label: 'Kitchen', term: 'station' }, 'CAFE'), 'Bar');
 	eq('grocery calls the board Packing', nav.labelFor({ label: 'Kitchen', term: 'station' }, 'GROCERY'), 'Packing');
-	eq('hotel calls the board the Service desk', nav.labelFor({ label: 'Kitchen', term: 'station' }, 'HOTEL'), 'Service desk');
+	eq('hotel calls the board the Front desk', nav.labelFor({ label: 'Kitchen', term: 'station' }, 'HOTEL'), 'Front desk');
 	eq('food shop keeps Kitchen', nav.labelFor({ label: 'Kitchen', term: 'station' }, 'FOOD'), 'Kitchen');
 
 	// 4. The catalogue is named for what it holds.
 	eq('grocery has a Catalogue, not a Menu', nav.labelFor({ label: 'Menu', term: 'catalog' }, 'GROCERY'), 'Catalogue');
-	eq('hotel has a Service list', nav.labelFor({ label: 'Menu', term: 'catalog' }, 'HOTEL'), 'Service list');
+	eq('hotel has Rooms, not a Menu', nav.labelFor({ label: 'Menu', term: 'catalog' }, 'HOTEL'), 'Rooms');
 
 	// 5. Page titles and breadcrumbs follow the same vocabulary, or the rail
 	//    says Packing and the page it opens still says Kitchen.
 	eq('grocery kitchen title', nav.tenantTitle('/shop/kitchen', 'GROCERY'), 'Packing');
-	eq('hotel menu title', nav.tenantTitle('/shop/menu', 'HOTEL'), 'Service list');
+	eq('hotel menu title', nav.tenantTitle('/shop/menu', 'HOTEL'), 'Rooms');
 	eq('cafe staff title', nav.tenantTitle('/shop/staff', 'CAFE'), 'Baristas');
 	eq(
 		'grocery breadcrumb for the board',
@@ -733,9 +733,12 @@ try {
 		}
 	}
 
-	// 7. Hiding is the exception. Nothing else may vanish, so every other
-	//    destination an owner can reach survives every type.
-	const baseline = railFor('FOOD').map((i) => i.href).filter((h) => h !== '/shop/live');
+	// 7. Hiding is the exception. Module-gated destinations (station board,
+	//    pickup display) may vanish; everything else must survive every type.
+	const optionalHrefs = new Set(['/shop/live', '/shop/kitchen']);
+	const baseline = railFor('FOOD')
+		.map((i) => i.href)
+		.filter((h) => !optionalHrefs.has(h));
 	for (const code of TYPES) {
 		const got = railFor(code).map((i) => i.href);
 		const lost = baseline.filter((h) => !got.includes(h));

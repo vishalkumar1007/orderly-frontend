@@ -4,9 +4,11 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig, type Plugin, type UserConfig } from 'vite';
 import net from 'node:net';
 
+const DEV_PORT = 5173;
+const DEV_PORT_MAX = 5199;
+
 function isPortBusy(port: number): Promise<boolean> {
 	return new Promise((resolve) => {
-		// Check active socket connection on loopback (IPv4 & IPv6)
 		const checkConnect = (host: string) =>
 			new Promise<boolean>((res) => {
 				const socket = new net.Socket();
@@ -26,13 +28,13 @@ function isPortBusy(port: number): Promise<boolean> {
 				socket.connect(port, host);
 			});
 
-		// Check if any host interface fails to bind
 		const checkListen = (host: string) =>
 			new Promise<boolean>((res) => {
 				const server = net.createServer();
 				server.unref();
-				server.once('error', (err: any) => {
-					res(err.code === 'EADDRINUSE' || err.code === 'EACCES');
+				server.once('error', (err: NodeJS.ErrnoException) => {
+					// Only a real in-use port counts; EACCES/other bind errors are not "busy".
+					res(err.code === 'EADDRINUSE');
 				});
 				server.once('listening', () => {
 					server.close(() => res(false));
@@ -40,7 +42,7 @@ function isPortBusy(port: number): Promise<boolean> {
 				try {
 					server.listen(port, host);
 				} catch {
-					res(true);
+					res(false);
 				}
 			});
 
@@ -62,7 +64,7 @@ function portNotifierPlugin(isBusy: boolean, finalPort: number): Plugin {
 			const origPrintUrls = server.printUrls;
 			server.printUrls = () => {
 				if (isBusy) {
-					console.log(`\n  \x1b[33m➜  Port 5173 is busy, running on port ${finalPort}\x1b[0m`);
+					console.log(`\n  \x1b[33m➜  Port ${DEV_PORT} is busy, running on port ${finalPort}\x1b[0m`);
 				}
 				origPrintUrls.call(server);
 				console.log(`  \x1b[36m➜\x1b[0m  \x1b[1mFinal port:\x1b[0m \x1b[32m${finalPort}\x1b[0m\n`);
@@ -72,17 +74,27 @@ function portNotifierPlugin(isBusy: boolean, finalPort: number): Plugin {
 }
 
 export default defineConfig(async ({ command }): Promise<UserConfig> => {
-	let finalPort = 5173;
+	let finalPort = DEV_PORT;
 	let isBusy = false;
 
-	if (command === 'serve') {
-		isBusy = await isPortBusy(5173);
+	// Only probe ports for local `vite dev`. svelte-check/sync can load this
+	// config with command=serve; CI runners often make bind checks look "busy".
+	const shouldProbePort =
+		command === 'serve' && !process.env.CI && process.env.npm_lifecycle_event === 'dev';
+
+	if (shouldProbePort) {
+		isBusy = await isPortBusy(DEV_PORT);
 		if (isBusy) {
-			finalPort = 5174;
-			while (await isPortBusy(finalPort)) {
+			finalPort = DEV_PORT + 1;
+			while (finalPort <= DEV_PORT_MAX && (await isPortBusy(finalPort))) {
 				finalPort++;
 			}
-			console.log(`\n\x1b[33m➜  Port 5173 is busy, running on port ${finalPort}\x1b[0m`);
+			if (finalPort > DEV_PORT_MAX) {
+				finalPort = DEV_PORT;
+				isBusy = false;
+			} else {
+				console.log(`\n\x1b[33m➜  Port ${DEV_PORT} is busy, running on port ${finalPort}\x1b[0m`);
+			}
 		}
 		console.log(`\x1b[36m➜\x1b[0m  \x1b[1mFinal port:\x1b[0m \x1b[32m${finalPort}\x1b[0m\n`);
 	}
@@ -130,4 +142,3 @@ export default defineConfig(async ({ command }): Promise<UserConfig> => {
 		}
 	};
 });
-

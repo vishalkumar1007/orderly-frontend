@@ -26,11 +26,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Typecheck
-        run: npm run check
-
-      - name: Navigation check
-        run: npm run check:nav
+      - name: Run checks
+        run: npm run check:ci
 
   build:
     name: Build
