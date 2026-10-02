@@ -81,10 +81,10 @@ gzip → Actions artifact → SCP → `docker load`.
 
 | Kind | Value |
 |------|--------|
-| Image | `fs-A1-d3e4-x7:<github-sha>` |
+| Image | `fs-a1-d3e4-x7:<github-sha>` (lowercase; Docker requirement) |
 | Container | `fs-A1-d3e4-x7` |
-| Archive | `fs-A1-d3e4-x7-<sha>.tar.gz` |
-| Artifact | `fs-A1-d3e4-x7-<sha>` |
+| Archive | `fs-a1-d3e4-x7-<sha>.tar.gz` |
+| Artifact | `fs-a1-d3e4-x7-<sha>` |
 | Network | `fs-A1-d3e4-n2` |
 | Env file | `/opt/fs-A1-d3e4/config/x7.env` |
 | Images dir | `/opt/fs-A1-d3e4/x7/images/` |
@@ -106,7 +106,7 @@ Frontend CI must never create, replace, stop, or remove PostgreSQL.
 - No automatic rollback, rollback job, rollback script, or restore-on-failure.
 - If deployment fails, the workflow fails; unrelated resources stay untouched.
 - The target container is stopped/replaced only after its configured image
-  identity is verified to start with `fs-A1-d3e4-x7:`.
+  identity is verified to start with `fs-a1-d3e4-x7:`.
 - Post-deploy check: target container is running (`docker ps`) only.
 
 ## Server layout (shared with Backend)
@@ -128,7 +128,7 @@ docker run -d \
   --restart unless-stopped \
   --network fs-A1-d3e4-n2 \
   --env-file /opt/fs-A1-d3e4/config/x7.env \
-  fs-A1-d3e4-x7:<sha>
+  fs-a1-d3e4-x7:<sha>
 ```
 
 ## `x7.env` keys (from application)
