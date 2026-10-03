@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { env } from '$env/dynamic/public';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 	import Eye from '@lucide/svelte/icons/eye';
 	import EyeOff from '@lucide/svelte/icons/eye-off';
@@ -21,6 +22,7 @@
 
 	const hostKind = $derived($page.data.hostKind as 'admin' | 'tenant' | 'unknown');
 	const tenantSlug = $derived(($page.data.tenantSlug as string | null) ?? null);
+	const baseDomain = $derived(env.PUBLIC_BASE_DOMAIN || 'localhost');
 
 	/**
 	 * The shop's own identity, loaded server-side.
@@ -145,7 +147,7 @@
 		{#if hostKind === 'unknown'}
 			<p class="osh-login-note">
 				Open your shop's own address to sign in — for example
-				<code>{'{shop}'}.localhost</code>. Platform admins use
+				<code>{'{shop}'}.{baseDomain}</code>. Platform admins use
 				<a href="/superadmin/login">/superadmin/login</a>.
 			</p>
 		{/if}

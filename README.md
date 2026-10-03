@@ -56,6 +56,8 @@ template still works: it falls back to neutral defaults rather than breaking a s
 4. Open the invite link on `{slug}.localhost` → set password.
 5. Sign in at `{slug}.localhost/login` → `/shop`.
 
-Set `PUBLIC_API_URL=http://api.localhost:8080` (or `http://localhost:8080`).
+Leave `PUBLIC_API_URL` empty to use the Vite `/api` proxy, or set
+`PUBLIC_API_URL=http://api.localhost:8080` so platform calls go to
+`api.localhost:8080` and shop calls go to `{slug}.api.localhost:8080`.
 
 Modern browsers resolve `*.localhost` to 127.0.0.1 automatically.

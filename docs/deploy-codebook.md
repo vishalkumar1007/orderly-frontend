@@ -133,11 +133,11 @@ docker run -d \
 
 ## `x7.env` keys (from application)
 
-Runtime public env (SvelteKit `$env/dynamic/public`):
+Runtime env (SvelteKit `$env/dynamic/public`):
 
 ```env
-# Reach API on the private Docker network (no host port on k9).
-PUBLIC_API_URL=http://fs-A1-d3e4-k9:8080
+# Public platform API origin. Shop pages rewrite this to https://{slug}.api.{base}.
+PUBLIC_API_URL=https://api.orderly.qd.je
 PUBLIC_BASE_DOMAIN=orderly.qd.je
 HOST=0.0.0.0
 PORT=3000
@@ -146,8 +146,13 @@ NODE_ENV=production
 
 `HOST`/`PORT` are also set in the Dockerfile; repeating them in `x7.env` is fine.
 
-Browser clients eventually need a public API URL via reverse proxy — that comes
-later. Until then, SSR on the same Docker network can call `fs-A1-d3e4-k9:8080`.
+Browser API routing:
+
+- Superadmin on `orderly.qd.je` / `admin.orderly.qd.je` → `https://api.orderly.qd.je`
+- Shop on `{slug}.orderly.qd.je` → `https://{slug}.api.orderly.qd.je`
+
+Caddy/DNS must route `api.orderly.qd.je` and `*.api.orderly.qd.je` to the API
+container (k9). Frontend hosts stay on x7.
 
 ## GitHub secrets
 
@@ -170,7 +175,7 @@ mkdir -p /opt/fs-A1-d3e4/x7/images
 
 # Create x7.env (owned by fs-A1-d3e4-u4)
 cat > /opt/fs-A1-d3e4/config/x7.env <<'EOF'
-PUBLIC_API_URL=http://fs-A1-d3e4-k9:8080
+PUBLIC_API_URL=https://api.orderly.qd.je
 PUBLIC_BASE_DOMAIN=orderly.qd.je
 HOST=0.0.0.0
 PORT=3000

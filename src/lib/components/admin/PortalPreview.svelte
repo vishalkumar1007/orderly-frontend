@@ -18,12 +18,14 @@
 	import IconSparkles from '@tabler/icons-svelte/icons/sparkles';
 	import IconToolsKitchen from '@tabler/icons-svelte/icons/tools-kitchen';
 	import IconUsers from '@tabler/icons-svelte/icons/users';
+	import { isLocalBaseDomain } from '$lib/host';
 
 	let {
 		template,
 		businessName = '',
 		slug = '',
 		baseDomain = 'localhost',
+		frontendPort = '5173',
 		capabilityLabels = [],
 		primary = '#5b4bdb',
 		secondary = '#8b5cf6',
@@ -36,6 +38,8 @@
 		businessName?: string;
 		slug?: string;
 		baseDomain?: string;
+		/** Empty string omits the port (production). */
+		frontendPort?: string;
 		capabilityLabels?: { code: string; label: string }[];
 		primary?: string;
 		secondary?: string;
@@ -137,6 +141,15 @@
 
 	const initial = $derived((businessName.trim().charAt(0) || template.label.charAt(0)).toUpperCase());
 	const displayUrl = $derived(`${slug || 'subdomain'}.${baseDomain}`);
+	const displayOrigin = $derived.by(() => {
+		const local = isLocalBaseDomain(baseDomain);
+		const scheme = local ? 'http' : 'https';
+		const port =
+			local && frontendPort && frontendPort !== '80' && frontendPort !== '443'
+				? `:${frontendPort}`
+				: '';
+		return `${scheme}://${displayUrl}${port}`;
+	});
 </script>
 
 <div class="pv-container" class:is-light-mode={mode === 'light'}>
@@ -276,7 +289,7 @@
 						{/if}
 						<div class="pv-phone-biz-info">
 							<strong class="pv-phone-biz-name">{businessName || 'Your Business Name'}</strong>
-							<span class="pv-phone-biz-url">http://{displayUrl}:5173</span>
+							<span class="pv-phone-biz-url">{displayOrigin}</span>
 						</div>
 					</div>
 

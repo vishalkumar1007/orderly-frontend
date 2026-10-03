@@ -35,6 +35,7 @@
 	} from '$lib/admin/onboardStore';
 	import { joinTenantSetupUrl, rewriteFrontendPort, slugify } from '$lib/admin/format';
 	import type { CapabilityRow, CreatedTenant, Plan, PlanOption, TenantType } from '$lib/admin/types';
+	import { tenantFrontendOrigin } from '$lib/host';
 	import { THEME_PRESETS } from '$lib/storefront/admin';
 	import { api } from '$lib/api/client';
 	import { consoleAppearance, isDarkFamily } from '$lib/appearance.svelte';
@@ -154,6 +155,8 @@
 	let allPlans = $state<Plan[]>([]);
 	let defaultPlan = $state('');
 	let baseDomain = $state('localhost');
+	let frontendPort = $state('5173');
+	let appEnv = $state('development');
 	let optionsLoading = $state(true);
 	let submitting = $state(false);
 	let failure = $state<{ title: string; detail: string } | null>(null);
@@ -398,6 +401,8 @@
 			allPlans = loadedPlans;
 			defaultPlan = settings.platform.default_plan?.toUpperCase() ?? '';
 			baseDomain = settings.platform.base_domain || 'localhost';
+			frontendPort = settings.platform.frontend_port || '5173';
+			appEnv = (settings.app_env || 'development').toLowerCase();
 			if (!org.currency) org.currency = settings.general.default_currency || 'INR';
 			if (!org.timezone) org.timezone = settings.general.timezone || 'Asia/Kolkata';
 
@@ -985,8 +990,14 @@
 
 	/* ---------- derived display ---------- */
 
-	const storefrontUrl = $derived(`http://${org.slug || 'subdomain'}.${baseDomain}:5173`);
-	const loginUrl = $derived(`${storefrontUrl}/shop/login`);
+	const storefrontUrl = $derived(
+		tenantFrontendOrigin(
+			org.slug || 'subdomain',
+			baseDomain,
+			appEnv === 'production' || appEnv === 'prod' ? null : frontendPort
+		)
+	);
+	const loginUrl = $derived(`${storefrontUrl}/login`);
 	const isTrial = $derived(selectedPlan?.billingPeriod === 'trial' || plan === 'TRIAL');
 	const trialDays = $derived(selectedPlan?.trialDays ?? 0);
 	const shows = (control: string) => template.controls.includes(control as never);
@@ -1055,7 +1066,7 @@
 			</div>
 			<div class="onb-success-spec-col">
 				<span class="onb-success-spec-k">Subdomain</span>
-				<span class="onb-success-spec-v" title={created.tenant.slug}>{created.tenant.slug}.localhost</span>
+				<span class="onb-success-spec-v" title={created.tenant.slug}>{created.tenant.slug}.{baseDomain}</span>
 			</div>
 			<div class="onb-success-spec-col">
 				<span class="onb-success-spec-k">Administrator</span>
@@ -1351,6 +1362,7 @@
 				businessName={org.name}
 				slug={org.slug}
 				{baseDomain}
+				frontendPort={appEnv === 'production' || appEnv === 'prod' ? '' : frontendPort}
 				capabilityLabels={enabledCapabilities}
 				primary={activePreviewTheme.primary}
 				secondary={activePreviewTheme.secondary}
@@ -1410,6 +1422,7 @@
 					id="org-slug"
 					bind:value={org.slug}
 					{baseDomain}
+					port={appEnv === 'production' || appEnv === 'prod' ? '' : frontendPort}
 					status={slugStatus}
 					error={errors.slug ?? ''}
 					onslugchange={() => (dirty = true)}

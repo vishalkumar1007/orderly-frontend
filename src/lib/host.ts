@@ -34,10 +34,33 @@ export function parseHost(hostname: string, baseDomain = 'localhost'): HostInfo 
 	return { kind: 'unknown', slug: null, hostname: host };
 }
 
-export function tenantLoginUrl(slug: string, baseDomain = 'localhost', port = '5173'): string {
-	return `http://${slug}.${baseDomain}:${port}/login`;
+/** True when browser links should use http + optional Vite port. */
+export function isLocalBaseDomain(baseDomain: string): boolean {
+	const b = baseDomain.toLowerCase().trim();
+	return b === 'localhost' || b === '127.0.0.1';
 }
 
-export function tenantStoreUrl(slug: string, baseDomain = 'localhost', port = '5173'): string {
-	return `http://${slug}.${baseDomain}:${port}/`;
+/**
+ * Absolute browser origin for a tenant storefront / shop console.
+ * Never uses `{slug}.api.{base}` — that is the API host only.
+ */
+export function tenantFrontendOrigin(
+	slug: string,
+	baseDomain = 'localhost',
+	port?: string | null
+): string {
+	const base = (baseDomain || 'localhost').toLowerCase().trim();
+	const local = isLocalBaseDomain(base);
+	const scheme = local ? 'http' : 'https';
+	const p = (port ?? '').trim();
+	const withPort = local && p && p !== '80' && p !== '443' ? `:${p}` : '';
+	return `${scheme}://${slug}.${base}${withPort}`;
+}
+
+export function tenantLoginUrl(slug: string, baseDomain = 'localhost', port?: string | null): string {
+	return `${tenantFrontendOrigin(slug, baseDomain, port)}/login`;
+}
+
+export function tenantStoreUrl(slug: string, baseDomain = 'localhost', port?: string | null): string {
+	return `${tenantFrontendOrigin(slug, baseDomain, port)}/`;
 }

@@ -4,7 +4,10 @@ import { parseHost } from '$lib/host';
 const BASE_DOMAIN = () => env.PUBLIC_BASE_DOMAIN || 'localhost';
 
 /**
- * Server-side / production API origin (browser dev uses Vite proxy when not on a tenant host).
+ * Configured API origin from PUBLIC_API_URL.
+ * Production: https://api.orderly.qd.je
+ * Local: http://api.localhost:8080 (or empty → Vite /api proxy in the browser)
+ * SSR internal: http://fs-A1-d3e4-k9:8080 (Host overridden via X-Forwarded-Host)
  */
 function configuredApiOrigin(): string {
 	const raw = env.PUBLIC_API_URL?.trim();
@@ -12,70 +15,105 @@ function configuredApiOrigin(): string {
 	return 'http://127.0.0.1:8080';
 }
 
-/**
- * `tenantApiBase` rewrites the API origin so a request carries the tenant's
- * subdomain.
- *
- * This matters for server-side rendering. A load function calling
- * `http://127.0.0.1:8080/...` sends `Host: 127.0.0.1:8080`, which the API reads
- * as the platform host and cannot resolve to a tenant — so the storefront config
- * would come back empty and the first paint would be unthemed. Pointing at
- * `{slug}.{base}` keeps the tenant in the Host header, exactly as a browser
- * request does.
- */
-export function tenantApiBase(slug: string): string {
-	const base = BASE_DOMAIN();
-	const origin = configuredApiOrigin();
-	let protocol = 'http:';
-	let port = '8080';
+function originParts(): { scheme: string; port: string; hostname: string; configured: string } {
+	const configured = configuredApiOrigin();
 	try {
-		const url = new URL(origin);
-		protocol = url.protocol;
-		port = url.port || (url.protocol === 'https:' ? '443' : '80');
+		const u = new URL(configured);
+		return {
+			scheme: u.protocol,
+			port: u.port,
+			hostname: u.hostname.toLowerCase(),
+			configured
+		};
 	} catch {
-		// An unparseable PUBLIC_API_URL is handled by the request itself failing
-		// with a clear error; fall back to the plain http origin here.
+		return { scheme: 'http:', port: '8080', hostname: '127.0.0.1', configured };
 	}
-	const host = `${slug}.${base}`;
-	return port && port !== '80' && port !== '443'
-		? `${protocol}//${host}:${port}`
-		: `${protocol}//${host}`;
+}
+
+/** True when PUBLIC_API_URL is a public api.{base} style host (not a Docker service name). */
+function isPublicAPIHost(hostname: string, base: string): boolean {
+	const h = hostname.toLowerCase();
+	const b = base.toLowerCase();
+	return h === `api.${b}` || h === 'api.localhost';
+}
+
+function buildOrigin(hostname: string, scheme: string, port: string): string {
+	if (port && port !== '80' && port !== '443') {
+		return `${scheme}//${hostname}:${port}`;
+	}
+	return `${scheme}//${hostname}`;
+}
+
+/**
+ * Platform API host value used for X-Forwarded-Host when SSR dials an internal upstream.
+ */
+export function platformForwardedHost(): string {
+	return `api.${BASE_DOMAIN()}`;
+}
+
+/**
+ * Tenant API host: {slug}.api.{base} (e.g. vm-food.api.orderly.qd.je).
+ */
+export function tenantForwardedHost(slug: string): string {
+	return `${slug}.api.${BASE_DOMAIN()}`;
+}
+
+/**
+ * Absolute platform API origin: https://api.{base} (or local :8080 variant).
+ */
+export function platformApiOrigin(): string {
+	const base = BASE_DOMAIN();
+	const { scheme, port, hostname, configured } = originParts();
+	if (isPublicAPIHost(hostname, base)) {
+		return buildOrigin(`api.${base}`, scheme, port);
+	}
+	// Internal Docker upstream — keep as configured; caller sets X-Forwarded-Host.
+	if (hostname !== '127.0.0.1' && hostname !== 'localhost') {
+		return configured;
+	}
+	return buildOrigin(`api.${base}`, scheme, port || '8080');
+}
+
+/**
+ * Absolute tenant API origin: https://{slug}.api.{base}.
+ * When PUBLIC_API_URL is an internal Docker host, dial that host and rely on
+ * X-Forwarded-Host for tenant resolution.
+ */
+export function tenantApiOrigin(slug: string): string {
+	const base = BASE_DOMAIN();
+	const { scheme, port, hostname, configured } = originParts();
+	if (isPublicAPIHost(hostname, base)) {
+		return buildOrigin(`${slug}.api.${base}`, scheme, port);
+	}
+	if (hostname !== '127.0.0.1' && hostname !== 'localhost') {
+		return configured;
+	}
+	return buildOrigin(`${slug}.api.${base}`, scheme, port || '8080');
 }
 
 /**
  * API origin for a request.
  *
- * In the browser, a tenant host is rewritten to the tenant's API subdomain so the
- * backend can resolve the shop. On the server the caller supplies the slug
- * explicitly via `ApiOptions.hostSlug`, because there is no `window` to read the
- * hostname from and a plain 127.0.0.1 request carries no tenant.
+ * - Superadmin / platform pages → https://api.{base}
+ * - Shop pages / hostSlug → https://{slug}.api.{base}
+ * - Local browser with empty PUBLIC_API_URL → '' (Vite /api proxy)
  */
 export function apiBaseURL(hostSlug?: string | null): string {
-	const configured = configuredApiOrigin();
-	// SSR / explicit slug: rewrite origin so Host carries the tenant.
-	if (hostSlug) return tenantApiBase(hostSlug);
+	const configuredRaw = env.PUBLIC_API_URL?.trim();
 
-	if (typeof window === 'undefined') return configured;
-
-	// Browser local dev: always use the Vite proxy (`/api` → :8080). The proxy
-	// keeps the page Host (e.g. momo-magic.localhost:5173) so MatchHostTenant
-	// still works. Hitting `{slug}.localhost:8080` directly is much slower —
-	// extra DNS, CORS preflight, and flaky *.localhost resolution on macOS.
-	if (import.meta.env.DEV) {
+	// Dev convenience: unset PUBLIC_API_URL → same-origin Vite proxy.
+	if (typeof window !== 'undefined' && import.meta.env.DEV && !configuredRaw) {
 		return '';
 	}
 
-	const info = parseHost(window.location.hostname, BASE_DOMAIN());
-	if (info.kind === 'tenant' && info.slug) {
-		try {
-			const u = new URL(configured);
-			const port = u.port || '8080';
-			return `${u.protocol}//${info.slug}.${BASE_DOMAIN()}:${port}`;
-		} catch {
-			return `http://${info.slug}.${BASE_DOMAIN()}:8080`;
-		}
+	let slug = hostSlug ?? null;
+	if (!slug && typeof window !== 'undefined') {
+		const info = parseHost(window.location.hostname, BASE_DOMAIN());
+		if (info.kind === 'tenant') slug = info.slug;
 	}
-	return configured;
+
+	if (slug) return tenantApiOrigin(slug);
+	return platformApiOrigin();
 }
 
 export type ApiError = { error: { code: string; message: string } };
@@ -221,6 +259,19 @@ export async function api<T>(
 	// application/json breaks image uploads.
 	if (!headers.has('Content-Type') && init.body && !(init.body instanceof FormData)) {
 		headers.set('Content-Type', 'application/json');
+	}
+	// SSR cannot always set Host via fetch(). When dialing an internal upstream
+	// (or platform api host), tell the API the public {slug}.api.{base} host.
+	if (typeof window === 'undefined' && !headers.has('X-Forwarded-Host')) {
+		const fwd = hostSlug ? tenantForwardedHost(hostSlug) : platformForwardedHost();
+		try {
+			const u = new URL(base || configuredApiOrigin());
+			if (u.hostname.toLowerCase() !== fwd.toLowerCase()) {
+				headers.set('X-Forwarded-Host', fwd);
+			}
+		} catch {
+			headers.set('X-Forwarded-Host', fwd);
+		}
 	}
 	// A caller may pass an explicit credential for one request. The storefront
 	// needs this: a diner's session token is not the staff token in

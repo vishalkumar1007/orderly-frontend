@@ -3,6 +3,7 @@
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import Loader from '@lucide/svelte/icons/loader-circle';
 	import { slugify } from '$lib/admin/format';
+	import { isLocalBaseDomain } from '$lib/host';
 
 	type Status = 'idle' | 'checking' | 'available' | 'taken' | 'reserved' | 'invalid';
 
@@ -20,6 +21,7 @@
 		id?: string;
 		value?: string;
 		baseDomain?: string;
+		/** Empty string omits the port (production). */
 		port?: string;
 		status?: Status;
 		error?: string;
@@ -28,8 +30,12 @@
 		onslugchange?: (slug: string) => void;
 	} = $props();
 
+	const scheme = $derived(isLocalBaseDomain(baseDomain) ? 'http' : 'https');
+	const portSuffix = $derived(port && port !== '80' && port !== '443' ? `:${port}` : '');
 	// The URL is the real deliverable, so show it live as they type.
-	const host = $derived(value.trim() ? `${value.trim()}.${baseDomain}:${port}` : `${baseDomain}:${port}`);
+	const host = $derived(
+		value.trim() ? `${value.trim()}.${baseDomain}${portSuffix}` : `${baseDomain}${portSuffix}`
+	);
 
 	function onInput(e: Event) {
 		const raw = (e.currentTarget as HTMLInputElement).value;
@@ -53,7 +59,7 @@
 	<label class="field-label" for={id}>Subdomain slug <span style="color:var(--danger);">*</span></label>
 
 	<div class="slug-wrap" class:has-status={status !== 'idle'}>
-		<span class="slug-prefix" aria-hidden="true">http://</span>
+		<span class="slug-prefix" aria-hidden="true">{scheme}://</span>
 		<input
 			{id}
 			class="input slug-input"

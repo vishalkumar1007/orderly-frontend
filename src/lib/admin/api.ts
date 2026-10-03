@@ -1,4 +1,6 @@
+import { env } from '$env/dynamic/public';
 import { api } from '$lib/api/client';
+import { isLocalBaseDomain, tenantStoreUrl } from '$lib/host';
 import type { BrandTheme, ThemePreset } from '$lib/brandTheme';
 import type {
 	AuditLog,
@@ -433,15 +435,25 @@ export async function updateTenantType(
 export type { BrandTheme };
 
 export function tenantPublicUrl(tenant: Pick<Tenant, 'slug' | 'public_host'>): string {
+	const baseDomain = env.PUBLIC_BASE_DOMAIN || 'localhost';
 	let url = '';
 	if (tenant.public_host) {
-		url = tenant.public_host.startsWith('http')
-			? tenant.public_host
-			: `http://${tenant.public_host}`;
+		if (tenant.public_host.startsWith('http://') || tenant.public_host.startsWith('https://')) {
+			url = tenant.public_host;
+		} else {
+			const hostOnly = tenant.public_host.split('/')[0] ?? tenant.public_host;
+			const local = hostOnly.includes('localhost') || hostOnly.startsWith('127.0.0.1');
+			url = `${local ? 'http' : 'https'}://${tenant.public_host}`;
+		}
 	} else {
-		url = `http://${tenant.slug}.localhost:5173`;
+		const port = isLocalBaseDomain(baseDomain)
+			? typeof window !== 'undefined'
+				? window.location.port || '5173'
+				: '5173'
+			: null;
+		url = tenantStoreUrl(tenant.slug, baseDomain, port);
 	}
-	if (typeof window !== 'undefined') {
+	if (typeof window !== 'undefined' && isLocalBaseDomain(baseDomain)) {
 		try {
 			const u = new URL(url);
 			if (window.location.port) u.port = window.location.port;
