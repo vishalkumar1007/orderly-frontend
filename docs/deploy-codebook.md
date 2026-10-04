@@ -136,7 +136,7 @@ docker run -d \
 Runtime env (SvelteKit `$env/dynamic/public`):
 
 ```env
-# Public platform API origin. Shop pages rewrite this to https://{slug}.api.{base}.
+# Shared public API origin for platform and shop pages.
 PUBLIC_API_URL=https://api.orderly.qd.je
 PUBLIC_BASE_DOMAIN=orderly.qd.je
 HOST=0.0.0.0
@@ -149,10 +149,10 @@ NODE_ENV=production
 Browser API routing:
 
 - Superadmin on `orderly.qd.je` / `admin.orderly.qd.je` → `https://api.orderly.qd.je`
-- Shop on `{slug}.orderly.qd.je` → `https://{slug}.api.orderly.qd.je`
+- Shop on `{slug}.orderly.qd.je` → `https://api.orderly.qd.je` with header `X-Tenant-Slug: {slug}`
 
-Caddy/DNS must route `api.orderly.qd.je` and `*.api.orderly.qd.je` to the API
-container (k9). Frontend hosts stay on x7.
+Caddy/DNS must route `api.orderly.qd.je` to the API container (k9). Frontend
+hosts (`*.orderly.qd.je`) stay on x7. No `*.api.orderly.qd.je` DNS/TLS is required.
 
 ## GitHub secrets
 

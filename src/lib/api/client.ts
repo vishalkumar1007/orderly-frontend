@@ -3,6 +3,9 @@ import { parseHost } from '$lib/host';
 
 const BASE_DOMAIN = () => env.PUBLIC_BASE_DOMAIN || 'localhost';
 
+/** Header that identifies the shop tenant when dialing the shared API host. */
+export const TENANT_SLUG_HEADER = 'X-Tenant-Slug';
+
 /**
  * Configured API origin from PUBLIC_API_URL.
  * Production: https://api.orderly.qd.je
@@ -52,14 +55,9 @@ export function platformForwardedHost(): string {
 }
 
 /**
- * Tenant API host: {slug}.api.{base} (e.g. vm-food.api.orderly.qd.je).
- */
-export function tenantForwardedHost(slug: string): string {
-	return `${slug}.api.${BASE_DOMAIN()}`;
-}
-
-/**
- * Absolute platform API origin: https://api.{base} (or local :8080 variant).
+ * Absolute shared API origin: https://api.{base} (or local :8080 variant).
+ * Shop and platform pages both dial this host; tenant identity is sent via
+ * X-Tenant-Slug, never via `{slug}.api.{base}` hostnames.
  */
 export function platformApiOrigin(): string {
 	const base = BASE_DOMAIN();
@@ -75,30 +73,23 @@ export function platformApiOrigin(): string {
 }
 
 /**
- * Absolute tenant API origin: https://{slug}.api.{base}.
- * When PUBLIC_API_URL is an internal Docker host, dial that host and rely on
- * X-Forwarded-Host for tenant resolution.
+ * Resolve the tenant slug for an API call from an explicit option or the
+ * browser hostname. Returns null on platform/admin pages.
  */
-export function tenantApiOrigin(slug: string): string {
-	const base = BASE_DOMAIN();
-	const { scheme, port, hostname, configured } = originParts();
-	if (isPublicAPIHost(hostname, base)) {
-		return buildOrigin(`${slug}.api.${base}`, scheme, port);
-	}
-	if (hostname !== '127.0.0.1' && hostname !== 'localhost') {
-		return configured;
-	}
-	return buildOrigin(`${slug}.api.${base}`, scheme, port || '8080');
+export function resolveTenantSlug(hostSlug?: string | null): string | null {
+	if (hostSlug) return hostSlug;
+	if (typeof window === 'undefined') return null;
+	const info = parseHost(window.location.hostname, BASE_DOMAIN());
+	return info.kind === 'tenant' ? info.slug : null;
 }
 
 /**
  * API origin for a request.
  *
- * - Superadmin / platform pages → https://api.{base}
- * - Shop pages / hostSlug → https://{slug}.api.{base}
- * - Local browser with empty PUBLIC_API_URL → '' (Vite /api proxy)
+ * Always the shared platform API host. Local browser with empty PUBLIC_API_URL
+ * uses '' so Vite proxies /api with the page Host (legacy {slug}.localhost).
  */
-export function apiBaseURL(hostSlug?: string | null): string {
+export function apiBaseURL(_hostSlug?: string | null): string {
 	const configuredRaw = env.PUBLIC_API_URL?.trim();
 
 	// Dev convenience: unset PUBLIC_API_URL → same-origin Vite proxy.
@@ -106,13 +97,6 @@ export function apiBaseURL(hostSlug?: string | null): string {
 		return '';
 	}
 
-	let slug = hostSlug ?? null;
-	if (!slug && typeof window !== 'undefined') {
-		const info = parseHost(window.location.hostname, BASE_DOMAIN());
-		if (info.kind === 'tenant') slug = info.slug;
-	}
-
-	if (slug) return tenantApiOrigin(slug);
 	return platformApiOrigin();
 }
 
@@ -128,9 +112,8 @@ export type ApiError = { error: { code: string; message: string } };
 export type ApiOptions = RequestInit & {
 	authToken?: string | null;
 	/**
-	 * The tenant slug to address the API with. Server-side callers pass this so
-	 * the request carries the tenant in its Host header; browsers derive it from
-	 * the current hostname instead.
+	 * The tenant slug to address the API with. Sent as X-Tenant-Slug.
+	 * Server-side callers pass this; browsers derive it from the current hostname.
 	 */
 	hostSlug?: string | null;
 	/**
@@ -226,9 +209,12 @@ async function refreshAccess(): Promise<boolean> {
 	const controller = new AbortController();
 	const timer = setTimeout(() => controller.abort(), 5_000);
 	try {
+		const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+		const slug = resolveTenantSlug();
+		if (slug) headers[TENANT_SLUG_HEADER] = slug;
 		const res = await fetch(`${apiBaseURL()}/api/v1/auth/refresh`, {
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
+			headers,
 			body: JSON.stringify({ refresh_token: refresh }),
 			signal: controller.signal
 		});
@@ -260,10 +246,17 @@ export async function api<T>(
 	if (!headers.has('Content-Type') && init.body && !(init.body instanceof FormData)) {
 		headers.set('Content-Type', 'application/json');
 	}
-	// SSR cannot always set Host via fetch(). When dialing an internal upstream
-	// (or platform api host), tell the API the public {slug}.api.{base} host.
+
+	const slug = resolveTenantSlug(hostSlug);
+	if (slug && !headers.has(TENANT_SLUG_HEADER)) {
+		headers.set(TENANT_SLUG_HEADER, slug);
+	}
+
+	// SSR cannot always set Host via fetch(). When dialing an internal Docker
+	// upstream, advertise the shared public API host so middleware treats the
+	// request as HostAPI; tenant identity comes from X-Tenant-Slug.
 	if (typeof window === 'undefined' && !headers.has('X-Forwarded-Host')) {
-		const fwd = hostSlug ? tenantForwardedHost(hostSlug) : platformForwardedHost();
+		const fwd = platformForwardedHost();
 		try {
 			const u = new URL(base || configuredApiOrigin());
 			if (u.hostname.toLowerCase() !== fwd.toLowerCase()) {

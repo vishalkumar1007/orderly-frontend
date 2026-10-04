@@ -42,7 +42,7 @@ export function isLocalBaseDomain(baseDomain: string): boolean {
 
 /**
  * Absolute browser origin for a tenant storefront / shop console.
- * Never uses `{slug}.api.{base}` — that is the API host only.
+ * Browser pages only; the shared API host is always `api.{base}`.
  */
 export function tenantFrontendOrigin(
 	slug: string,
