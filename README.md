@@ -60,4 +60,4 @@ Leave `PUBLIC_API_URL` empty to use the Vite `/api` proxy, or set
 `PUBLIC_API_URL=http://api.localhost:8080` so both platform and shop calls go to
 the shared API host. Shop pages send `X-Tenant-Slug` from the browser hostname.
 
-Modern browsers resolve `*.localhost` to 127.0.0.1 automatically.
+Modern browsers resolve `*.localhost` to 127.0.0.1 automatically
