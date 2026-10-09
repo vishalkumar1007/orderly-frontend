@@ -140,6 +140,22 @@ export async function updateTenantLocal(id: string, patch: Partial<Tenant>): Pro
 	});
 }
 
+/**
+ * Read-only: the business's own current MFA policy. Super Admin seeds the
+ * initial one at onboarding; day-to-day edits belong to that business's own
+ * Tenant Admin (PUT /api/v1/tenant/mfa-policy), not this console.
+ */
+export async function fetchTenantMfaPolicyAdmin(id: string): Promise<{
+	allowed: boolean;
+	mode: 'DISABLED' | 'OPTIONAL' | 'REQUIRED';
+	allowed_methods: ('TOTP' | 'EMAIL_OTP')[];
+	enforce_scope: 'ALL_ADMINS' | 'SELECTED_ROLES';
+	enforce_roles: string[] | null;
+	grace_period_days: number;
+}> {
+	return api(`/api/v1/admin/tenants/${id}/mfa-policy`);
+}
+
 /* ------------------------------------------------------------------ *
  * Plans, subscriptions and monitoring
  * ------------------------------------------------------------------ */
@@ -386,6 +402,36 @@ export async function resendTenantInvite(tenantId: string) {
 		email_sent?: boolean;
 		email_error?: string;
 	}>(`/api/v1/admin/tenants/${tenantId}/resend-invite`, { method: 'POST' });
+}
+
+/**
+ * A tenant's staff, as seen from the support side.
+ *
+ * This is the read/recover path, not a second place to run a tenant's team
+ * from — see server.go's route comment. Resetting access or resending an
+ * invite is unblocking someone locked out; it does not add a routine
+ * "edit any field" surface here.
+ */
+export async function fetchTenantUsers(tenantId: string): Promise<TenantAdmin[]> {
+	const data = await api<{ users: TenantAdmin[] }>(`/api/v1/admin/tenants/${tenantId}/users`);
+	return data.users ?? [];
+}
+
+export async function resetTenantUserAccess(tenantId: string, userId: string): Promise<UserInviteResult> {
+	return api<UserInviteResult>(`/api/v1/admin/tenants/${tenantId}/users/${userId}/reset-access`, {
+		method: 'POST'
+	});
+}
+
+/** Turns off a locked-out user's two-factor authentication. Never returns a secret or codes — there are none to return. */
+export async function resetTenantUserMFA(tenantId: string, userId: string): Promise<void> {
+	await api(`/api/v1/admin/tenants/${tenantId}/users/${userId}/reset-mfa`, { method: 'POST' });
+}
+
+export async function resendTenantUserInvite(tenantId: string, userId: string): Promise<UserInviteResult> {
+	return api<UserInviteResult>(`/api/v1/admin/tenants/${tenantId}/users/${userId}/resend-invite`, {
+		method: 'POST'
+	});
 }
 
 export async function fetchThemePresets(): Promise<ThemePreset[]> {

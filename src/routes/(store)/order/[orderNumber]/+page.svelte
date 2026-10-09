@@ -11,6 +11,7 @@
 	import { friendlyError, storefrontApi, type OrderDetail } from '$lib/storefront/api';
 	import { customerToken } from '$lib/storefront/session.svelte';
 	import { money, minutesUntil, orderCode, timeOfDay } from '$lib/storefront/format';
+	import { playSound } from '$lib/sound';
 
 	/**
 	 * Order confirmation and tracking.
@@ -37,6 +38,8 @@
 	let phoneInput = $state('');
 	let phoneError = $state('');
 	let pollTimer: ReturnType<typeof setInterval> | null = null;
+	/** Only a transition into READY during this visit plays a sound — never on first load. */
+	let previousStatus: string | null = null;
 
 	function checkoutPhone(): string {
 		try {
@@ -54,6 +57,15 @@
 				phone: usePhone || undefined,
 				token
 			});
+			if (
+				previousStatus &&
+				previousStatus !== 'READY' &&
+				result.status === 'READY' &&
+				config?.ordering?.ready_notification
+			) {
+				playSound(config.ordering.order_ready_sound);
+			}
+			previousStatus = result.status;
 			order = result;
 			error = '';
 			phonePrompt = false;

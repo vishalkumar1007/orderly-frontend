@@ -1,4 +1,11 @@
-import { termsFor, quickActionsFor, hasModule, type ModuleKey, type Terminology } from '$lib/admin/businessTypes';
+import {
+	termsFor,
+	quickActionsFor,
+	hasModule,
+	templateFor,
+	type ModuleKey,
+	type Terminology
+} from '$lib/admin/businessTypes';
 
 /**
  * What kind of business this console belongs to.
@@ -38,6 +45,15 @@ export function terms(): Terminology {
 /** Does this business have this capability at all? */
 export function hasBusinessModule(module: ModuleKey): boolean {
 	return hasModule(current, module);
+}
+
+/**
+ * Does this business type run on orders at all? False for the capability-driven
+ * types (appointments, reservations, ...) — their dashboard/selling data would
+ * otherwise show real-looking zeros for a flow the business doesn't use.
+ */
+export function orderingEnabled(): boolean {
+	return templateFor(current).behaviour.ordering_enabled;
 }
 
 /** The shortcuts this kind of business actually starts its day with. */

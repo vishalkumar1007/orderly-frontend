@@ -17,7 +17,8 @@
 		smtp: 'SMTP',
 		email: 'SMTP',
 		storage: 'STORAGE',
-		ai: 'AI'
+		ai: 'AI',
+		sms: 'SMS'
 	};
 
 	const service = $derived(SERVICES[($page.params.service ?? '').toLowerCase()]);
@@ -36,7 +37,7 @@
 	<div class="panel">
 		<EmptyState
 			title="Unknown provider"
-			description="The platform manages email, storage and AI. Payments are configured per business."
+			description="The platform manages email, SMS, storage and AI. Payments are configured per business."
 		>
 			{#snippet action()}
 				<a class="btn btn-ghost btn-sm" href="/superadmin/providers">Back to providers</a>

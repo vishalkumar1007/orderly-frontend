@@ -3,6 +3,7 @@ import Bell from '@lucide/svelte/icons/bell';
 import ListOrdered from '@lucide/svelte/icons/list-ordered';
 import Palette from '@lucide/svelte/icons/palette';
 import Plug from '@lucide/svelte/icons/plug';
+import ShieldCheck from '@lucide/svelte/icons/shield-check';
 import Store from '@lucide/svelte/icons/store';
 import type { ShopPermission } from './nav';
 
@@ -76,6 +77,13 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
 		icon: Palette,
 		group: 'You',
 		lede: 'How this console looks to you. Your choice follows your account and changes nothing for anyone else who works here.'
+	},
+	{
+		id: 'security',
+		label: 'Security',
+		icon: ShieldCheck,
+		group: 'You',
+		lede: 'Two-factor authentication: the owner sets whether it is optional or required here, and everyone sets up their own methods below — nobody else can see your secrets or your codes.'
 	}
 ];
 

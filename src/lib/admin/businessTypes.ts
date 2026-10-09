@@ -101,7 +101,21 @@ export type ModuleKey =
 	/** Stock on hand, rather than a simple available/unavailable switch. */
 	| 'stock'
 	/** Charging an order to a room rather than taking payment at handover. */
-	| 'room_charge';
+	| 'room_charge'
+	/** Vegetarian / non-vegetarian tagging on an item — meaningless off a food menu. */
+	| 'diet_tags'
+	/** The generic product catalogue (Menu). Off for types with their own catalogue page. */
+	| 'catalog'
+	/** The bookable service list — Barber's equivalent of a catalogue. */
+	| 'services'
+	/** Scheduled bookings against a service. */
+	| 'appointments'
+	/** The walk-in line. */
+	| 'queue'
+	/** Room types and rooms. */
+	| 'rooms'
+	/** Bookings against a room type, through check-in/check-out. */
+	| 'reservations';
 
 /**
  * Storefront defaults, in the vocabulary the storefront schema already uses.
@@ -333,7 +347,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 			auto_complete: false
 		},
 		starterCategories: ['Steamed', 'Fried', 'Combos', 'Drinks'],
-		modules: ['station', 'live_display', 'addons'],
+		modules: ['station', 'live_display', 'addons', 'diet_tags', 'catalog'],
 		quickActions: [
 			{ label: 'Take an order', href: '/shop/orders' },
 			{ label: 'Open the kitchen board', href: '/shop/kitchen' },
@@ -376,7 +390,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 		starterCategories: ['Fruit & vegetables', 'Dairy', 'Staples & grains', 'Household'],
 		// No pickup display: a grocery order is packed and collected, not
 		// called out to a room of people waiting.
-		modules: ['station', 'variants', 'catalog_search', 'stock'],
+		modules: ['station', 'variants', 'catalog_search', 'stock', 'diet_tags', 'catalog'],
 		quickActions: [
 			{ label: 'Orders to pack', href: '/shop/kitchen' },
 			{ label: 'Update the catalogue', href: '/shop/menu' },
@@ -417,7 +431,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 			auto_complete: true
 		},
 		starterCategories: ['Coffee', 'Tea', 'Bakery', 'Cold drinks'],
-		modules: ['station', 'live_display', 'variants', 'addons'],
+		modules: ['station', 'live_display', 'variants', 'addons', 'diet_tags', 'catalog'],
 		quickActions: [
 			{ label: 'Open the bar board', href: '/shop/kitchen' },
 			{ label: 'Take an order', href: '/shop/orders' },
@@ -458,7 +472,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 			auto_complete: false
 		},
 		starterCategories: ['Starters', 'Mains', 'Sides', 'Desserts', 'Drinks'],
-		modules: ['station', 'live_display', 'variants', 'addons'],
+		modules: ['station', 'live_display', 'variants', 'addons', 'diet_tags', 'catalog'],
 		quickActions: [
 			{ label: 'Open the kitchen board', href: '/shop/kitchen' },
 			{ label: 'Take an order', href: '/shop/orders' },
@@ -517,11 +531,10 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 			auto_complete: false
 		},
 		starterCategories: [],
-		modules: [],
+		modules: ['rooms', 'reservations'],
 		quickActions: [
 			{ label: 'Reservations', href: '/shop/reservations' },
-			{ label: 'Rooms', href: '/shop/rooms' },
-			{ label: 'Housekeeping', href: '/shop/housekeeping' }
+			{ label: 'Rooms', href: '/shop/rooms' }
 		],
 		controls: [],
 		capabilityDriven: true
@@ -560,7 +573,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 			auto_complete: false
 		},
 		starterCategories: [],
-		modules: [],
+		modules: ['services', 'appointments', 'queue'],
 		quickActions: [
 			{ label: 'Appointments', href: '/shop/appointments' },
 			{ label: 'Walk-in queue', href: '/shop/queue' },
@@ -602,7 +615,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 			auto_complete: false
 		},
 		starterCategories: [],
-		modules: [],
+		modules: ['catalog'],
 		quickActions: [{ label: 'Configure modules', href: '/shop/settings/business-profile' }],
 		controls: [],
 		capabilityDriven: true
@@ -647,7 +660,7 @@ export const GENERIC_TEMPLATE: BusinessTypeTemplate = {
 	},
 	starterCategories: [],
 	controls: COMMON_CONTROLS,
-	modules: ['station', 'live_display', 'addons'],
+	modules: ['station', 'live_display', 'addons', 'catalog'],
 	quickActions: [
 		{ label: 'Take an order', href: '/shop/orders' },
 		{ label: 'Open the preparation board', href: '/shop/kitchen' },

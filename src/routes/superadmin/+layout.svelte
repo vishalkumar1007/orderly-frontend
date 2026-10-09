@@ -14,6 +14,7 @@
 		type AdminCrumb
 	} from '$lib/admin/nav';
 	import AdminShellSkeleton from '$lib/components/admin/AdminShellSkeleton.svelte';
+	import NotificationBell from '$lib/components/admin/NotificationBell.svelte';
 	import Toaster from '$lib/components/admin/Toaster.svelte';
 	import AppShell from '$lib/components/shell/AppShell.svelte';
 
@@ -143,6 +144,7 @@
 		onSignOut={signOut}
 	>
 		{#snippet actions()}
+			<NotificationBell scope="admin" />
 			{#if showOnboardAction}
 				<a class="btn btn-primary btn-sm" href="/superadmin/businesses/new">
 					<IconPlus size={15} stroke={1.8} />

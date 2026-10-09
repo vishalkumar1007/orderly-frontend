@@ -21,6 +21,8 @@
 	import AppearancePanel from '$lib/components/tenant/settings/AppearancePanel.svelte';
 	import BusinessProfilePanel from '$lib/components/tenant/settings/BusinessProfilePanel.svelte';
 	import IntegrationsPanel from '$lib/components/tenant/settings/IntegrationsPanel.svelte';
+	import MfaPolicyPanel from '$lib/components/admin/MfaPolicyPanel.svelte';
+	import MfaSetupPanel from '$lib/components/admin/MfaSetupPanel.svelte';
 	import NotificationsPanel from '$lib/components/tenant/settings/NotificationsPanel.svelte';
 	import WorkflowPanel from '$lib/components/tenant/settings/WorkflowPanel.svelte';
 
@@ -133,6 +135,11 @@
 		(user?.permissions ?? []).includes('storefront') || user?.role === 'TENANT_ADMIN'
 	);
 
+	/** The org-wide MFA policy, not one person's own enrollment — owner-only. */
+	const canEditMfaPolicy = $derived(
+		(user?.permissions ?? []).includes('organization') || user?.role === 'TENANT_ADMIN'
+	);
+
 	/** Integrations keeps its service in the URL too, beside the section. */
 	const service = $derived(
 		(($page.url.searchParams.get('service') ?? 'SMTP').toUpperCase() as ConfigService) ?? 'SMTP'
@@ -203,6 +210,11 @@
 			<IntegrationsPanel {service} onselect={selectService} />
 		{:else if active.id === 'appearance'}
 			<AppearancePanel {canSetBusinessDefault} />
+		{:else if active.id === 'security'}
+			{#if canEditMfaPolicy}
+				<MfaPolicyPanel />
+			{/if}
+			<MfaSetupPanel />
 		{:else if !configLoaded}
 			{@render formSkeleton()}
 		{:else if active.id === 'business'}

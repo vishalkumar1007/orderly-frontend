@@ -13,7 +13,17 @@
 		type ConfigView
 	} from '$lib/admin/configTypes';
 	import { errorMessage } from '$lib/admin/errors';
+	import { formatRelative } from '$lib/admin/format';
 	import type { PlatformSettings } from '$lib/admin/types';
+	import {
+		fetchAllNotificationDeliveries,
+		fetchNotificationEvents,
+		fetchPlatformNotificationRules,
+		retryNotificationDeliveryAsAdmin,
+		savePlatformNotificationRule
+	} from '$lib/admin/notificationsApi';
+	import type { NotificationDelivery, NotificationEventDef, NotificationRule } from '$lib/admin/notificationTypes';
+	import EventRuleMatrix from '$lib/components/admin/EventRuleMatrix.svelte';
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
 	import FormField from '$lib/components/admin/FormField.svelte';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
@@ -24,14 +34,14 @@
 	/**
 	 * Platform notifications.
 	 *
-	 * What the platform itself sends, to whom, and through what. It is
-	 * deliberately narrow, because the platform's own outbound messaging is
-	 * narrow: everything it sends today is an account email about access.
+	 * Two things live here: the platform's own outbound messaging (account
+	 * email, business onboarding, subscription and security alerts to the
+	 * console team), and the platform DEFAULT for every event in the catalog
+	 * — what a business inherits until it writes its own override.
 	 *
-	 * A business's customer-facing messages — order accepted, order ready — are
-	 * that business's own configuration and are not editable from here.
-	 * Conflating the two is how an operator ends up accidentally changing what
-	 * every shop's customers receive.
+	 * A business's customer-facing rules are still that business's own call:
+	 * this screen sets the default they start from, not a value that
+	 * overrides what they've already changed.
 	 */
 
 	type Channel = {
@@ -44,6 +54,7 @@
 	};
 
 	let config = $state<ConfigView | null>(null);
+	let smsConfig = $state<ConfigView | null>(null);
 	let settings = $state<PlatformSettings | null>(null);
 	let loading = $state(true);
 	let error = $state('');
@@ -56,8 +67,13 @@
 		loading = true;
 		error = '';
 		try {
-			const [cfg, s] = await Promise.all([fetchPlatformConfig('SMTP'), fetchSettings()]);
+			const [cfg, sms, s] = await Promise.all([
+				fetchPlatformConfig('SMTP'),
+				fetchPlatformConfig('SMS'),
+				fetchSettings()
+			]);
 			config = cfg;
+			smsConfig = sms;
 			settings = s;
 			testTo = String(cfg.config?.from_email ?? s.general.support_email ?? '');
 		} catch (err) {
@@ -67,13 +83,20 @@
 		}
 	}
 
-	onMount(load);
+	onMount(() => {
+		load();
+		void loadRules();
+		void loadDeliveries();
+	});
 
 	const fromName = $derived(String(config?.config?.from_name ?? ''));
 	const fromEmail = $derived(String(config?.config?.from_email ?? ''));
 	const replyTo = $derived(String(config?.config?.reply_to ?? ''));
 	const emailReady = $derived(
 		Boolean(config && config.enabled && config.status !== 'UNCONFIGURED')
+	);
+	const smsReady = $derived(
+		Boolean(smsConfig && smsConfig.enabled && smsConfig.status !== 'UNCONFIGURED')
 	);
 
 	const channels = $derived<Channel[]>([
@@ -91,9 +114,11 @@
 			id: 'sms',
 			name: 'SMS',
 			icon: MessageSquare,
-			state: 'absent',
-			detail:
-				'No SMS provider exists in this build. Customer sign-in codes are verified by the API but never sent by text.'
+			state: smsReady ? 'managed' : 'absent',
+			detail: smsReady
+				? `Sent through ${smsConfig?.provider || 'Twilio'} as ${String(smsConfig?.config?.from_number ?? 'the configured number')}.`
+				: 'No SMS provider is configured, so nothing can be sent by text yet.',
+			href: '/superadmin/providers/sms'
 		},
 		{
 			id: 'business',
@@ -105,6 +130,84 @@
 			href: '/superadmin/providers?tab=access'
 		}
 	]);
+
+	/* ---------- platform-default rules, every event in the catalog ---------- */
+
+	let events = $state<NotificationEventDef[]>([]);
+	let rules = $state<NotificationRule[]>([]);
+	let rulesLoading = $state(true);
+	let rulesError = $state('');
+	let busyRuleKey = $state('');
+
+	async function loadRules() {
+		rulesLoading = true;
+		rulesError = '';
+		try {
+			[events, rules] = await Promise.all([fetchNotificationEvents(), fetchPlatformNotificationRules()]);
+		} catch (err) {
+			rulesError = errorMessage(err, 'load default notification rules');
+		} finally {
+			rulesLoading = false;
+		}
+	}
+
+	function ruleKey(r: NotificationRule) {
+		return `${r.event_code}:${r.channel}:${r.recipient_policy}`;
+	}
+
+	async function onRuleChange(rule: NotificationRule, enabled: boolean) {
+		busyRuleKey = ruleKey(rule);
+		try {
+			const saved = await savePlatformNotificationRule({
+				event_code: rule.event_code,
+				channel: rule.channel,
+				recipient_policy: rule.recipient_policy,
+				enabled,
+				priority: rule.priority
+			});
+			rules = rules.map((r) => (ruleKey(r) === ruleKey(rule) ? saved : r));
+		} catch (err) {
+			toast.error(errorMessage(err, 'save that default'));
+		} finally {
+			busyRuleKey = '';
+		}
+	}
+
+	/* ---------- delivery log, every tenant ---------- */
+
+	let deliveries = $state<NotificationDelivery[]>([]);
+	let deliveriesLoading = $state(true);
+	let deliveriesError = $state('');
+
+	async function loadDeliveries() {
+		deliveriesLoading = true;
+		deliveriesError = '';
+		try {
+			deliveries = await fetchAllNotificationDeliveries();
+		} catch (err) {
+			deliveriesError = errorMessage(err, 'load the delivery log');
+		} finally {
+			deliveriesLoading = false;
+		}
+	}
+
+	async function retryDelivery(id: string) {
+		try {
+			await retryNotificationDeliveryAsAdmin(id);
+			toast.success('Queued for retry');
+			await loadDeliveries();
+		} catch (err) {
+			toast.error(errorMessage(err, 'retry that delivery'));
+		}
+	}
+
+	const DELIVERY_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral'> = {
+		SENT: 'ok',
+		PENDING: 'neutral',
+		RETRYING: 'warn',
+		FAILED: 'danger',
+		DEAD: 'danger'
+	};
 
 	/** Everything the platform sends today, and what triggers it. */
 	const PLATFORM_MESSAGES = [
@@ -284,6 +387,60 @@
 			<a href="/superadmin/settings/security">Security</a>.
 		</p>
 	</section>
+
+	<section class="panel" style="margin-top:0.85rem;">
+		<h3 class="panel-h">Default notification rules</h3>
+		<p class="panel-note" style="margin:0 0 0.85rem;">
+			What every business starts with, for every event in the catalog — security and critical
+			platform alerts are marked Required and cannot be turned off by a business. A business's own
+			override always wins over what's set here once it writes one.
+		</p>
+		{#if rulesError}
+			<ErrorState message={rulesError} onretry={loadRules} />
+		{:else if rulesLoading}
+			<Skeleton height="10rem" />
+		{:else}
+			<EventRuleMatrix {events} {rules} busyKey={busyRuleKey} onchange={onRuleChange} />
+		{/if}
+	</section>
+
+	<section class="panel" style="margin-top:0.85rem;">
+		<h3 class="panel-h">Delivery log</h3>
+		<p class="panel-note" style="margin:0 0 0.85rem;">
+			Recent email and SMS attempts across every business, plus the platform's own.
+		</p>
+		{#if deliveriesError}
+			<ErrorState message={deliveriesError} onretry={loadDeliveries} />
+		{:else if deliveriesLoading}
+			<Skeleton height="8rem" />
+		{:else if deliveries.length === 0}
+			<p class="muted" style="padding:0.5rem 0;">Nothing has been queued yet.</p>
+		{:else}
+			<ul class="dlv-list">
+				{#each deliveries as d (d.id)}
+					<li class="dlv-row">
+						<div class="dlv-main">
+							<strong>{d.event_code}</strong>
+							<span class="dlv-meta">
+								{d.channel} · {d.recipient}
+								{d.tenant_id ? `· tenant ${d.tenant_id.slice(0, 8)}` : '· platform'} ·
+								{formatRelative(d.created_at)}
+							</span>
+							{#if d.last_error}<span class="dlv-error">{d.last_error}</span>{/if}
+						</div>
+						<div class="dlv-end">
+							<StatusBadge status={d.status} kind={DELIVERY_TONE[d.status] ?? 'neutral'} />
+							{#if d.status === 'FAILED' || d.status === 'DEAD'}
+								<button type="button" class="btn btn-quiet btn-sm" onclick={() => retryDelivery(d.id)}>
+									Retry
+								</button>
+							{/if}
+						</div>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</section>
 {/if}
 
 <style>
@@ -412,5 +569,52 @@
 		font-size: var(--fs-meta);
 		color: var(--text-3);
 		word-break: break-word;
+	}
+
+	.dlv-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		overflow: hidden;
+	}
+
+	.dlv-row {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 0.6rem 0.85rem;
+		border-top: 1px solid var(--border-subtle);
+		background: var(--surface-1);
+	}
+
+	.dlv-row:first-child {
+		border-top: none;
+	}
+
+	.dlv-main {
+		display: flex;
+		flex-direction: column;
+		gap: 0.1rem;
+		min-width: 0;
+	}
+
+	.dlv-meta {
+		font-size: var(--fs-code);
+		color: var(--text-3);
+	}
+
+	.dlv-error {
+		font-size: var(--fs-code);
+		color: var(--danger, #dc2626);
+	}
+
+	.dlv-end {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-shrink: 0;
 	}
 </style>

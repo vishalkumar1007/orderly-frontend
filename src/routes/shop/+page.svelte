@@ -38,7 +38,7 @@
 		type DashboardStoreLink as StoreLink
 	} from '$lib/tenant/dashboardCache.svelte';
 	import { STORE_STATUS_OPTIONS } from '$lib/storefront/admin';
-	import { quickActions, terms } from '$lib/tenant/businessType.svelte';
+	import { quickActions, terms, orderingEnabled } from '$lib/tenant/businessType.svelte';
 
 	const t = $derived(terms());
 
@@ -437,42 +437,44 @@
 	{/if}
 
 	<!-- Today -->
-	<section class="dash-section">
-		<div class="dash-section-head">
-			<h2>Today</h2>
-			<p>What needs attention right now</p>
-		</div>
-		{#if loading}
-			<div class="dash-today">
-				{#each [1, 2, 3, 4] as _, i (i)}
-					<div class="dash-stat"><Skeleton height="2.4rem" /></div>
-				{/each}
+	{#if orderingEnabled()}
+		<section class="dash-section">
+			<div class="dash-section-head">
+				<h2>Today</h2>
+				<p>What needs attention right now</p>
 			</div>
-		{:else if stats}
-			<div class="dash-today">
-				<div class="dash-stat accent">
-					<span class="dash-stat-label">{t.orders}</span>
-					<strong class="dash-stat-value">{stats.orders_today}</strong>
-					<span class="dash-stat-hint">{stats.completed_today} completed</span>
+			{#if loading}
+				<div class="dash-today">
+					{#each [1, 2, 3, 4] as _, i (i)}
+						<div class="dash-stat"><Skeleton height="2.4rem" /></div>
+					{/each}
 				</div>
-				<div class="dash-stat">
-					<span class="dash-stat-label">Revenue</span>
-					<strong class="dash-stat-value">{money(Number(stats.revenue_today))}</strong>
-					<span class="dash-stat-hint">today</span>
+			{:else if stats}
+				<div class="dash-today">
+					<div class="dash-stat accent">
+						<span class="dash-stat-label">{t.orders}</span>
+						<strong class="dash-stat-value">{stats.orders_today}</strong>
+						<span class="dash-stat-hint">{stats.completed_today} completed</span>
+					</div>
+					<div class="dash-stat">
+						<span class="dash-stat-label">Revenue</span>
+						<strong class="dash-stat-value">{money(Number(stats.revenue_today))}</strong>
+						<span class="dash-stat-hint">today</span>
+					</div>
+					<a class="dash-stat" class:hot={stats.pending_orders > 0} href="/shop/orders">
+						<span class="dash-stat-label">Needs action</span>
+						<strong class="dash-stat-value">{stats.pending_orders}</strong>
+						<span class="dash-stat-hint">new {t.orders.toLowerCase()} →</span>
+					</a>
+					<a class="dash-stat" href="/shop/kitchen">
+						<span class="dash-stat-label">In {t.station.toLowerCase()}</span>
+						<strong class="dash-stat-value">{stats.preparing_orders + stats.ready_orders}</strong>
+						<span class="dash-stat-hint">{stats.ready_orders} ready →</span>
+					</a>
 				</div>
-				<a class="dash-stat" class:hot={stats.pending_orders > 0} href="/shop/orders">
-					<span class="dash-stat-label">Needs action</span>
-					<strong class="dash-stat-value">{stats.pending_orders}</strong>
-					<span class="dash-stat-hint">new {t.orders.toLowerCase()} →</span>
-				</a>
-				<a class="dash-stat" href="/shop/kitchen">
-					<span class="dash-stat-label">In {t.station.toLowerCase()}</span>
-					<strong class="dash-stat-value">{stats.preparing_orders + stats.ready_orders}</strong>
-					<span class="dash-stat-hint">{stats.ready_orders} ready →</span>
-				</a>
-			</div>
-		{/if}
-	</section>
+			{/if}
+		</section>
+	{/if}
 
 	<!-- Quick actions -->
 	<section class="dash-section">
@@ -551,6 +553,14 @@
 	{/if}
 
 	<!-- Performance -->
+	{#if !orderingEnabled()}
+		<section class="dash-section">
+			<div class="dash-section-head">
+				<h2>Performance</h2>
+				<p>Order analytics aren't tracked for this business type yet.</p>
+			</div>
+		</section>
+	{:else}
 	<section class="dash-section">
 		<div class="dash-section-head row">
 			<div>
@@ -701,8 +711,9 @@
 			{/if}
 		</section>
 	</section>
+	{/if}
 
-	{#if !loading && stats && stats.orders_today === 0 && store?.is_published}
+	{#if orderingEnabled() && !loading && stats && stats.orders_today === 0 && store?.is_published}
 		<Reveal class="panel">
 			<EmptyState
 				title="No orders yet today"

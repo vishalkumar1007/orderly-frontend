@@ -112,6 +112,8 @@ export type StoreOrdering = {
 	customer_login_mode: 'off' | 'optional' | 'required';
 	payment_requirement: string;
 	auto_accept: boolean;
+	ready_notification: boolean;
+	order_ready_sound: string;
 	store_status: string;
 	status_message: string;
 	store_status_label: string;

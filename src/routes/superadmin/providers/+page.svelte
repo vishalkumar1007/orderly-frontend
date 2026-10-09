@@ -3,11 +3,11 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
-	import Bell from '@lucide/svelte/icons/bell';
 	import Bot from '@lucide/svelte/icons/bot';
 	import CreditCard from '@lucide/svelte/icons/credit-card';
 	import HardDrive from '@lucide/svelte/icons/hard-drive';
 	import Mail from '@lucide/svelte/icons/mail';
+	import MessageSquare from '@lucide/svelte/icons/message-square';
 	import ShieldAlert from '@lucide/svelte/icons/shield-alert';
 	import type { Component } from 'svelte';
 	import { fetchPlatformConfigs } from '$lib/admin/configApi';
@@ -30,14 +30,14 @@
 	 * Providers and integrations.
 	 *
 	 * The platform's own credentials for the services every business can draw
-	 * on. Three are managed here — email, storage and AI — and each reports the
-	 * same four things: whether it is configured, whether it is switched on,
-	 * whether its last test passed, and whether businesses may use it.
+	 * on. Four are managed here — email, SMS, storage and AI — and each
+	 * reports the same four things: whether it is configured, whether it is
+	 * switched on, whether its last test passed, and whether businesses may
+	 * use it.
 	 *
-	 * Two more are listed and deliberately not manageable: payments are chosen
-	 * per business, and notification delivery is email. Saying so is more
-	 * useful than a card that pretends to configure something this build does
-	 * not have.
+	 * One more is listed and deliberately not manageable: payments are chosen
+	 * per business. Saying so is more useful than a card that pretends to
+	 * configure something this build does not have.
 	 */
 
 	const tabs = [
@@ -73,6 +73,13 @@
 			icon: Bot,
 			purpose:
 				'Powers the storefront copy assistant. Entirely optional — nothing breaks when it is off.'
+		},
+		{
+			service: 'SMS',
+			name: 'SMS',
+			icon: MessageSquare,
+			purpose:
+				'Sends text notifications — order-ready, booking confirmations — to customers who opt in. Optional; nothing sends by SMS until this is configured and a business enables it.'
 		}
 	];
 
@@ -215,18 +222,6 @@
 						</p>
 					</div>
 					<StatusBadge status="Per business" kind="neutral" dot={false} />
-				</div>
-				<div class="un-row">
-					<span class="prov-icon small"><Bell size={15} strokeWidth={1.8} /></span>
-					<div>
-						<strong>Notifications</strong>
-						<p>
-							Delivery is email, so notifications inherit whatever the Email provider above is set
-							to. What gets sent is configured under
-							<a href="/superadmin/notifications">Notifications</a>.
-						</p>
-					</div>
-					<StatusBadge status="Via email" kind="neutral" dot={false} />
 				</div>
 			</div>
 		</section>

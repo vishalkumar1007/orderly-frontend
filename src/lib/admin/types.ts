@@ -58,6 +58,8 @@ export type Tenant = {
 	store_status?: 'OPEN' | 'BUSY' | 'AWAY' | 'CLOSED' | string;
 	status_message?: string;
 	shop_type?: string;
+	/** Per-business grant: lets this business's own staff set up two-factor authentication. Off by default. */
+	mfa_allowed?: boolean;
 };
 
 export type TenantAdmin = {
@@ -67,6 +69,7 @@ export type TenantAdmin = {
 	phone?: string;
 	status: string;
 	must_set_password?: boolean;
+	mfa_enabled?: boolean;
 	role?: UserRole;
 	last_activity?: string | null;
 	created_at?: string;
@@ -121,6 +124,8 @@ export type CreateTenantPayload = {
 	 * force on a module the business type structurally does not have.
 	 */
 	capability_overrides?: Record<string, boolean>;
+	/** Grants this business's own staff the right to use two-factor authentication. Off by default, editable later from the business's own Configuration tab. */
+	mfa_allowed?: boolean;
 };
 
 /** One row of business_type_capabilities, as the onboarding wizard reads it. */
@@ -206,22 +211,16 @@ export type TenantSecurity = {
 	audit_events_7d: number;
 };
 
+/**
+ * Revenue and order figures are business-private data and are not exposed
+ * to platform superadmins — only operational/monitoring fields are returned.
+ */
 export type TenantMetrics = {
-	orders: number;
-	revenue: string;
 	active_users: number;
 	current_plan: string;
-	orders_today: number;
-	revenue_today: string;
-	cancelled_orders: number;
-	avg_order_value: string;
-	first_order_at: string;
-	last_order_at: string;
-	status_breakdown: TenantStatusBreakdown[];
 	security: TenantSecurity;
 	subscription_status?: string;
 	subscription?: Record<string, unknown> | null;
-	orders_by_day: { day: string; order_count: number; revenue?: string }[];
 	recent_activity?: PlatformEvent[];
 };
 
@@ -467,9 +466,14 @@ export type PlatformSettings = {
 	};
 	security: {
 		session_timeout_minutes: number;
-		require_mfa_for_admins: boolean;
 		password_min_length: number;
 		invite_expiry_hours: number;
+		/** Governs console accounts only — never a tenant's, see tenant mfa-policy for that. */
+		mfa_mode: 'DISABLED' | 'OPTIONAL' | 'REQUIRED';
+		mfa_allowed_methods: ('TOTP' | 'EMAIL_OTP')[];
+		mfa_enforce_scope: 'ALL_ADMINS' | 'SELECTED_ROLES';
+		mfa_enforce_roles: string[] | null;
+		mfa_grace_period_days: number;
 	};
 	admin_profile?: {
 		name: string;

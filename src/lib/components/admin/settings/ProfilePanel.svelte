@@ -8,6 +8,7 @@
 	import { errorMessage } from '$lib/admin/errors';
 	import type { PlatformSettings } from '$lib/admin/types';
 	import FormField from '$lib/components/admin/FormField.svelte';
+	import MfaSetupPanel from '$lib/components/admin/MfaSetupPanel.svelte';
 	import SettingsSection from '$lib/components/admin/SettingsSection.svelte';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
 	import TextInput from '$lib/components/admin/TextInput.svelte';
@@ -161,6 +162,8 @@
 			</FormField>
 		</form>
 	</SettingsSection>
+
+	<MfaSetupPanel />
 
 	<SettingsSection
 		title="Roles on this platform"
