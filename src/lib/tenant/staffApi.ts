@@ -48,3 +48,8 @@ export async function resetShopUserAccess(userId: string): Promise<UserInviteRes
 export async function resendShopUserInvite(userId: string): Promise<UserInviteResult> {
 	return api<UserInviteResult>(`/api/v1/tenant/users/${userId}/resend-invite`, { method: 'POST' });
 }
+
+/** Turns off a locked-out teammate's two-factor authentication. Never returns a secret or codes — there are none to return. */
+export async function resetShopUserMFA(userId: string): Promise<void> {
+	await api(`/api/v1/tenant/users/${userId}/reset-mfa`, { method: 'POST' });
+}

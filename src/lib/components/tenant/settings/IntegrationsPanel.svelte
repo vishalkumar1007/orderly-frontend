@@ -1,6 +1,7 @@
 <script lang="ts">
 	import HardDrive from '@lucide/svelte/icons/hard-drive';
 	import Mail from '@lucide/svelte/icons/mail';
+	import MessageSquare from '@lucide/svelte/icons/message-square';
 	import Sparkles from '@lucide/svelte/icons/sparkles';
 	import type { Component } from 'svelte';
 	import type { ConfigService } from '$lib/admin/configTypes';
@@ -9,7 +10,7 @@
 	/**
 	 * Integrations.
 	 *
-	 * Three services, one screen. They were three separate routes reached
+	 * Four services, one screen. They were separate routes reached
 	 * through an index page, which meant four navigations to compare two of
 	 * them; a service switcher is one.
 	 *
@@ -27,6 +28,7 @@
 
 	const SERVICES: Array<{ id: ConfigService; label: string; hint: string; icon: Component }> = [
 		{ id: 'SMTP', label: 'Email', hint: 'Order mail and invites', icon: Mail },
+		{ id: 'SMS', label: 'SMS', hint: 'Order and booking texts', icon: MessageSquare },
 		{ id: 'STORAGE', label: 'Storage', hint: 'Menu images and uploads', icon: HardDrive },
 		{ id: 'AI', label: 'AI', hint: 'Assistive generation', icon: Sparkles }
 	];

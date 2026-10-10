@@ -18,6 +18,7 @@
 		listShopUsers,
 		resendShopUserInvite,
 		resetShopUserAccess,
+		resetShopUserMFA,
 		updateShopUser,
 		type ShopUser
 	} from '$lib/tenant/staffApi';
@@ -156,6 +157,16 @@
 		}
 	}
 
+	async function resetMFA(user: ShopUser) {
+		try {
+			await resetShopUserMFA(user.id);
+			toast.success(`Two-factor authentication turned off for ${user.name}`);
+			await load();
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Could not reset two-factor authentication');
+		}
+	}
+
 	function showInvite(res: UserInviteResult, heading: string) {
 		invite = res;
 		inviteHeading = heading;
@@ -244,6 +255,9 @@
 							{#if u.must_set_password}
 								<StatusBadge status="NEEDS PASSWORD" kind="warn" dot={false} />
 							{/if}
+							{#if u.mfa_enabled}
+								<StatusBadge status="2FA ON" kind="ok" dot={false} />
+							{/if}
 						</span>
 					</td>
 					<td class="muted">{u.last_activity ? formatRelative(u.last_activity) : 'Never'}</td>
@@ -253,6 +267,9 @@
 							items={[
 								{ label: 'Resend setup link', onclick: () => resend(u) },
 								{ label: 'Reset access', onclick: () => ask(u, 'reset'), separatorBefore: true },
+								...(u.mfa_enabled
+									? [{ label: 'Reset two-factor authentication', onclick: () => resetMFA(u) }]
+									: []),
 								u.status === 'ACTIVE'
 									? { label: 'Disable', danger: true, onclick: () => ask(u, 'disable') }
 									: { label: 'Re-enable', onclick: () => ask(u, 'enable') }

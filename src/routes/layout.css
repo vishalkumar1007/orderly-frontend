@@ -952,7 +952,6 @@ select.input {
 	/* Blur-transparent background: keeps background clear while blurring content underneath */
 	background: transparent;
 	backdrop-filter: blur(20px) saturate(150%);
-	-webkit-backdrop-filter: blur(20px) saturate(150%);
 	border-right: 1px solid var(--rail-border);
 	position: sticky;
 	top: 0;
@@ -1363,7 +1362,6 @@ select.input {
 	padding: 0 1.15rem;
 	background: color-mix(in srgb, var(--surface) 38%, transparent);
 	backdrop-filter: blur(18px) saturate(1.4);
-	-webkit-backdrop-filter: blur(18px) saturate(1.4);
 	border-bottom: 1px solid color-mix(in srgb, var(--border) 35%, transparent);
 }
 
@@ -4209,7 +4207,6 @@ select.input {
 	z-index: 30;
 	background: color-mix(in srgb, var(--surface) 88%, transparent);
 	backdrop-filter: saturate(180%) blur(12px);
-	-webkit-backdrop-filter: saturate(180%) blur(12px);
 	border-bottom: 1px solid var(--border);
 	padding-top: var(--osh-safe-t);
 }
@@ -4293,7 +4290,6 @@ select.input {
 	/* Hairline sits on the very bottom edge. */
 	background: color-mix(in srgb, var(--surface) 92%, transparent);
 	backdrop-filter: saturate(180%) blur(14px);
-	-webkit-backdrop-filter: saturate(180%) blur(14px);
 	border-top: 1px solid var(--border);
 	padding-bottom: var(--osh-safe-b);
 	padding-left: var(--osh-safe-l);

@@ -1,6 +1,6 @@
 /** Configurable integrations. Mirrors the backend's configsvc package. */
 
-export type ConfigService = 'SMTP' | 'STORAGE' | 'AI';
+export type ConfigService = 'SMTP' | 'STORAGE' | 'AI' | 'SMS';
 export type ConfigSource = 'PLATFORM' | 'ORGANIZATION';
 export type ConfigStatus =
 	| 'UNCONFIGURED'
@@ -147,7 +147,8 @@ export const MASK_SENTINEL = '__KEEP__';
 export const CONFIG_SERVICE_LABEL: Record<ConfigService, string> = {
 	SMTP: 'Email / SMTP',
 	STORAGE: 'Storage',
-	AI: 'AI'
+	AI: 'AI',
+	SMS: 'SMS'
 };
 
 export const CONFIG_STATUS_LABEL: Record<ConfigStatus, string> = {
@@ -214,6 +215,11 @@ export const CONFIG_FIELDS: Record<
 		{ key: 'request_timeout_seconds', label: 'Request timeout (s)', type: 'number' },
 		{ key: 'max_output_tokens', label: 'Max output tokens', type: 'number' },
 		{ key: 'rate_limit_per_minute', label: 'Rate limit (req/min)', type: 'number' }
+	],
+	SMS: [
+		{ key: 'account_sid', label: 'Account SID' },
+		{ key: 'auth_token', label: 'Auth token', type: 'password', secret: true },
+		{ key: 'from_number', label: 'From number', hint: 'E.164 format, e.g. +14155551234' }
 	]
 };
 

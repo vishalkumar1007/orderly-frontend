@@ -95,6 +95,10 @@ export type AdminStorefront = {
 		payment_requirement: string;
 		ready_notification: boolean;
 		auto_complete: boolean;
+		new_order_sound: string;
+		order_ready_sound: string;
+		in_app_new_order_enabled: boolean;
+		in_app_order_ready_enabled: boolean;
 	};
 	hours: {
 		always_open: boolean;
@@ -278,6 +282,10 @@ export const storefrontAdminApi = {
 		payment_requirement?: string;
 		ready_notification?: boolean;
 		auto_complete?: boolean;
+		new_order_sound?: string;
+		order_ready_sound?: string;
+		in_app_new_order_enabled?: boolean;
+		in_app_order_ready_enabled?: boolean;
 	}) =>
 		withStorefrontFallback(
 			() =>
@@ -588,7 +596,11 @@ export function createDefaultStorefront(slug = 'your-shop', name = 'Your Store')
 			acceptance_mode: 'MANUAL',
 			payment_requirement: 'BEFORE_PREPARATION',
 			ready_notification: true,
-			auto_complete: false
+			auto_complete: false,
+			new_order_sound: 'CHIME',
+			order_ready_sound: 'CHIME',
+			in_app_new_order_enabled: true,
+			in_app_order_ready_enabled: true
 		},
 		hours: {
 			always_open: true,
@@ -712,6 +724,8 @@ export function adminToStoreConfig(admin: AdminStorefront): StoreConfig {
 			customer_login_mode: loginMode,
 			payment_requirement: admin.workflow?.payment_requirement ?? 'NONE',
 			auto_accept: admin.workflow?.acceptance_mode === 'AUTO',
+			ready_notification: admin.workflow?.ready_notification ?? true,
+			order_ready_sound: admin.workflow?.order_ready_sound ?? 'CHIME',
 			store_status: admin.behaviour.store_status || 'OPEN',
 			status_message: admin.behaviour.status_message || '',
 			store_status_label: admin.behaviour.store_status_label || '',

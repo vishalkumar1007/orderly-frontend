@@ -1,13 +1,18 @@
 import type { Component } from 'svelte';
 import Activity from '@lucide/svelte/icons/activity';
+import BedDouble from '@lucide/svelte/icons/bed-double';
+import CalendarCheck from '@lucide/svelte/icons/calendar-check';
+import CalendarClock from '@lucide/svelte/icons/calendar-clock';
 import ChefHat from '@lucide/svelte/icons/chef-hat';
 import ClipboardList from '@lucide/svelte/icons/clipboard-list';
 import CreditCard from '@lucide/svelte/icons/credit-card';
 import History from '@lucide/svelte/icons/history';
 import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 import LayoutTemplate from '@lucide/svelte/icons/layout-template';
+import ListOrdered from '@lucide/svelte/icons/list-ordered';
 import MonitorPlay from '@lucide/svelte/icons/monitor-play';
 import Megaphone from '@lucide/svelte/icons/megaphone';
+import Scissors from '@lucide/svelte/icons/scissors';
 import Zap from '@lucide/svelte/icons/zap';
 import Settings from '@lucide/svelte/icons/settings';
 import Shield from '@lucide/svelte/icons/shield';
@@ -250,6 +255,7 @@ export const TENANT_NAV: ShopNavGroup[] = [
 				icon: ClipboardList,
 				nested: true,
 				badge: 'active',
+				module: 'station',
 				permission: 'selling'
 			},
 			{
@@ -269,6 +275,22 @@ export const TENANT_NAV: ShopNavGroup[] = [
 				icon: MonitorPlay,
 				exact: true,
 				permission: 'live_activity'
+			},
+			{
+				href: '/shop/appointments',
+				label: 'Appointments',
+				module: 'appointments',
+				icon: CalendarClock,
+				nested: true,
+				permission: 'selling'
+			},
+			{
+				href: '/shop/queue',
+				label: 'Queue',
+				module: 'queue',
+				icon: ListOrdered,
+				exact: true,
+				permission: 'selling'
 			}
 		]
 	},
@@ -279,9 +301,34 @@ export const TENANT_NAV: ShopNavGroup[] = [
 				href: '/shop/menu',
 				label: 'Menu',
 				term: 'catalog',
+				module: 'catalog',
 				icon: UtensilsCrossed,
 				nested: true,
 				permission: 'menu'
+			},
+			{
+				href: '/shop/services',
+				label: 'Services',
+				module: 'services',
+				icon: Scissors,
+				nested: true,
+				permission: 'menu'
+			},
+			{
+				href: '/shop/rooms',
+				label: 'Rooms',
+				module: 'rooms',
+				icon: BedDouble,
+				nested: true,
+				permission: 'menu'
+			},
+			{
+				href: '/shop/reservations',
+				label: 'Reservations',
+				module: 'reservations',
+				icon: CalendarCheck,
+				nested: true,
+				permission: 'selling'
 			},
 			{
 				href: '/shop/customers',

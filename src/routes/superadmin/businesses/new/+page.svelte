@@ -44,6 +44,7 @@
 	import PortalPreview from '$lib/components/admin/PortalPreview.svelte';
 	import SelectField from '$lib/components/admin/SelectField.svelte';
 	import SlugField from '$lib/components/admin/SlugField.svelte';
+	import Select from '$lib/components/admin/Select.svelte';
 	import Switch from '$lib/components/admin/Switch.svelte';
 	import TextArea from '$lib/components/admin/TextArea.svelte';
 	import TextInput from '$lib/components/admin/TextInput.svelte';
@@ -338,6 +339,12 @@
 	let capabilityRows = $state<CapabilityRow[]>([]);
 	let capabilitiesLoading = $state(false);
 	let termsAccepted = $state(initial.termsAccepted);
+	/** Off by default; editable later from the business's own Configuration tab. */
+	let mfaAllowed = $state(false);
+	/** Seeds the initial policy only — the business's own Tenant Admin owns it from here on. */
+	let mfaMode = $state<'OPTIONAL' | 'REQUIRED'>('OPTIONAL');
+	let mfaTotp = $state(true);
+	let mfaEmailOtp = $state(false);
 	let errors = $state<Record<string, string>>({});
 	let touched = $state<Record<string, boolean>>({});
 
@@ -892,6 +899,16 @@
 				language: org.language,
 				store_status: config.ordering_enabled ? 'OPEN' : 'CLOSED',
 				terms_accepted: termsAccepted,
+				mfa_allowed: mfaAllowed,
+				...(mfaAllowed
+					? {
+							mfa_policy_mode: mfaMode,
+							mfa_allowed_methods: [
+								...(mfaTotp ? (['TOTP'] as const) : []),
+								...(mfaEmailOtp ? (['EMAIL_OTP'] as const) : [])
+							]
+						}
+					: {}),
 				...(template.capabilityDriven ? { capability_overrides: capabilityOverrides } : {}),
 				// The storefront template, applied in the same transaction.
 				configuration: {
@@ -2084,6 +2101,34 @@
 								<span>Edit</span>
 								<IconPencil size={11} stroke={2} />
 							</button>
+						</div>
+
+						<!-- Row 6: Security -->
+						<div class="onb-spec-row">
+							<span class="onb-spec-label">Security</span>
+							<div class="onb-spec-body">
+								<Switch
+									bind:checked={mfaAllowed}
+									label="Allow this business to use two-factor authentication"
+									hint="Off by default. The policy below just seeds a starting point — the business's own Tenant Admin owns and can change it afterward from their Settings → Security."
+								/>
+								{#if mfaAllowed}
+									<div style="margin-top:0.6rem;display:flex;flex-direction:column;gap:0.5rem;">
+										<Select
+											label="Starting policy"
+											id="onb-mfa-mode"
+											value={mfaMode}
+											options={[
+												{ value: 'OPTIONAL', label: 'Optional — anyone may turn it on for themselves' },
+												{ value: 'REQUIRED', label: 'Required — enforced for all administrators' }
+											]}
+											onchange={(v) => (mfaMode = v as 'OPTIONAL' | 'REQUIRED')}
+										/>
+										<Switch bind:checked={mfaTotp} label="Authenticator app (TOTP)" />
+										<Switch bind:checked={mfaEmailOtp} label="Email code" />
+									</div>
+								{/if}
+							</div>
 						</div>
 					</div>
 

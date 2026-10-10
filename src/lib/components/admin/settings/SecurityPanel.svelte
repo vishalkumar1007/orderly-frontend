@@ -9,11 +9,27 @@
 	import type { PlatformSettings } from '$lib/admin/types';
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
 	import FormField from '$lib/components/admin/FormField.svelte';
+	import Select from '$lib/components/admin/Select.svelte';
 	import SettingsSection from '$lib/components/admin/SettingsSection.svelte';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
 	import Switch from '$lib/components/admin/Switch.svelte';
 	import TextInput from '$lib/components/admin/TextInput.svelte';
 	import { toast } from '$lib/components/admin/toast';
+
+	/** The console's own small, fixed role set — mirrors pkg/identity.PlatformRoles(), excluding the sole owner. */
+	const PLATFORM_ROLES = [
+		{ key: 'PLATFORM_ADMIN', label: 'Platform admin' },
+		{ key: 'SUPPORT', label: 'Support' }
+	];
+	const MFA_MODE_OPTIONS = [
+		{ value: 'DISABLED', label: 'Disabled — nobody can use it' },
+		{ value: 'OPTIONAL', label: 'Optional — anyone may turn it on for themselves' },
+		{ value: 'REQUIRED', label: 'Required — enforced for the roles below' }
+	];
+	const MFA_SCOPE_OPTIONS = [
+		{ value: 'ALL_ADMINS', label: 'All console accounts' },
+		{ value: 'SELECTED_ROLES', label: 'Selected roles only' }
+	];
 
 	/**
 	 * Security policy.
@@ -29,24 +45,31 @@
 		password_min_length: number;
 		invite_expiry_hours: number;
 		session_timeout_minutes: number;
-		require_mfa_for_admins: boolean;
+		mfa_mode: 'DISABLED' | 'OPTIONAL' | 'REQUIRED';
+		mfa_totp: boolean;
+		mfa_email_otp: boolean;
+		mfa_enforce_scope: 'ALL_ADMINS' | 'SELECTED_ROLES';
+		mfa_enforce_roles: string[];
+		mfa_grace_period_days: number;
+	};
+
+	const DEFAULT_POLICY: Policy = {
+		password_min_length: 8,
+		invite_expiry_hours: 168,
+		session_timeout_minutes: 15,
+		mfa_mode: 'DISABLED',
+		mfa_totp: true,
+		mfa_email_otp: false,
+		mfa_enforce_scope: 'ALL_ADMINS',
+		mfa_enforce_roles: [],
+		mfa_grace_period_days: 7
 	};
 
 	let settings = $state<PlatformSettings | null>(null);
-	let policy = $state<Policy>({
-		password_min_length: 8,
-		invite_expiry_hours: 168,
-		session_timeout_minutes: 15,
-		require_mfa_for_admins: false
-	});
+	let policy = $state<Policy>({ ...DEFAULT_POLICY });
 	// Seeded with the same defaults rather than a copy of `policy`: reading one
 	// piece of state to initialise another captures its first value only.
-	let base = $state<Policy>({
-		password_min_length: 8,
-		invite_expiry_hours: 168,
-		session_timeout_minutes: 15,
-		require_mfa_for_admins: false
-	});
+	let base = $state<Policy>({ ...DEFAULT_POLICY });
 	let loading = $state(true);
 	let error = $state('');
 	let errors = $state<Record<string, string>>({});
@@ -64,7 +87,12 @@
 			password_min_length: next.security.password_min_length,
 			invite_expiry_hours: next.security.invite_expiry_hours,
 			session_timeout_minutes: next.security.session_timeout_minutes,
-			require_mfa_for_admins: next.security.require_mfa_for_admins
+			mfa_mode: next.security.mfa_mode,
+			mfa_totp: next.security.mfa_allowed_methods.includes('TOTP'),
+			mfa_email_otp: next.security.mfa_allowed_methods.includes('EMAIL_OTP'),
+			mfa_enforce_scope: next.security.mfa_enforce_scope,
+			mfa_enforce_roles: next.security.mfa_enforce_roles ?? [],
+			mfa_grace_period_days: next.security.mfa_grace_period_days
 		};
 		base = { ...policy };
 	}
@@ -87,8 +115,19 @@
 	const inviteDirty = $derived(policy.invite_expiry_hours !== base.invite_expiry_hours);
 	const sessionDirty = $derived(
 		policy.session_timeout_minutes !== base.session_timeout_minutes ||
-			policy.require_mfa_for_admins !== base.require_mfa_for_admins
+			policy.mfa_mode !== base.mfa_mode ||
+			policy.mfa_totp !== base.mfa_totp ||
+			policy.mfa_email_otp !== base.mfa_email_otp ||
+			policy.mfa_enforce_scope !== base.mfa_enforce_scope ||
+			JSON.stringify(policy.mfa_enforce_roles) !== JSON.stringify(base.mfa_enforce_roles) ||
+			policy.mfa_grace_period_days !== base.mfa_grace_period_days
 	);
+
+	function toggleEnforceRole(key: string) {
+		policy.mfa_enforce_roles = policy.mfa_enforce_roles.includes(key)
+			? policy.mfa_enforce_roles.filter((r) => r !== key)
+			: [...policy.mfa_enforce_roles, key];
+	}
 
 	function num(e: Event): number {
 		return Number((e.currentTarget as HTMLInputElement).value);
@@ -114,9 +153,32 @@
 				: next[field as string];
 		if (own) return;
 
+		if (field === 'session' && !policy.mfa_totp && !policy.mfa_email_otp) {
+			next.session_timeout_minutes = 'At least one MFA method must be allowed';
+			errors = next;
+			return;
+		}
+
 		setSaving(true);
 		try {
-			hydrate(await updateSettings({ security: { ...policy } }));
+			const methods = [
+				...(policy.mfa_totp ? (['TOTP'] as const) : []),
+				...(policy.mfa_email_otp ? (['EMAIL_OTP'] as const) : [])
+			];
+			hydrate(
+				await updateSettings({
+					security: {
+						password_min_length: policy.password_min_length,
+						invite_expiry_hours: policy.invite_expiry_hours,
+						session_timeout_minutes: policy.session_timeout_minutes,
+						mfa_mode: policy.mfa_mode,
+						mfa_allowed_methods: methods,
+						mfa_enforce_scope: policy.mfa_enforce_scope,
+						mfa_enforce_roles: policy.mfa_enforce_scope === 'SELECTED_ROLES' ? policy.mfa_enforce_roles : null,
+						mfa_grace_period_days: policy.mfa_grace_period_days
+					}
+				})
+			);
 			toast.success('Security policy saved');
 			flash(true);
 			setTimeout(() => flash(false), 2400);
@@ -212,7 +274,7 @@
 
 	<SettingsSection
 		title="Sessions"
-		description="How long someone stays signed in, and whether a second factor is required of administrators."
+		description="How long someone stays signed in, and whether a second factor is required of console accounts."
 		icon={Timer}
 		dirty={sessionDirty}
 		saving={sessionSaving}
@@ -220,7 +282,12 @@
 		onsave={() => save('session', (v) => (sessionSaved = v), (v) => (sessionSaving = v))}
 		onreset={() => {
 			policy.session_timeout_minutes = base.session_timeout_minutes;
-			policy.require_mfa_for_admins = base.require_mfa_for_admins;
+			policy.mfa_mode = base.mfa_mode;
+			policy.mfa_totp = base.mfa_totp;
+			policy.mfa_email_otp = base.mfa_email_otp;
+			policy.mfa_enforce_scope = base.mfa_enforce_scope;
+			policy.mfa_enforce_roles = [...base.mfa_enforce_roles];
+			policy.mfa_grace_period_days = base.mfa_grace_period_days;
 		}}
 	>
 		<FormField
@@ -240,19 +307,53 @@
 			/>
 		</FormField>
 
-		<Switch
-			bind:checked={policy.require_mfa_for_admins}
-			label="Require a second factor for administrators"
-			hint="Recorded as policy only. No second factor is enforced in this build, so turning this on does not yet block a sign-in."
+		<Select
+			label="Two-factor authentication"
+			id="sec-mfa-mode"
+			value={policy.mfa_mode}
+			options={MFA_MODE_OPTIONS}
+			onchange={(v) => (policy.mfa_mode = v as Policy['mfa_mode'])}
 		/>
 
-		{#if policy.require_mfa_for_admins}
-			<div class="alert alert-info" style="margin:0;">
-				<span>
-					This is stored as an intention, not a control. Until a second factor ships, treat it as
-					a note to yourself rather than protection.
-				</span>
-			</div>
+		<Switch bind:checked={policy.mfa_totp} label="Authenticator app (TOTP)" hint="QR-code setup with an app like Google or Microsoft Authenticator." />
+		<Switch bind:checked={policy.mfa_email_otp} label="Email code" hint="A one-time code sent to the account's verified email." />
+
+		{#if policy.mfa_mode === 'REQUIRED'}
+			<Select
+				label="Enforce for"
+				id="sec-mfa-scope"
+				value={policy.mfa_enforce_scope}
+				options={MFA_SCOPE_OPTIONS}
+				onchange={(v) => (policy.mfa_enforce_scope = v as Policy['mfa_enforce_scope'])}
+			/>
+
+			{#if policy.mfa_enforce_scope === 'SELECTED_ROLES'}
+				<div class="mfa-roles">
+					{#each PLATFORM_ROLES as role (role.key)}
+						<Switch
+							checked={policy.mfa_enforce_roles.includes(role.key)}
+							onchange={() => toggleEnforceRole(role.key)}
+							label={role.label}
+						/>
+					{/each}
+				</div>
+			{/if}
+
+			<FormField
+				label="Enrollment grace period"
+				htmlFor="sec-mfa-grace"
+				hint="How long a console account has to set up a method before being blocked at sign-in."
+			>
+				<TextInput
+					id="sec-mfa-grace"
+					type="number"
+					min={0}
+					max={90}
+					suffix="days"
+					value={String(policy.mfa_grace_period_days)}
+					oninput={(e) => (policy.mfa_grace_period_days = num(e))}
+				/>
+			</FormField>
 		{/if}
 	</SettingsSection>
 
@@ -282,6 +383,15 @@
 {/if}
 
 <style>
+	.mfa-roles {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 0.75rem;
+		background: var(--surface-2);
+		border-radius: var(--radius-sm);
+	}
+
 	.posture {
 		margin: 0;
 		padding: 0;

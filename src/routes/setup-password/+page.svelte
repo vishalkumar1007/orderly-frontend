@@ -8,9 +8,17 @@
 	import Lock from '@lucide/svelte/icons/lock';
 	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
-	import { homeForRole, setupPassword } from '$lib/auth';
+	import {
+		enrollMfaConfirm,
+		enrollMfaEmailConfirm,
+		enrollMfaEmailSend,
+		enrollMfaStart,
+		homeForRole,
+		setupPassword
+	} from '$lib/auth';
 	import { api } from '$lib/api/client';
 	import { applyBrandTheme, clearBrandTheme, type BrandTheme } from '$lib/brandTheme';
+	import type { MfaSetup } from '$lib/mfaApi';
 
 	let password = $state('');
 	let confirm = $state('');
@@ -20,6 +28,57 @@
 	let brandTheme = $state<BrandTheme | null>(null);
 	let storeName = $state('');
 	let storeLogo = $state('');
+
+	// Forced enrollment: the account has zero MFA methods and the business
+	// requires one before a normal session is issued.
+	let enrollStep = $state(false);
+	let enrollmentToken = $state('');
+	let enrollMethod = $state<'TOTP' | 'EMAIL_OTP'>('TOTP');
+	let enrollSetup = $state<MfaSetup | null>(null);
+	let enrollCode = $state('');
+	let enrollEmailSending = $state(false);
+	let enrollResendCooldown = $state(0);
+	let cooldownHandle: ReturnType<typeof setInterval> | undefined;
+
+	function startCooldown() {
+		let left = 30;
+		enrollResendCooldown = left;
+		clearInterval(cooldownHandle);
+		cooldownHandle = setInterval(() => {
+			left -= 1;
+			enrollResendCooldown = left;
+			if (left <= 0) clearInterval(cooldownHandle);
+		}, 1000);
+	}
+
+	async function startEnrollEmail() {
+		enrollEmailSending = true;
+		try {
+			await enrollMfaEmailSend(enrollmentToken);
+			startCooldown();
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Could not send the code';
+		} finally {
+			enrollEmailSending = false;
+		}
+	}
+
+	async function submitEnroll(e: Event) {
+		e.preventDefault();
+		error = '';
+		loading = true;
+		try {
+			const user =
+				enrollMethod === 'TOTP'
+					? await enrollMfaConfirm(enrollmentToken, enrollSetup!.setup_token, enrollCode.trim())
+					: await enrollMfaEmailConfirm(enrollmentToken, enrollCode.trim());
+			goto(homeForRole(user.role, 'tenant'));
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Could not complete enrollment';
+		} finally {
+			loading = false;
+		}
+	}
 
 	const token = $derived($page.url.searchParams.get('token') || '');
 
@@ -95,8 +154,19 @@
 		}
 		loading = true;
 		try {
-			const user = await setupPassword(token, password);
-			goto(homeForRole(user.role, 'tenant'));
+			const result = await setupPassword(token, password);
+			if ('mfaEnrollRequired' in result) {
+				enrollmentToken = result.enrollmentToken;
+				enrollMethod = result.methods.includes('TOTP') ? 'TOTP' : 'EMAIL_OTP';
+				enrollStep = true;
+				if (enrollMethod === 'TOTP') {
+					enrollSetup = await enrollMfaStart(enrollmentToken);
+				} else {
+					await startEnrollEmail();
+				}
+				return;
+			}
+			goto(homeForRole(result.role, 'tenant'));
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Setup failed';
 		} finally {
@@ -125,10 +195,72 @@
 			<div class="setup-icon" aria-hidden="true">
 				<ShieldCheck size={24} strokeWidth={1.8} />
 			</div>
-			<h1>Set your password</h1>
-			<p>Create a secure password for your shop admin account</p>
+			{#if enrollStep}
+				<h1>Set up two-factor authentication</h1>
+				<p>This business requires it before you can continue.</p>
+			{:else}
+				<h1>Set your password</h1>
+				<p>Create a secure password for your shop admin account</p>
+			{/if}
 		</div>
 
+		{#if enrollStep}
+			<form class="setup-form" onsubmit={submitEnroll}>
+				{#if enrollMethod === 'TOTP' && enrollSetup}
+					<p class="setup-sub">
+						Scan this with an authenticator app, or enter the code manually:
+						<code>{enrollSetup.secret}</code>
+					</p>
+					<img
+						src={enrollSetup.qr_code_data_uri}
+						alt="QR code for authenticator app setup"
+						width="160"
+						height="160"
+						style="display:block;margin:0 auto 1.25rem;border-radius:var(--radius-md);"
+					/>
+				{:else if enrollMethod === 'EMAIL_OTP'}
+					<p class="setup-sub">
+						We sent a code to your email.
+						<button
+							type="button"
+							class="btn btn-ghost"
+							disabled={enrollEmailSending || enrollResendCooldown > 0}
+							onclick={startEnrollEmail}
+						>
+							{enrollResendCooldown > 0 ? `Resend in ${enrollResendCooldown}s` : 'Resend code'}
+						</button>
+					</p>
+				{/if}
+
+				<div class="setup-field">
+					<label for="enroll-code">6-digit code</label>
+					<div class="setup-input">
+						<ShieldCheck size={16} strokeWidth={1.85} />
+						<input
+							id="enroll-code"
+							type="text"
+							bind:value={enrollCode}
+							placeholder="123456"
+							inputmode="numeric"
+							autocomplete="one-time-code"
+							required
+						/>
+					</div>
+				</div>
+
+				{#if error}
+					<p class="setup-alert" role="alert">
+						<TriangleAlert size={16} strokeWidth={2} />
+						<span>{error}</span>
+					</p>
+				{/if}
+
+				<button class="btn btn-primary setup-submit" type="submit" disabled={loading}>
+					{loading ? 'Confirming…' : 'Confirm and continue'}
+					{#if !loading}<ArrowRight size={16} strokeWidth={2.2} />{/if}
+				</button>
+			</form>
+		{:else}
 		<form class="setup-form" onsubmit={submit}>
 			<div class="setup-field">
 				<label for="password">New password</label>
@@ -196,6 +328,7 @@
 				{#if !loading}<ArrowRight size={16} strokeWidth={2.2} />{/if}
 			</button>
 		</form>
+		{/if}
 
 		<p class="setup-footer">
 			<Lock size={12} strokeWidth={1.9} />

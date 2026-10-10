@@ -203,16 +203,18 @@
 	{#if showMore}
 		<div class="more-block">
 			<div class="toggle-chips">
-				<button
-					type="button"
-					class="chip"
-					class:active={isVegetarian}
-					role="switch"
-					aria-checked={isVegetarian}
-					onclick={() => (isVegetarian = !isVegetarian)}
-				>
-					Vegetarian
-				</button>
+				{#if hasBusinessModule('diet_tags')}
+					<button
+						type="button"
+						class="chip"
+						class:active={isVegetarian}
+						role="switch"
+						aria-checked={isVegetarian}
+						onclick={() => (isVegetarian = !isVegetarian)}
+					>
+						Vegetarian
+					</button>
+				{/if}
 				<button
 					type="button"
 					class="chip"

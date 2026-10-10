@@ -8,55 +8,55 @@
 		fetchPlanOptions,
 		fetchTenant,
 		fetchTenantMetrics,
+		fetchTenantMfaPolicyAdmin,
 		fetchTenantTypes,
+		fetchTenantUsers,
 		resendTenantInvite,
+		resendTenantUserInvite,
+		resetTenantUserAccess,
+		resetTenantUserMFA,
 		setTenantStatus,
 		tenantPublicUrl,
 		updateTenantLocal
 	} from '$lib/admin/api';
 	import { labelForType, templateFor } from '$lib/admin/businessTypes';
 	import { errorMessage } from '$lib/admin/errors';
-	import {
-		formatDate,
-		formatDateTime,
-		formatRelative,
-		rupees,
-		toNumber
-	} from '$lib/admin/format';
+	import { formatDate, formatDateTime, formatRelative } from '$lib/admin/format';
+	import { fetchNotificationEvents, fetchTenantNotificationConfig } from '$lib/admin/notificationsApi';
+	import type { NotificationDelivery, NotificationEventDef, NotificationRule } from '$lib/admin/notificationTypes';
 	import type {
 		AuditLog,
 		PlanOption,
 		Tenant,
+		TenantAdmin,
 		TenantMetrics,
-		TenantType
+		TenantType,
+		UserInviteResult
 	} from '$lib/admin/types';
 	import Copy from '@lucide/svelte/icons/copy';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
-	import IndianRupee from '@lucide/svelte/icons/indian-rupee';
 	import Mail from '@lucide/svelte/icons/mail';
-	import ReceiptText from '@lucide/svelte/icons/receipt-text';
 	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	import Store from '@lucide/svelte/icons/store';
-	import TrendingUp from '@lucide/svelte/icons/trending-up';
 	import Users from '@lucide/svelte/icons/users';
 	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
 	import DataTable from '$lib/components/admin/DataTable.svelte';
 	import EmptyState from '$lib/components/admin/EmptyState.svelte';
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
 	import FormField from '$lib/components/admin/FormField.svelte';
-	import LineChartPanel from '$lib/components/admin/LineChartPanel.svelte';
+	import InviteLinkDialog from '$lib/components/admin/InviteLinkDialog.svelte';
 	import Menu from '$lib/components/admin/Menu.svelte';
 	import Modal from '$lib/components/admin/Modal.svelte';
 	import PlanPicker from '$lib/components/admin/PlanPicker.svelte';
 	import Select from '$lib/components/admin/Select.svelte';
 	import SelectField from '$lib/components/admin/SelectField.svelte';
-	import SeriesBars from '$lib/components/admin/SeriesBars.svelte';
+	import Skeleton from '$lib/components/admin/Skeleton.svelte';
 	import SlideOver from '$lib/components/admin/SlideOver.svelte';
 	import StatCard from '$lib/components/admin/StatCard.svelte';
 	import StatGrid from '$lib/components/admin/StatGrid.svelte';
 	import StatusBadge from '$lib/components/admin/StatusBadge.svelte';
-	import StatusBreakdown from '$lib/components/admin/StatusBreakdown.svelte';
+	import Switch from '$lib/components/admin/Switch.svelte';
 	import Tabs from '$lib/components/admin/Tabs.svelte';
 	import TenantAvatar from '$lib/components/admin/TenantAvatar.svelte';
 	import TenantConfigAccessPanel from '$lib/components/admin/TenantConfigAccessPanel.svelte';
@@ -78,10 +78,19 @@
 	let logs = $state<AuditLog[]>([]);
 	let types = $state<TenantType[]>([]);
 	let plans = $state<PlanOption[]>([]);
+	let users = $state<TenantAdmin[]>([]);
 	let loading = $state(true);
 	let error = $state('');
 
 	let tab = $state('overview');
+
+	let userTarget = $state<TenantAdmin | null>(null);
+	let userConfirmOpen = $state(false);
+	let userConfirmLoading = $state(false);
+
+	let userInvite = $state<UserInviteResult | null>(null);
+	let userInviteOpen = $state(false);
+	let userInviteHeading = $state('Setup link ready');
 
 	let confirmOpen = $state(false);
 	let confirmAction = $state<'suspend' | 'activate'>('suspend');
@@ -108,10 +117,18 @@
 
 	let auditResult = $state('');
 
+	let notifEvents = $state<NotificationEventDef[]>([]);
+	let notifRules = $state<NotificationRule[]>([]);
+	let notifDeliveries = $state<NotificationDelivery[]>([]);
+	let notifLoading = $state(true);
+	let notifError = $state('');
+
 	const tabs = [
 		{ id: 'overview', label: 'Overview' },
 		{ id: 'subscription', label: 'Subscription' },
 		{ id: 'configuration', label: 'Configuration' },
+		{ id: 'notifications', label: 'Notifications' },
+		{ id: 'users', label: 'Users' },
 		{ id: 'activity', label: 'Activity' },
 		{ id: 'audit', label: 'Audit' }
 	];
@@ -123,23 +140,46 @@
 		loading = true;
 		error = '';
 		try {
-			const [t, m, l, ty, pl] = await Promise.all([
+			const [t, m, l, ty, pl, us, mp] = await Promise.all([
 				fetchTenant(id),
 				fetchTenantMetrics(id),
 				fetchAuditLogs(id),
 				fetchTenantTypes(),
-				fetchPlanOptions()
+				fetchPlanOptions(),
+				fetchTenantUsers(id),
+				fetchTenantMfaPolicyAdmin(id).catch(() => null)
 			]);
 			business = t;
 			metrics = m;
 			logs = l;
+			users = us;
 			types = ty;
 			plans = pl;
+			mfaPolicy = mp;
 		} catch (err) {
 			error = errorMessage(err, 'load this business');
 			business = null;
 		} finally {
 			loading = false;
+		}
+		void loadNotifications();
+	}
+
+	// Separate from the main load: a problem here should never block the rest
+	// of the business profile from rendering.
+	async function loadNotifications() {
+		if (!id) return;
+		notifLoading = true;
+		notifError = '';
+		try {
+			const [events, cfg] = await Promise.all([fetchNotificationEvents(), fetchTenantNotificationConfig(id)]);
+			notifEvents = events;
+			notifRules = cfg.rules;
+			notifDeliveries = cfg.deliveries;
+		} catch (err) {
+			notifError = errorMessage(err, "load this business's notification configuration");
+		} finally {
+			notifLoading = false;
 		}
 	}
 
@@ -161,24 +201,6 @@
 	const terms = $derived(template.terminology);
 	const typeLabel = $derived(labelForType(business?.business_type, types));
 
-	const orderSeries = $derived(
-		(metrics?.orders_by_day ?? []).map((d) => ({
-			day: String(d.day ?? ''),
-			order_count: Number(d.order_count ?? 0),
-			revenue: toNumber(d.revenue)
-		}))
-	);
-	const revenueSeries = $derived(
-		orderSeries.map((d) => ({ label: d.day.slice(5), value: d.revenue }))
-	);
-	const aov = $derived(toNumber(metrics?.avg_order_value));
-	const completionRate = $derived.by(() => {
-		const rows = metrics?.status_breakdown ?? [];
-		const total = rows.reduce((s, r) => s + r.count, 0);
-		if (!total) return null;
-		const done = rows.find((r) => r.status === 'COMPLETED')?.count ?? 0;
-		return Math.round((done / total) * 100);
-	});
 	const security = $derived(metrics?.security);
 	const subscription = $derived(
 		(metrics?.subscription ?? business?.subscription ?? null) as Record<string, unknown> | null
@@ -233,6 +255,28 @@
 		}
 	}
 
+	let mfaAllowed = $state(false);
+	let mfaSaving = $state(false);
+	let mfaPolicy = $state<Awaited<ReturnType<typeof fetchTenantMfaPolicyAdmin>> | null>(null);
+	$effect(() => {
+		if (business) mfaAllowed = !!business.mfa_allowed;
+	});
+
+	async function toggleMfaAllowed(next: boolean) {
+		if (!business) return;
+		mfaSaving = true;
+		try {
+			business = { ...business, ...(await updateTenantLocal(business.id, { mfa_allowed: next })) };
+			mfaPolicy = await fetchTenantMfaPolicyAdmin(business.id).catch(() => mfaPolicy);
+			toast.success(next ? 'Two-factor authentication allowed for this business' : 'Two-factor authentication disallowed for this business');
+		} catch (err) {
+			mfaAllowed = !next;
+			toast.error(errorMessage(err, 'update this setting'));
+		} finally {
+			mfaSaving = false;
+		}
+	}
+
 	function askStatus(action: 'suspend' | 'activate') {
 		confirmAction = action;
 		confirmOpen = true;
@@ -251,6 +295,64 @@
 			confirmLoading = false;
 		}
 	}
+
+	function askUserReset(user: TenantAdmin) {
+		userTarget = user;
+		userConfirmOpen = true;
+	}
+
+	async function runUserConfirm() {
+		if (!userTarget || !business) return;
+		userConfirmLoading = true;
+		try {
+			const res = await resetTenantUserAccess(business.id, userTarget.id);
+			userConfirmOpen = false;
+			toast.success('Access reset — all sessions revoked');
+			showUserInvite(res, 'Access reset');
+			users = await fetchTenantUsers(business.id);
+		} catch (err) {
+			toast.error(errorMessage(err, 'reset this user’s access'));
+		} finally {
+			userConfirmLoading = false;
+		}
+	}
+
+	async function resendUserInvite(user: TenantAdmin) {
+		if (!business) return;
+		try {
+			const res = await resendTenantUserInvite(business.id, user.id);
+			toast.success('Setup link regenerated');
+			showUserInvite(res, 'Setup link regenerated');
+			users = await fetchTenantUsers(business.id);
+		} catch (err) {
+			toast.error(errorMessage(err, 'regenerate the setup link'));
+		}
+	}
+
+	async function resetUserMFA(user: TenantAdmin) {
+		if (!business) return;
+		try {
+			await resetTenantUserMFA(business.id, user.id);
+			toast.success(`Two-factor authentication turned off for ${user.name}`);
+			users = await fetchTenantUsers(business.id);
+		} catch (err) {
+			toast.error(errorMessage(err, 'reset two-factor authentication'));
+		}
+	}
+
+	function showUserInvite(res: UserInviteResult, heading: string) {
+		userInvite = res;
+		userInviteHeading = heading;
+		userInviteOpen = true;
+	}
+
+	const userConfirmCopy = $derived({
+		title: 'Reset access?',
+		message: userTarget
+			? `${userTarget.name} will be signed out everywhere and must set a new password via a fresh setup link.`
+			: '',
+		label: 'Reset access'
+	});
 
 	function openPlan() {
 		planChoice = currentPlan.toUpperCase();
@@ -412,19 +514,6 @@
 
 	{#if tab === 'overview'}
 		<StatGrid>
-			<StatCard label="Orders today" value={metrics?.orders_today ?? '—'}>
-				{#snippet icon()}<ReceiptText size={15} strokeWidth={1.9} />{/snippet}
-			</StatCard>
-			<StatCard label="Revenue today" value={metrics ? rupees(metrics.revenue_today) : '—'}>
-				{#snippet icon()}<IndianRupee size={15} strokeWidth={1.9} />{/snippet}
-			</StatCard>
-			<StatCard
-				label="Lifetime revenue"
-				value={metrics ? rupees(metrics.revenue) : '—'}
-				hint={aov ? `${rupees(aov)} average order` : undefined}
-			>
-				{#snippet icon()}<TrendingUp size={15} strokeWidth={1.9} />{/snippet}
-			</StatCard>
 			<StatCard
 				label="Users"
 				value={security?.users_total ?? '—'}
@@ -432,27 +521,13 @@
 			>
 				{#snippet icon()}<Users size={15} strokeWidth={1.9} />{/snippet}
 			</StatCard>
+			<StatCard
+				label="Active sessions"
+				value={security?.active_sessions ?? '—'}
+			>
+				{#snippet icon()}<ShieldCheck size={15} strokeWidth={1.9} />{/snippet}
+			</StatCard>
 		</StatGrid>
-
-		<div style="margin-bottom:0.85rem;">
-			<LineChartPanel
-				title="Orders — last 30 days"
-				badge="This business"
-				data={orderSeries}
-				{loading}
-			/>
-		</div>
-
-		<div class="grid-2" style="margin-bottom:0.85rem;">
-			<SeriesBars
-				title="Daily revenue"
-				badge="Last 30 days"
-				data={revenueSeries}
-				{loading}
-				formatValue={(n) => rupees(n)}
-			/>
-			<StatusBreakdown rows={metrics?.status_breakdown ?? []} {loading} />
-		</div>
 
 		<div class="grid-2">
 			<section class="panel">
@@ -473,23 +548,10 @@
 			</section>
 
 			<section class="panel">
-				<h3 class="panel-h">Trading</h3>
+				<h3 class="panel-h">Account status</h3>
 				<dl class="dl">
-					<div><dt>Total orders</dt><dd>{metrics?.orders ?? '—'}</dd></div>
-					<div><dt>Cancelled</dt><dd>{metrics?.cancelled_orders ?? '—'}</dd></div>
-					<div>
-						<dt>Completion rate</dt>
-						<dd>{completionRate != null ? `${completionRate}%` : '—'}</dd>
-					</div>
-					<div>
-						<dt>First order</dt>
-						<dd>{metrics?.first_order_at ? formatDate(metrics.first_order_at) : 'None yet'}</dd>
-					</div>
-					<div>
-						<dt>Most recent order</dt>
-						<dd>{metrics?.last_order_at ? formatRelative(metrics.last_order_at) : '—'}</dd>
-					</div>
 					<div><dt>Storefront</dt><dd>{business.is_published ? 'Published' : 'Not published'}</dd></div>
+					<div><dt>Plan</dt><dd>{currentPlan || '—'}</dd></div>
 				</dl>
 			</section>
 		</div>
@@ -635,8 +697,6 @@
 						{security?.users_total ?? 0}{planOption?.maxStaff ? ` of ${planOption.maxStaff}` : ''}
 					</dd>
 				</div>
-				<div><dt>Lifetime orders</dt><dd>{metrics?.orders ?? 0}</dd></div>
-				<div><dt>Lifetime revenue</dt><dd>{metrics ? rupees(metrics.revenue) : '—'}</dd></div>
 			</dl>
 		</section>
 	{:else if tab === 'configuration'}
@@ -667,6 +727,155 @@
 			<TenantConfigAccessPanel tenantName={business.name} />
 		</div>
 
+		<section class="panel">
+			<h3 class="panel-h">Security</h3>
+			<Switch
+				bind:checked={mfaAllowed}
+				onchange={toggleMfaAllowed}
+				disabled={mfaSaving}
+				label="Allow this business to use two-factor authentication"
+				hint="Once on, this business's own Tenant Admin configures the policy (optional or required, which methods, who it's enforced for) from their own Settings → Security. Off by default — this only unlocks the option, it never forces it."
+			/>
+
+			{#if mfaAllowed && mfaPolicy}
+				<dl class="dl" style="max-width:34rem;margin-top:0.85rem;">
+					<div><dt>Policy mode</dt><dd style="text-transform:capitalize;">{mfaPolicy.mode.toLowerCase()}</dd></div>
+					<div><dt>Allowed methods</dt><dd>{mfaPolicy.allowed_methods.join(', ') || '—'}</dd></div>
+					{#if mfaPolicy.mode === 'REQUIRED'}
+						<div><dt>Enforced for</dt><dd>{mfaPolicy.enforce_scope === 'ALL_ADMINS' ? 'All administrators' : (mfaPolicy.enforce_roles ?? []).join(', ') || 'Selected roles'}</dd></div>
+						<div><dt>Grace period</dt><dd>{mfaPolicy.grace_period_days} days</dd></div>
+					{/if}
+				</dl>
+				<p class="field-hint" style="margin:0.5rem 0 0;">
+					Read-only — this business's own Tenant Admin edits it from their Settings → Security.
+				</p>
+			{/if}
+		</section>
+
+	{:else if tab === 'notifications'}
+		<section class="panel" style="margin-bottom:0.85rem;">
+			<h3 class="panel-h">Effective notification rules</h3>
+			<p class="panel-note">
+				What this business actually has enabled right now — its own overrides where it has written
+				one ("Custom"), the platform default everywhere else. Edited from here only for mandatory
+				rules; everything else is this business's own call, from its Settings → Notifications.
+			</p>
+			{#if notifError}
+				<ErrorState message={notifError} onretry={loadNotifications} />
+			{:else if notifLoading}
+				<Skeleton height="10rem" />
+			{:else if notifRules.length === 0}
+				<p class="field-hint">No events apply to this business yet.</p>
+			{:else}
+				<dl class="dl">
+					{#each notifRules as r (r.id)}
+						{@const ev = notifEvents.find((e) => e.code === r.event_code)}
+						<div>
+							<dt>{ev?.label ?? r.event_code}</dt>
+							<dd>
+								{r.channel} · {r.recipient_policy} —
+								<StatusBadge
+									status={r.locked ? 'Required' : r.enabled ? 'Enabled' : 'Disabled'}
+									kind={r.locked ? 'accent' : r.enabled ? 'ok' : 'neutral'}
+								/>
+								{#if r.overridden}<StatusBadge status="Custom" kind="neutral" />{/if}
+							</dd>
+						</div>
+					{/each}
+				</dl>
+			{/if}
+		</section>
+
+		<section class="panel">
+			<h3 class="panel-h">Recent deliveries</h3>
+			<p class="panel-note" style="margin:0 0 0.85rem;">This business's own email and SMS attempts.</p>
+			{#if notifLoading}
+				<Skeleton height="6rem" />
+			{:else if notifDeliveries.length === 0}
+				<p class="field-hint">Nothing has been queued yet.</p>
+			{:else}
+				<dl class="dl">
+					{#each notifDeliveries as d (d.id)}
+						<div>
+							<dt>{d.event_code} · {d.channel}</dt>
+							<dd>
+								{d.recipient} —
+								<StatusBadge
+									status={d.status}
+									kind={d.status === 'SENT'
+										? 'ok'
+										: d.status === 'FAILED' || d.status === 'DEAD'
+											? 'danger'
+											: d.status === 'RETRYING'
+												? 'warn'
+												: 'neutral'}
+								/>
+								<span class="mono" style="margin-left:0.4rem;">{formatRelative(d.created_at)}</span>
+							</dd>
+						</div>
+					{/each}
+				</dl>
+			{/if}
+		</section>
+	{:else if tab === 'users'}
+		<section class="panel" style="margin-bottom:0.85rem;">
+			<p class="panel-note" style="margin:0;">
+				Who has access to this business's console. This is support's read and recover path —
+				resetting access or resending a setup link unblocks someone locked out. Day-to-day team
+				management (names, roles) happens inside the business, by someone who works there.
+			</p>
+		</section>
+		<section class="panel panel-flush">
+			<DataTable
+				loading={false}
+				empty={users.length === 0}
+				emptyTitle="No users yet"
+				emptyDescription="This business has no staff accounts yet."
+			>
+				{#snippet head()}
+					<th>Person</th>
+					<th>Role</th>
+					<th>Status</th>
+					<th>Last activity</th>
+					<th style="width:1%;"><span class="sr-only">Actions</span></th>
+				{/snippet}
+				{#each users as u (u.id)}
+					<tr>
+						<td>
+							<strong style="font-weight:550;">{u.name || '—'}</strong>
+							<span class="muted" style="display:block;font-size:var(--fs-code);">{u.email}</span>
+						</td>
+						<td class="muted">{u.role}</td>
+						<td>
+							<span class="badge-cluster">
+								<StatusBadge status={u.status} />
+								{#if u.must_set_password}
+									<StatusBadge status="NEEDS PASSWORD" kind="warn" dot={false} />
+								{/if}
+								{#if u.mfa_enabled}
+									<StatusBadge status="2FA ON" kind="ok" dot={false} />
+								{/if}
+							</span>
+						</td>
+						<td class="muted" style="white-space:nowrap;">
+							{u.last_activity ? formatRelative(u.last_activity) : 'Never'}
+						</td>
+						<td>
+							<Menu
+								label={`Actions for ${u.name}`}
+								items={[
+									{ label: 'Resend setup link', onclick: () => resendUserInvite(u) },
+									{ label: 'Reset access', onclick: () => askUserReset(u), separatorBefore: true },
+									...(u.mfa_enabled
+										? [{ label: 'Reset two-factor authentication', onclick: () => resetUserMFA(u) }]
+										: [])
+								]}
+							/>
+						</td>
+					</tr>
+				{/each}
+			</DataTable>
+		</section>
 	{:else if tab === 'activity'}
 		{#if logs.length === 0}
 			<div class="panel">
@@ -760,6 +969,25 @@
 	danger={confirmAction === 'suspend'}
 	loading={confirmLoading}
 	onconfirm={runConfirm}
+/>
+
+<ConfirmDialog
+	bind:open={userConfirmOpen}
+	title={userConfirmCopy.title}
+	message={userConfirmCopy.message}
+	confirmLabel={userConfirmCopy.label}
+	danger
+	loading={userConfirmLoading}
+	onconfirm={runUserConfirm}
+/>
+
+<InviteLinkDialog
+	bind:open={userInviteOpen}
+	setupUrl={userInvite?.setup_url ?? ''}
+	email={userInvite?.user.email ?? ''}
+	emailSent={userInvite?.email_sent ?? false}
+	emailError={userInvite?.email_error ?? ''}
+	heading={userInviteHeading}
 />
 
 <Modal bind:open={planOpen} title="Change plan">

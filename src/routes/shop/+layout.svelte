@@ -20,7 +20,8 @@
 	import { orderBoard } from '$lib/tenant/orders.svelte';
 	import { invalidateDashboardSnapshot, resolveStorefrontUrl } from '$lib/tenant/dashboardCache.svelte';
 	import { invalidateMenuSnapshot } from '$lib/tenant/menuCache.svelte';
-	import { invalidateStorefrontAdmin } from '$lib/storefront/adminCache.svelte';
+	import { invalidateStorefrontAdmin, loadStorefrontAdmin } from '$lib/storefront/adminCache.svelte';
+	import { playSound } from '$lib/sound';
 	import { clearBrandTheme, invalidateBrandThemeCache } from '$lib/brandTheme';
 	import { forgetAppearance } from '$lib/appearance.svelte';
 	import { activateUpdate, onUpdateAvailable } from '$lib/pwa.svelte';
@@ -28,6 +29,7 @@
 	import Toaster from '$lib/components/admin/Toaster.svelte';
 	import { toast } from '$lib/components/admin/toast';
 	import AppShell from '$lib/components/shell/AppShell.svelte';
+	import NotificationBell from '$lib/components/admin/NotificationBell.svelte';
 	import BusinessPolicyModal from '$lib/components/tenant/BusinessPolicyModal.svelte';
 	import { policyStore } from '$lib/tenant/policyStore';
 
@@ -214,6 +216,31 @@
 		return () => orderBoard.release('badge');
 	});
 
+	/**
+	 * New-order sound, shop-portal-wide.
+	 *
+	 * Lives in the layout rather than the Selling page so it plays no matter
+	 * which screen a staff member has open — the badge subscriber above is
+	 * already polling everywhere `/shop` is mounted.
+	 */
+	let newOrderSound = $state('CHIME');
+	let lastPendingCount = 0;
+	let soundPrefLoaded = false;
+
+	$effect(() => {
+		if (status !== 'ready' || !user || isPublicRoute || soundPrefLoaded) return;
+		soundPrefLoaded = true;
+		void loadStorefrontAdmin().then((cfg) => {
+			newOrderSound = cfg.workflow.new_order_sound || 'CHIME';
+		});
+	});
+
+	$effect(() => {
+		const count = orderBoard.newCount;
+		if (count > lastPendingCount) playSound(newOrderSound);
+		lastPendingCount = count;
+	});
+
 	onMount(() => {
 		// A new build is ready — offer it instead of swapping mid-order.
 		return onUpdateAvailable(() => {
@@ -278,6 +305,7 @@
 			onSignOut={signOut}
 		>
 			{#snippet actions()}
+				<NotificationBell scope="tenant" />
 				{#if needsAttention > 0}
 					<a class="btn btn-ghost btn-sm" href="/shop/orders">
 						{needsAttention} open {needsAttention === 1 ? 'order' : 'orders'}
