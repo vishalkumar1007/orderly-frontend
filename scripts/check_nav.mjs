@@ -275,7 +275,7 @@ try {
 
 	{
 		const ids = tenantSettings.SETTINGS_SECTIONS.map((s) => s.id);
-		eq('section ids', ids, ['business', 'workflow', 'notifications', 'integrations', 'appearance']);
+		eq('section ids', ids, ['business', 'workflow', 'notifications', 'integrations', 'appearance', 'security']);
 		eq('no duplicate section id', ids.length, new Set(ids).size);
 
 		// Every section names a capability the API actually grants, or none at
@@ -295,7 +295,7 @@ try {
 		const staffSections = tenantSettings
 			.visibleSettingsSections(['selling', 'kitchen'])
 			.map((s) => s.id);
-		eq('what staff can open', staffSections, ['appearance']);
+		eq('what staff can open', staffSections, ['appearance', 'security']);
 
 		const ownerSections = tenantSettings
 			.visibleSettingsSections(['organization', 'integrations', 'settings', 'storefront'])
@@ -649,7 +649,7 @@ try {
 	eq(
 		'Running destinations',
 		running?.items.map((i) => i.label),
-		['Selling', 'Kitchen', 'Live Activity']
+		['Selling', 'Kitchen', 'Live Activity', 'Appointments', 'Queue']
 	);
 
 	/* ---------------------------------------------------------------- */
@@ -735,7 +735,11 @@ try {
 
 	// 7. Hiding is the exception. Module-gated destinations (station board,
 	//    pickup display) may vanish; everything else must survive every type.
-	const optionalHrefs = new Set(['/shop/live', '/shop/kitchen']);
+	const optionalHrefs = new Set(
+		itemsOf(nav.TENANT_NAV)
+			.filter((i) => i.module)
+			.map((i) => i.href)
+	);
 	const baseline = railFor('FOOD')
 		.map((i) => i.href)
 		.filter((h) => !optionalHrefs.has(h));
