@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import type { Component } from 'svelte';
 	import Building2 from '@lucide/svelte/icons/building-2';
+	import Globe from '@lucide/svelte/icons/globe';
 	import Shapes from '@lucide/svelte/icons/shapes';
 	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	import UserRound from '@lucide/svelte/icons/user-round';
@@ -14,6 +15,7 @@
 	import GeneralPanel from '$lib/components/admin/settings/GeneralPanel.svelte';
 	import ProfilePanel from '$lib/components/admin/settings/ProfilePanel.svelte';
 	import SecurityPanel from '$lib/components/admin/settings/SecurityPanel.svelte';
+	import TenantAccessTable from '$lib/components/admin/TenantAccessTable.svelte';
 
 	/**
 	 * Settings.
@@ -62,6 +64,14 @@
 			group: 'Platform',
 			requires: 'platform_settings',
 			lede: 'Password rules, session lifetime and invite expiry, applied across every business.'
+		},
+		{
+			id: 'tenant-access',
+			label: 'Business access',
+			icon: Globe,
+			group: 'Platform',
+			requires: 'platform_settings',
+			lede: 'Which businesses may use the platform’s shared providers, on top of each provider’s own on/off switch. Credentials themselves live under Providers & integrations.'
 		},
 		{
 			id: 'profile',
@@ -154,6 +164,8 @@
 			<SecurityPanel />
 		{:else if active.id === 'appearance'}
 			<AppearancePanel kind="platform" canSetBusinessDefault={canWritePlatformSettings} />
+		{:else if active.id === 'tenant-access'}
+			<TenantAccessTable />
 		{:else}
 			<ProfilePanel />
 		{/if}

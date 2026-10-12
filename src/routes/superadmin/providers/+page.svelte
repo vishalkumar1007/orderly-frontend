@@ -23,27 +23,22 @@
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
 	import StatusBadge from '$lib/components/admin/StatusBadge.svelte';
-	import Tabs from '$lib/components/admin/Tabs.svelte';
-	import TenantAccessTable from '$lib/components/admin/TenantAccessTable.svelte';
 
 	/**
 	 * Providers and integrations.
 	 *
 	 * The platform's own credentials for the services every business can draw
 	 * on. Four are managed here — email, SMS, storage and AI — and each
-	 * reports the same four things: whether it is configured, whether it is
-	 * switched on, whether its last test passed, and whether businesses may
-	 * use it.
+	 * reports the same three things: whether it is configured, whether it is
+	 * switched on, and whether its last test passed. Whether businesses may
+	 * use it at all is set per provider below; which specific businesses do is
+	 * a configuration decision under Settings → Business access, not a
+	 * credential, so it does not live on this page.
 	 *
 	 * One more is listed and deliberately not manageable: payments are chosen
 	 * per business. Saying so is more useful than a card that pretends to
 	 * configure something this build does not have.
 	 */
-
-	const tabs = [
-		{ id: 'providers', label: 'Providers' },
-		{ id: 'access', label: 'Business access' }
-	];
 
 	type ManagedProvider = {
 		service: ConfigService;
@@ -86,7 +81,6 @@
 	let data = $state<PlatformConfigList | null>(null);
 	let loading = $state(true);
 	let error = $state('');
-	let tab = $state('providers');
 
 	async function load() {
 		loading = true;
@@ -102,15 +96,14 @@
 	}
 
 	onMount(() => {
-		const q = $page.url.searchParams.get('tab');
-		if (q && tabs.some((t) => t.id === q)) tab = q;
+		// The per-business access grant moved to Settings; old links still out
+		// there should land there instead of a page that no longer has it.
+		if ($page.url.searchParams.get('tab') === 'access') {
+			goto('/superadmin/settings?section=tenant-access', { replaceState: true });
+			return;
+		}
 		void load();
 	});
-
-	function setTab(next: string) {
-		tab = next;
-		goto(`?tab=${next}`, { replaceState: true, keepFocus: true, noScroll: true });
-	}
 
 	function viewOf(service: ConfigService): ConfigView | undefined {
 		return data?.configurations.find((c) => c.service === service);
@@ -149,85 +142,85 @@
 	</div>
 {/if}
 
-<Tabs {tabs} bind:active={tab} onchange={setTab} />
-
-{#if tab === 'providers'}
-	{#if loading}
-		<div class="prov-grid">
-			{#each [1, 2, 3] as _, i (i)}
-				<Skeleton height="10rem" />
-			{/each}
-		</div>
-	{:else}
-		<div class="prov-grid">
-			{#each MANAGED as provider (provider.service)}
-				{@const view = viewOf(provider.service)}
-				{@const status = view?.status ?? 'UNCONFIGURED'}
-				<a class="prov" href={`/superadmin/providers/${provider.service.toLowerCase()}`}>
-					<div class="prov-head">
-						<span class="prov-icon"><provider.icon size={17} strokeWidth={1.8} /></span>
-						<div class="prov-title">
-							<strong>{provider.name}</strong>
-							<span>{summary(view)}</span>
-						</div>
-						<StatusBadge
-							status={CONFIG_STATUS_LABEL[status]}
-							kind={CONFIG_STATUS_TONE[status]}
-						/>
-					</div>
-
-					<p class="prov-purpose">{provider.purpose}</p>
-
-					<dl class="prov-facts">
-						<div>
-							<dt>Configured</dt>
-							<dd>{view && view.status !== 'UNCONFIGURED' ? 'Yes' : 'No'}</dd>
-						</div>
-						<div>
-							<dt>Enabled</dt>
-							<dd>{view?.enabled ? 'Yes' : 'No'}</dd>
-						</div>
-						<div>
-							<dt>Businesses may use it</dt>
-							<dd>{view?.allow_tenants ? 'Yes' : 'No'}</dd>
-						</div>
-					</dl>
-
-					{#if view?.last_error}
-						<p class="prov-error">Last failure: {view.last_error}</p>
-					{/if}
-
-					<span class="prov-cta">
-						Configure and test
-						<ArrowRight size={13} strokeWidth={2} />
-					</span>
-				</a>
-			{/each}
-		</div>
-
-		<section class="panel" style="margin-top:0.85rem;">
-			<h3 class="panel-h">Not managed at platform level</h3>
-			<p class="panel-note" style="margin:0 0 0.85rem;">
-				These exist in the product but have no platform-wide credentials to hold. They are listed
-				so the absence is deliberate rather than a gap you have to go looking for.
-			</p>
-			<div class="unmanaged">
-				<div class="un-row">
-					<span class="prov-icon small"><CreditCard size={15} strokeWidth={1.8} /></span>
-					<div>
-						<strong>Payments</strong>
-						<p>
-							Each business chooses cash, online payment, or both, and when customers pay — in its
-							own storefront settings. There is no platform gateway holding merchant credentials.
-						</p>
-					</div>
-					<StatusBadge status="Per business" kind="neutral" dot={false} />
-				</div>
-			</div>
-		</section>
-	{/if}
+{#if loading}
+	<div class="prov-grid">
+		{#each [1, 2, 3] as _, i (i)}
+			<Skeleton height="10rem" />
+		{/each}
+	</div>
 {:else}
-	<TenantAccessTable />
+	<div class="prov-grid">
+		{#each MANAGED as provider (provider.service)}
+			{@const view = viewOf(provider.service)}
+			{@const status = view?.status ?? 'UNCONFIGURED'}
+			<a class="prov" href={`/superadmin/providers/${provider.service.toLowerCase()}`}>
+				<div class="prov-head">
+					<span class="prov-icon"><provider.icon size={17} strokeWidth={1.8} /></span>
+					<div class="prov-title">
+						<strong>{provider.name}</strong>
+						<span>{summary(view)}</span>
+					</div>
+					<StatusBadge
+						status={CONFIG_STATUS_LABEL[status]}
+						kind={CONFIG_STATUS_TONE[status]}
+					/>
+				</div>
+
+				<p class="prov-purpose">{provider.purpose}</p>
+
+				<dl class="prov-facts">
+					<div>
+						<dt>Configured</dt>
+						<dd>{view && view.status !== 'UNCONFIGURED' ? 'Yes' : 'No'}</dd>
+					</div>
+					<div>
+						<dt>Enabled</dt>
+						<dd>{view?.enabled ? 'Yes' : 'No'}</dd>
+					</div>
+					<div>
+						<dt>Open to businesses</dt>
+						<dd>{view?.allow_tenants ? 'Yes' : 'No'}</dd>
+					</div>
+				</dl>
+
+				{#if view?.last_error}
+					<p class="prov-error">Last failure: {view.last_error}</p>
+				{/if}
+
+				<span class="prov-cta">
+					Configure and test
+					<ArrowRight size={13} strokeWidth={2} />
+				</span>
+			</a>
+		{/each}
+	</div>
+
+	<p class="prov-footnote">
+		Deciding <em>which</em> businesses may use a provider that's open to them is a configuration
+		choice, not a credential — see
+		<a href="/superadmin/settings?section=tenant-access">Settings &rarr; Business access</a>.
+	</p>
+
+	<section class="panel" style="margin-top:0.85rem;">
+		<h3 class="panel-h">Not managed at platform level</h3>
+		<p class="panel-note" style="margin:0 0 0.85rem;">
+			These exist in the product but have no platform-wide credentials to hold. They are listed
+			so the absence is deliberate rather than a gap you have to go looking for.
+		</p>
+		<div class="unmanaged">
+			<div class="un-row">
+				<span class="prov-icon small"><CreditCard size={15} strokeWidth={1.8} /></span>
+				<div>
+					<strong>Payments</strong>
+					<p>
+						Each business chooses cash, online payment, or both, and when customers pay — in its
+						own storefront settings. There is no platform gateway holding merchant credentials.
+					</p>
+				</div>
+				<StatusBadge status="Per business" kind="neutral" dot={false} />
+			</div>
+		</div>
+	</section>
 {/if}
 
 <style>
@@ -342,6 +335,16 @@
 		font-size: var(--fs-meta);
 		font-family: var(--font-mono);
 		word-break: break-word;
+	}
+
+	.prov-footnote {
+		margin: 0.85rem 0 0;
+		font-size: var(--fs-tab);
+		color: var(--text-3);
+	}
+
+	.prov-footnote a {
+		color: var(--accent-dark);
 	}
 
 	.prov-cta {

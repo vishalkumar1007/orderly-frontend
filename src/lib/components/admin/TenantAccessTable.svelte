@@ -74,13 +74,10 @@
 
 <section class="page">
 	<header class="head">
-		<div>
-			<h2 class="title">Organization configuration</h2>
-			<p class="sub">
-				Which configuration each organization uses, and whether it may use the platform's. No
-				credentials are shown here.
-			</p>
-		</div>
+		<p class="sub">
+			Which configuration each organization uses, and whether it may use the platform's. No
+			credentials are shown here.
+		</p>
 		<SearchInput bind:value={search} placeholder="Search organizations" />
 	</header>
 
@@ -155,14 +152,8 @@
 		gap: 0.75rem;
 	}
 
-	.title {
-		margin: 0;
-		font-size: var(--fs-title);
-		font-weight: 650;
-	}
-
 	.sub {
-		margin: 0.2rem 0 0;
+		margin: 0;
 		font-size: var(--fs-body);
 		color: var(--text-3);
 		max-width: 48rem;

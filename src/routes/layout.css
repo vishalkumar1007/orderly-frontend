@@ -2553,6 +2553,7 @@ select.input {
 	border-bottom: 1px solid var(--border);
 	margin-bottom: 1.25rem;
 	overflow-x: auto;
+	position: relative;
 }
 
 .tabs button {
@@ -2573,20 +2574,45 @@ select.input {
 	color: var(--text-2);
 }
 
+.tabs button:active {
+	color: var(--text);
+}
+
 .tabs button[aria-selected='true'] {
 	color: var(--text);
 	font-weight: 550;
 }
 
-.tabs button[aria-selected='true']::after {
-	content: '';
+/*
+ * One mark that slides to the active tab, instead of each button drawing its
+ * own underline — switching tabs reads as the same mark moving, not a new
+ * one appearing in a different place. Hidden until the first measurement
+ * lands, so it never flashes at 0 width before JS has a layout to read.
+ */
+.tabs-indicator {
 	position: absolute;
-	left: 0.5rem;
-	right: 0.5rem;
+	left: 0;
 	bottom: -1px;
+	width: 0;
 	height: 2px;
 	border-radius: 2px 2px 0 0;
 	background: var(--accent);
+	opacity: 0;
+	pointer-events: none;
+}
+
+.tabs-indicator.is-ready {
+	opacity: 1;
+	transition:
+		left 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+		width 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+		opacity 0.15s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.tabs-indicator.is-ready {
+		transition: opacity 0.15s ease;
+	}
 }
 
 /* ============================================================

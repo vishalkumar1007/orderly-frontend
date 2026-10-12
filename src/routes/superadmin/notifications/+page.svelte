@@ -28,8 +28,11 @@
 	import FormField from '$lib/components/admin/FormField.svelte';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
 	import StatusBadge from '$lib/components/admin/StatusBadge.svelte';
+	import Tabs from '$lib/components/admin/Tabs.svelte';
 	import TextInput from '$lib/components/admin/TextInput.svelte';
 	import { toast } from '$lib/components/admin/toast';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 
 	/**
 	 * Platform notifications.
@@ -84,6 +87,8 @@
 	}
 
 	onMount(() => {
+		const q = $page.url.searchParams.get('tab');
+		if (q && tabs.some((t) => t.id === q)) tab = q;
 		load();
 		void loadRules();
 		void loadDeliveries();
@@ -127,9 +132,20 @@
 			state: 'delegated',
 			detail:
 				'Order-ready messages belong to each business and are configured in its own console. A business may use the platform email provider only if you grant it access.',
-			href: '/superadmin/providers?tab=access'
+			href: '/superadmin/settings?section=tenant-access'
 		}
 	]);
+
+	const tabs = [
+		{ id: 'channels', label: 'Channels' },
+		{ id: 'rules', label: 'Rules & delivery log' }
+	];
+	let tab = $state('channels');
+
+	function setTab(next: string) {
+		tab = next;
+		goto(`?tab=${next}`, { replaceState: true, keepFocus: true, noScroll: true });
+	}
 
 	/* ---------- platform-default rules, every event in the catalog ---------- */
 
@@ -256,191 +272,195 @@
 		<Skeleton height="14rem" />
 	</div>
 {:else}
-	<section class="panel" style="margin-bottom:0.85rem;">
-		<div class="bento-head">
-			<h3 class="panel-h" style="margin:0;">
-				<span style="display:flex;align-items:center;gap:0.45rem;">
-					<Bell size={15} strokeWidth={1.9} />
-					Delivery channels
-				</span>
-			</h3>
-			{#if config}
-				<StatusBadge
-					status={CONFIG_STATUS_LABEL[config.status]}
-					kind={CONFIG_STATUS_TONE[config.status]}
-				/>
-			{/if}
-		</div>
+	<Tabs {tabs} bind:active={tab} onchange={setTab} />
 
-		<div class="ch-rows">
-			{#each channels as channel (channel.id)}
-				<div class="ch-row">
-					<span class={['ch-icon', channel.state].join(' ')}>
-						<channel.icon size={15} strokeWidth={1.8} />
+	{#if tab === 'channels'}
+		<section class="panel" style="margin-bottom:0.85rem;margin-top:0.85rem;">
+			<div class="bento-head">
+				<h3 class="panel-h" style="margin:0;">
+					<span style="display:flex;align-items:center;gap:0.45rem;">
+						<Bell size={15} strokeWidth={1.9} />
+						Delivery channels
 					</span>
-					<div class="ch-text">
-						<strong>{channel.name}</strong>
-						<p>{channel.detail}</p>
-					</div>
-					<div class="ch-end">
-						<StatusBadge
-							status={channel.state === 'managed'
-								? 'Active'
-								: channel.state === 'delegated'
-									? 'Per business'
-									: 'Unavailable'}
-							kind={channel.state === 'managed' ? 'ok' : 'neutral'}
-							dot={channel.state === 'managed'}
-						/>
-						{#if channel.href}
-							<a class="btn btn-quiet btn-sm" href={channel.href}>Open</a>
-						{/if}
-					</div>
-				</div>
-			{/each}
-		</div>
-	</section>
-
-	<div class="grid-2" style="margin-bottom:0.85rem;">
-		<section class="panel">
-			<h3 class="panel-h">Sender identity</h3>
-			<p class="panel-note" style="margin:0 0 0.85rem;">
-				Who platform email appears to come from. Edited with the email provider, because it is
-				part of that configuration rather than a separate setting.
-			</p>
-			<dl class="dl">
-				<div><dt>From name</dt><dd>{fromName || '—'}</dd></div>
-				<div><dt>From address</dt><dd class="mono">{fromEmail || '—'}</dd></div>
-				<div><dt>Reply-to</dt><dd class="mono">{replyTo || fromEmail || '—'}</dd></div>
-				<div>
-					<dt>Support address</dt>
-					<dd class="mono">{settings?.general.support_email || '—'}</dd>
-				</div>
-			</dl>
-			<div style="margin-top:0.9rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-				<a class="btn btn-ghost btn-sm" href="/superadmin/providers/smtp">Edit email provider</a>
-				<a class="btn btn-quiet btn-sm" href="/superadmin/settings">Edit support address</a>
-			</div>
-		</section>
-
-		<section class="panel">
-			<h3 class="panel-h">Send a test</h3>
-			<p class="panel-note" style="margin:0 0 0.85rem;">
-				Delivers a real message through the configured provider. Worth doing before onboarding a
-				business — a failed invite is discovered by the person who cannot sign in.
-			</p>
-			<FormField label="Send to" htmlFor="notif-test">
-				<TextInput id="notif-test" type="email" bind:value={testTo} placeholder="you@example.com" />
-			</FormField>
-			<div style="margin-top:0.85rem;">
-				<button
-					type="button"
-					class="btn btn-primary btn-sm"
-					disabled={sending || !emailReady}
-					onclick={sendTest}
-				>
-					<Send size={14} strokeWidth={2} />
-					{sending ? 'Sending…' : 'Send test email'}
-				</button>
-				{#if !emailReady}
-					<p class="field-hint" style="margin:0.5rem 0 0;">
-						Configure and enable the email provider first.
-					</p>
+				</h3>
+				{#if config}
+					<StatusBadge
+						status={CONFIG_STATUS_LABEL[config.status]}
+						kind={CONFIG_STATUS_TONE[config.status]}
+					/>
 				{/if}
 			</div>
 
-			{#if outcome}
-				<div class={['outcome', outcome.ok ? '' : 'bad'].join(' ')} role="status">
-					<strong>{outcome.ok ? 'Sent' : 'Failed'}</strong>
-					<span>{outcome.message}</span>
-					{#if outcome.detail}<span class="detail">{outcome.detail}</span>{/if}
-				</div>
-			{/if}
-		</section>
-	</div>
-
-	<section class="panel">
-		<h3 class="panel-h">What the platform sends</h3>
-		<p class="panel-note" style="margin:0 0 0.85rem;">
-			The complete list. Anything not here is not sent by the platform — including order updates,
-			which belong to each business.
-		</p>
-
-		{#each PLATFORM_MESSAGES as message (message.name)}
-			<article class="msg">
-				<div class="msg-head">
-					<strong>{message.name}</strong>
-					<span>{message.audience}</span>
-				</div>
-				<p class="msg-body">{message.contents}</p>
-				<ul class="msg-triggers">
-					{#each message.triggers as trigger (trigger)}
-						<li>{trigger}</li>
-					{/each}
-				</ul>
-			</article>
-		{/each}
-
-		<p class="field-hint" style="margin:0.85rem 0 0;">
-			Setup links are single-use and expire after
-			{settings?.security.invite_expiry_hours ?? 168} hours, which is set under
-			<a href="/superadmin/settings/security">Security</a>.
-		</p>
-	</section>
-
-	<section class="panel" style="margin-top:0.85rem;">
-		<h3 class="panel-h">Default notification rules</h3>
-		<p class="panel-note" style="margin:0 0 0.85rem;">
-			What every business starts with, for every event in the catalog — security and critical
-			platform alerts are marked Required and cannot be turned off by a business. A business's own
-			override always wins over what's set here once it writes one.
-		</p>
-		{#if rulesError}
-			<ErrorState message={rulesError} onretry={loadRules} />
-		{:else if rulesLoading}
-			<Skeleton height="10rem" />
-		{:else}
-			<EventRuleMatrix {events} {rules} busyKey={busyRuleKey} onchange={onRuleChange} />
-		{/if}
-	</section>
-
-	<section class="panel" style="margin-top:0.85rem;">
-		<h3 class="panel-h">Delivery log</h3>
-		<p class="panel-note" style="margin:0 0 0.85rem;">
-			Recent email and SMS attempts across every business, plus the platform's own.
-		</p>
-		{#if deliveriesError}
-			<ErrorState message={deliveriesError} onretry={loadDeliveries} />
-		{:else if deliveriesLoading}
-			<Skeleton height="8rem" />
-		{:else if deliveries.length === 0}
-			<p class="muted" style="padding:0.5rem 0;">Nothing has been queued yet.</p>
-		{:else}
-			<ul class="dlv-list">
-				{#each deliveries as d (d.id)}
-					<li class="dlv-row">
-						<div class="dlv-main">
-							<strong>{d.event_code}</strong>
-							<span class="dlv-meta">
-								{d.channel} · {d.recipient}
-								{d.tenant_id ? `· tenant ${d.tenant_id.slice(0, 8)}` : '· platform'} ·
-								{formatRelative(d.created_at)}
-							</span>
-							{#if d.last_error}<span class="dlv-error">{d.last_error}</span>{/if}
+			<div class="ch-rows">
+				{#each channels as channel (channel.id)}
+					<div class="ch-row">
+						<span class={['ch-icon', channel.state].join(' ')}>
+							<channel.icon size={15} strokeWidth={1.8} />
+						</span>
+						<div class="ch-text">
+							<strong>{channel.name}</strong>
+							<p>{channel.detail}</p>
 						</div>
-						<div class="dlv-end">
-							<StatusBadge status={d.status} kind={DELIVERY_TONE[d.status] ?? 'neutral'} />
-							{#if d.status === 'FAILED' || d.status === 'DEAD'}
-								<button type="button" class="btn btn-quiet btn-sm" onclick={() => retryDelivery(d.id)}>
-									Retry
-								</button>
+						<div class="ch-end">
+							<StatusBadge
+								status={channel.state === 'managed'
+									? 'Active'
+									: channel.state === 'delegated'
+										? 'Per business'
+										: 'Unavailable'}
+								kind={channel.state === 'managed' ? 'ok' : 'neutral'}
+								dot={channel.state === 'managed'}
+							/>
+							{#if channel.href}
+								<a class="btn btn-quiet btn-sm" href={channel.href}>Open</a>
 							{/if}
 						</div>
-					</li>
+					</div>
 				{/each}
-			</ul>
-		{/if}
-	</section>
+			</div>
+		</section>
+
+		<div class="grid-2" style="margin-bottom:0.85rem;">
+			<section class="panel">
+				<h3 class="panel-h">Sender identity</h3>
+				<p class="panel-note" style="margin:0 0 0.85rem;">
+					Who platform email appears to come from. Edited with the email provider, because it is
+					part of that configuration rather than a separate setting.
+				</p>
+				<dl class="dl">
+					<div><dt>From name</dt><dd>{fromName || '—'}</dd></div>
+					<div><dt>From address</dt><dd class="mono">{fromEmail || '—'}</dd></div>
+					<div><dt>Reply-to</dt><dd class="mono">{replyTo || fromEmail || '—'}</dd></div>
+					<div>
+						<dt>Support address</dt>
+						<dd class="mono">{settings?.general.support_email || '—'}</dd>
+					</div>
+				</dl>
+				<div style="margin-top:0.9rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+					<a class="btn btn-ghost btn-sm" href="/superadmin/providers/smtp">Edit email provider</a>
+					<a class="btn btn-quiet btn-sm" href="/superadmin/settings">Edit support address</a>
+				</div>
+			</section>
+
+			<section class="panel">
+				<h3 class="panel-h">Send a test</h3>
+				<p class="panel-note" style="margin:0 0 0.85rem;">
+					Delivers a real message through the configured provider. Worth doing before onboarding a
+					business — a failed invite is discovered by the person who cannot sign in.
+				</p>
+				<FormField label="Send to" htmlFor="notif-test">
+					<TextInput id="notif-test" type="email" bind:value={testTo} placeholder="you@example.com" />
+				</FormField>
+				<div style="margin-top:0.85rem;">
+					<button
+						type="button"
+						class="btn btn-primary btn-sm"
+						disabled={sending || !emailReady}
+						onclick={sendTest}
+					>
+						<Send size={14} strokeWidth={2} />
+						{sending ? 'Sending…' : 'Send test email'}
+					</button>
+					{#if !emailReady}
+						<p class="field-hint" style="margin:0.5rem 0 0;">
+							Configure and enable the email provider first.
+						</p>
+					{/if}
+				</div>
+
+				{#if outcome}
+					<div class={['outcome', outcome.ok ? '' : 'bad'].join(' ')} role="status">
+						<strong>{outcome.ok ? 'Sent' : 'Failed'}</strong>
+						<span>{outcome.message}</span>
+						{#if outcome.detail}<span class="detail">{outcome.detail}</span>{/if}
+					</div>
+				{/if}
+			</section>
+		</div>
+
+		<section class="panel">
+			<h3 class="panel-h">What the platform sends</h3>
+			<p class="panel-note" style="margin:0 0 0.85rem;">
+				The complete list. Anything not here is not sent by the platform — including order
+				updates, which belong to each business.
+			</p>
+
+			{#each PLATFORM_MESSAGES as message (message.name)}
+				<article class="msg">
+					<div class="msg-head">
+						<strong>{message.name}</strong>
+						<span>{message.audience}</span>
+					</div>
+					<p class="msg-body">{message.contents}</p>
+					<ul class="msg-triggers">
+						{#each message.triggers as trigger (trigger)}
+							<li>{trigger}</li>
+						{/each}
+					</ul>
+				</article>
+			{/each}
+
+			<p class="field-hint" style="margin:0.85rem 0 0;">
+				Setup links are single-use and expire after
+				{settings?.security.invite_expiry_hours ?? 168} hours, which is set under
+				<a href="/superadmin/settings/security">Security</a>.
+			</p>
+		</section>
+	{:else}
+		<section class="panel" style="margin-top:0.85rem;">
+			<h3 class="panel-h">Default notification rules</h3>
+			<p class="panel-note" style="margin:0 0 0.85rem;">
+				What every business starts with, for every event in the catalog — security and critical
+				platform alerts are marked Required and cannot be turned off by a business. A business's
+				own override always wins over what's set here once it writes one.
+			</p>
+			{#if rulesError}
+				<ErrorState message={rulesError} onretry={loadRules} />
+			{:else if rulesLoading}
+				<Skeleton height="10rem" />
+			{:else}
+				<EventRuleMatrix {events} {rules} busyKey={busyRuleKey} onchange={onRuleChange} />
+			{/if}
+		</section>
+
+		<section class="panel" style="margin-top:0.85rem;">
+			<h3 class="panel-h">Delivery log</h3>
+			<p class="panel-note" style="margin:0 0 0.85rem;">
+				Recent email and SMS attempts across every business, plus the platform's own.
+			</p>
+			{#if deliveriesError}
+				<ErrorState message={deliveriesError} onretry={loadDeliveries} />
+			{:else if deliveriesLoading}
+				<Skeleton height="8rem" />
+			{:else if deliveries.length === 0}
+				<p class="muted" style="padding:0.5rem 0;">Nothing has been queued yet.</p>
+			{:else}
+				<ul class="dlv-list">
+					{#each deliveries as d (d.id)}
+						<li class="dlv-row">
+							<div class="dlv-main">
+								<strong>{d.event_code}</strong>
+								<span class="dlv-meta">
+									{d.channel} · {d.recipient}
+									{d.tenant_id ? `· tenant ${d.tenant_id.slice(0, 8)}` : '· platform'} ·
+									{formatRelative(d.created_at)}
+								</span>
+								{#if d.last_error}<span class="dlv-error">{d.last_error}</span>{/if}
+							</div>
+							<div class="dlv-end">
+								<StatusBadge status={d.status} kind={DELIVERY_TONE[d.status] ?? 'neutral'} />
+								{#if d.status === 'FAILED' || d.status === 'DEAD'}
+									<button type="button" class="btn btn-quiet btn-sm" onclick={() => retryDelivery(d.id)}>
+										Retry
+									</button>
+								{/if}
+							</div>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</section>
+	{/if}
 {/if}
 
 <style>
