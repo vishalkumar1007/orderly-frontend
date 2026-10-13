@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Search from '@lucide/svelte/icons/search';
+	import Search from '@tabler/icons-svelte/icons/search';
 
 	let {
 		value = $bindable(''),
@@ -18,7 +18,7 @@
 	{#if label}<label class="field-label" for={id}>{label}</label>{/if}
 	<div style="position:relative;display:flex;align-items:center;">
 		<span style="position:absolute;left:0.65rem;display:inline-flex;color:var(--text-3);pointer-events:none;">
-			<Search size={15} strokeWidth={1.9} />
+			<Search size={15} stroke={1.6} />
 		</span>
 		<input
 			class="input"

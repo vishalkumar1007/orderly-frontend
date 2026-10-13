@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import X from '@lucide/svelte/icons/x';
+	import X from '@tabler/icons-svelte/icons/x';
 
 	let {
 		open = $bindable(false),
@@ -25,7 +25,7 @@
 		<header class="slide-head">
 			<h3>{title}</h3>
 			<button type="button" class="btn btn-quiet btn-sm" aria-label="Close" onclick={close}>
-				<X size={16} strokeWidth={2} />
+				<X size={16} stroke={1.6} />
 			</button>
 		</header>
 		<div class="slide-body">{@render children()}</div>

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import SlideOver from '$lib/components/admin/SlideOver.svelte';
 	import { toast } from '$lib/components/admin/toast';
+	import PaymentChip from '$lib/components/shop/PaymentChip.svelte';
+	import { ApiClientError } from '$lib/api/client';
 	import {
 		orderBoard,
 		stageAfterAction,
@@ -20,6 +22,37 @@
 
 	let cancelReason = $state('');
 	let confirmingCancel = $state(false);
+	let confirmingRefund = $state(false);
+	let refundReason = $state('');
+
+	/** Only a paid online payment can be sent back through the gateway. */
+	const canRefund = $derived(
+		Boolean(order?.payment && order.payment.method === 'ONLINE' && order.payment.status === 'PAID')
+	);
+
+	async function refund() {
+		if (!order) return;
+		try {
+			const { done } = await orderBoard.refund(order, refundReason.trim());
+			toast.success(
+				done
+					? `Refund issued for #${order.order_number}`
+					: `Refund for #${order.order_number} is on its way`
+			);
+			confirmingRefund = false;
+			refundReason = '';
+		} catch (err) {
+			if (err instanceof ApiClientError && err.status === 403) {
+				toast.error('Only the business owner can refund a payment');
+			} else if (err instanceof ApiClientError && err.code === 'refund_rejected') {
+				toast.error('The payment provider declined the refund. Nothing was returned.');
+			} else if (err instanceof ApiClientError && err.code === 'refund_in_progress') {
+				toast.error('This payment is already refunded or being refunded');
+			} else {
+				toast.error('Could not refund that payment');
+			}
+		}
+	}
 
 	const busy = $derived(order ? orderBoard.isBusy(order.id) : false);
 	const canCancel = $derived(
@@ -119,19 +152,52 @@
 				<section class="sod-block">
 					<h4>Payment</h4>
 					<p>
-						{order.payment.method}
-						·
-						{#if order.payment.status === 'PENDING'}
-							<span class="warn">Unpaid</span>
-						{:else if order.payment.status === 'PAID'}
-							<span class="ok">Paid</span>
-						{:else}
-							{order.payment.status}
-						{/if}
+						<PaymentChip payment={order.payment} />
+						· {order.payment.method === 'CASH' ? 'Cash at pickup' : 'Online'}
 						{#if order.payment.amount != null}
 							· ₹{Math.round(order.payment.amount)}
 						{/if}
 					</p>
+					{#if order.payment.is_test}
+						<p class="sod-note">
+							Dummy payment — nobody was charged, and it is left out of your revenue.
+						</p>
+					{/if}
+					{#if order.payment.refund_status === 'COMPLETED'}
+						<p class="sod-note">
+							Refunded{order.payment.refunded_amount != null ? ` ₹${Math.round(order.payment.refunded_amount)}` : ''}
+							to the customer.
+						</p>
+					{:else if order.payment.status === 'REFUNDING'}
+						<p class="sod-note">
+							The refund has been sent and is settling. This updates by itself when the payment
+							provider confirms.
+						</p>
+					{/if}
+				</section>
+			{/if}
+
+			{#if confirmingRefund}
+				<section class="sod-block">
+					<h4>Refund payment</h4>
+					<p class="sod-note">
+						₹{Math.round(order.payment?.amount ?? 0)} goes back to the customer through the payment
+						provider. This can't be undone.
+					</p>
+					<textarea
+						class="input"
+						rows="2"
+						placeholder="Reason (optional)"
+						bind:value={refundReason}
+					></textarea>
+					<div class="sod-cancel-actions">
+						<button class="btn btn-ghost btn-sm" type="button" onclick={() => (confirmingRefund = false)}>
+							Back
+						</button>
+						<button class="btn btn-danger btn-sm" type="button" disabled={busy} onclick={refund}>
+							{busy ? 'Refunding…' : 'Refund payment'}
+						</button>
+					</div>
 				</section>
 			{/if}
 
@@ -158,7 +224,7 @@
 	{/if}
 
 	{#snippet footer()}
-		{#if order && !confirmingCancel}
+		{#if order && !confirmingCancel && !confirmingRefund}
 			<div class="sod-foot">
 				{#if stage}
 					<button class="btn btn-primary" type="button" disabled={busy || !order.id} onclick={advance}>
@@ -173,6 +239,11 @@
 						onclick={markPaid}
 					>
 						Mark paid
+					</button>
+				{/if}
+				{#if canRefund}
+					<button class="btn btn-ghost" type="button" disabled={busy} onclick={() => (confirmingRefund = true)}>
+						Refund payment
 					</button>
 				{/if}
 				{#if canCancel}
@@ -262,14 +333,10 @@
 		font-size: var(--fs-title);
 	}
 
-	.warn {
-		color: var(--warn);
-		font-weight: 650;
-	}
-
-	.ok {
-		color: var(--success);
-		font-weight: 650;
+	.sod-block p.sod-note {
+		margin-top: 0.4rem;
+		font-size: var(--fs-tab);
+		color: var(--text-3, var(--muted));
 	}
 
 	.sod-cancel-actions,

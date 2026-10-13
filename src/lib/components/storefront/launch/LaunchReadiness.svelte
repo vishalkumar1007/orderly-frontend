@@ -1,17 +1,17 @@
 <script lang="ts">
 	import type { SetupStepKey } from '$lib/tenant/dashboardCache.svelte';
-	import Rocket from '@lucide/svelte/icons/rocket';
-	import CircleCheck from '@lucide/svelte/icons/circle-check';
-	import CircleDashed from '@lucide/svelte/icons/circle-dashed';
-	import AlertCircle from '@lucide/svelte/icons/circle-alert';
-	import ExternalLink from '@lucide/svelte/icons/external-link';
-	import QrCode from '@lucide/svelte/icons/qr-code';
-	import Share2 from '@lucide/svelte/icons/share-2';
-	import Copy from '@lucide/svelte/icons/copy';
-	import Check from '@lucide/svelte/icons/check';
-	import ShieldAlert from '@lucide/svelte/icons/shield-alert';
-	import Lock from '@lucide/svelte/icons/lock';
-	import ArrowRight from '@lucide/svelte/icons/arrow-right';
+	import Rocket from '@tabler/icons-svelte/icons/rocket';
+	import CircleCheck from '@tabler/icons-svelte/icons/circle-check';
+	import CircleDashed from '@tabler/icons-svelte/icons/circle-dashed';
+	import AlertCircle from '@tabler/icons-svelte/icons/alert-circle';
+	import ExternalLink from '@tabler/icons-svelte/icons/external-link';
+	import QrCode from '@tabler/icons-svelte/icons/qrcode';
+	import Share2 from '@tabler/icons-svelte/icons/share-2';
+	import Copy from '@tabler/icons-svelte/icons/copy';
+	import Check from '@tabler/icons-svelte/icons/check';
+	import ShieldAlert from '@tabler/icons-svelte/icons/shield-exclamation';
+	import Lock from '@tabler/icons-svelte/icons/lock';
+	import ArrowRight from '@tabler/icons-svelte/icons/arrow-right';
 	import StatusBadge from '$lib/components/admin/StatusBadge.svelte';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
@@ -105,7 +105,7 @@
 						<StatusBadge status={setup.setup_status ?? ''} />
 						{#if !policySigned}
 							<span class="badge-lock">
-								<Lock size={12} strokeWidth={2.4} /> Policy Unsigned
+								<Lock size={12} stroke={1.6} /> Policy Unsigned
 							</span>
 						{/if}
 					</div>
@@ -139,10 +139,10 @@
 							onclick={onPublish}
 						>
 							{#if !policySigned}
-								<Lock size={16} strokeWidth={2.2} />
+								<Lock size={16} stroke={1.6} />
 								Sign Policy to Go Live
 							{:else}
-								<Rocket size={16} strokeWidth={2.2} />
+								<Rocket size={16} stroke={1.6} />
 								{busy ? 'Publishing…' : 'Publish Store & Go Live'}
 							{/if}
 						</button>
@@ -180,7 +180,7 @@
 
 			{#if !policySigned}
 				<div class="policy-notice-box">
-					<ShieldAlert size={20} strokeWidth={2} class="policy-notice-icon" />
+					<ShieldAlert size={20} stroke={1.6} class="policy-notice-icon" />
 					<div class="policy-notice-body">
 						<strong>Orderly Business Operations Policy must be signed</strong>
 						<p>Review and digitally sign before publishing a live storefront.</p>
@@ -195,7 +195,7 @@
 				</div>
 			{:else if !canPublish && missing.length > 0}
 				<div class="checklist-notice-box">
-					<AlertCircle size={18} strokeWidth={2} class="checklist-notice-icon" />
+					<AlertCircle size={18} stroke={1.6} class="checklist-notice-icon" />
 					<div class="checklist-notice-body">
 						<strong>Outstanding before publish:</strong>
 						<span>{missing.map(stepLabel).join(', ')}.</span>
@@ -220,9 +220,9 @@
 					<li class="checklist-item-card" class:is-done={isDone}>
 						<div class="check-icon-wrap" class:done={isDone}>
 							{#if isDone}
-								<CircleCheck size={20} strokeWidth={2.2} />
+								<CircleCheck size={20} stroke={1.6} />
 							{:else}
-								<CircleDashed size={20} strokeWidth={1.8} />
+								<CircleDashed size={20} stroke={1.6} />
 							{/if}
 						</div>
 						<div class="check-main-wrap">
@@ -253,12 +253,12 @@
 									onclick={() => onSetTab(s.tab!)}
 								>
 									<span>{isDone ? 'View' : 'Configure'}</span>
-									<ArrowRight size={14} strokeWidth={2} />
+									<ArrowRight size={14} stroke={1.6} />
 								</button>
 							{:else}
 								<a class="btn btn-ghost btn-sm check-action-btn" href={s.href}>
 									<span>{isDone ? 'Review' : 'Configure'}</span>
-									<ArrowRight size={14} strokeWidth={2} />
+									<ArrowRight size={14} stroke={1.6} />
 								</a>
 							{/if}
 						</div>
@@ -275,7 +275,7 @@
 						<p class="section-note">Share or open your public storefront.</p>
 					</div>
 					<a class="btn btn-ghost btn-sm" href="/shop/storefront/promote?tab=marketing&asset=qr">
-						<QrCode size={15} strokeWidth={2} />
+						<QrCode size={15} stroke={1.6} />
 						<span>QR</span>
 					</a>
 				</div>
@@ -283,21 +283,21 @@
 					<code class="share-url">{storefrontUrl}</code>
 					<button type="button" class="btn btn-ghost btn-sm copy-btn" onclick={onCopyLink}>
 						{#if copiedLink}
-							<Check size={15} strokeWidth={2.4} style="color:var(--success)" />
+							<Check size={15} stroke={1.6} style="color:var(--success)" />
 							<span>Copied!</span>
 						{:else}
-							<Copy size={15} strokeWidth={2} />
+							<Copy size={15} stroke={1.6} />
 							<span>Copy</span>
 						{/if}
 					</button>
 				</div>
 				<div class="share-actions-row">
 					<button class="btn btn-ghost" type="button" onclick={onShare}>
-						<Share2 size={15} strokeWidth={2} />
+						<Share2 size={15} stroke={1.6} />
 						<span>Share</span>
 					</button>
 					<a class="btn btn-ghost" href={storefrontUrl} target="_blank" rel="noreferrer">
-						<ExternalLink size={15} strokeWidth={2} />
+						<ExternalLink size={15} stroke={1.6} />
 						<span>Open</span>
 					</a>
 				</div>

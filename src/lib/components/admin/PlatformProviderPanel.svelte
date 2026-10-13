@@ -18,9 +18,9 @@
 	import type { ConfigService, ConfigView } from '$lib/admin/configTypes';
 	import { CONFIG_SERVICE_LABEL } from '$lib/admin/configTypes';
 	import { getConfig, loadConfig, setConfig } from '$lib/admin/configCache.svelte';
-	import CircleCheck from '@lucide/svelte/icons/circle-check';
-	import Send from '@lucide/svelte/icons/send';
-	import Upload from '@lucide/svelte/icons/upload';
+	import CircleCheck from '@tabler/icons-svelte/icons/circle-check';
+	import Send from '@tabler/icons-svelte/icons/send';
+	import Upload from '@tabler/icons-svelte/icons/upload';
 	import ConfigForm from '$lib/components/admin/ConfigForm.svelte';
 	import ConfigStatusBadge from '$lib/components/admin/ConfigStatusBadge.svelte';
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
@@ -258,7 +258,7 @@
 						disabled={testing || testingAction}
 						onclick={testConnection}
 					>
-						<CircleCheck size={14} strokeWidth={2} />
+						<CircleCheck size={14} stroke={1.6} />
 						{testing ? 'Testing…' : 'Test connection'}
 					</button>
 					{#if service === 'SMTP'}
@@ -268,7 +268,7 @@
 							disabled={testingAction}
 							onclick={() => testAction('send_email')}
 						>
-							<Send size={14} strokeWidth={2} />
+							<Send size={14} stroke={1.6} />
 							{testingAction ? 'Sending…' : 'Send test email'}
 						</button>
 					{/if}
@@ -279,7 +279,7 @@
 							disabled={testingAction}
 							onclick={() => testAction('upload')}
 						>
-							<Upload size={14} strokeWidth={2} />
+							<Upload size={14} stroke={1.6} />
 							{testingAction ? 'Uploading…' : 'Test upload'}
 						</button>
 					{/if}
@@ -290,7 +290,7 @@
 							disabled={testingAction}
 							onclick={() => testAction('test_model')}
 						>
-							<CircleCheck size={14} strokeWidth={2} />
+							<CircleCheck size={14} stroke={1.6} />
 							{testingAction ? 'Testing…' : 'Test model'}
 						</button>
 					{/if}

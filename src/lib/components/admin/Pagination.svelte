@@ -1,6 +1,6 @@
 <script lang="ts">
-	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
-	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import ChevronLeft from '@tabler/icons-svelte/icons/chevron-left';
+	import ChevronRight from '@tabler/icons-svelte/icons/chevron-right';
 
 	let {
 		total = 0,
@@ -42,7 +42,7 @@
 					disabled={pageIndex === 0}
 					onclick={() => go(pageIndex - 1)}
 				>
-					<ChevronLeft size={14} strokeWidth={2} />
+					<ChevronLeft size={14} stroke={1.6} />
 					Prev
 				</button>
 				<span style="padding: 0 0.35rem;">{pageIndex + 1} / {totalPages}</span>
@@ -53,7 +53,7 @@
 					onclick={() => go(pageIndex + 1)}
 				>
 					Next
-					<ChevronRight size={14} strokeWidth={2} />
+					<ChevronRight size={14} stroke={1.6} />
 				</button>
 			</div>
 		{/if}

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
+	import ChevronRight from '@tabler/icons-svelte/icons/chevron-right';
+	import ShoppingBag from '@tabler/icons-svelte/icons/shopping-bag';
 	import type { CartLine } from '$lib/storefront/cart.svelte';
 	import { cartCount, estimateTotals } from '$lib/storefront/cart.svelte';
 	import type { CartTotals, StoreConfig } from '$lib/storefront/api';
@@ -36,7 +36,7 @@
 			<a class="sf-cartbar-btn sf-food-cartbar-btn" href="/cart">
 				<div class="sf-cartbar-left">
 					<div class="sf-cartbar-icon-pill">
-						<ShoppingBag size={18} strokeWidth={2.4} aria-hidden="true" />
+						<ShoppingBag size={18} stroke={1.6} aria-hidden="true" />
 						<span class="sf-cartbar-count-badge">{count}</span>
 					</div>
 					<div class="sf-cartbar-pricing">
@@ -50,7 +50,7 @@
 				<div class="sf-cartbar-cta">
 					<span class="sf-cartbar-cta-text">View Cart</span>
 					<div class="sf-cartbar-arrow-circle" aria-hidden="true">
-						<ChevronRight size={17} strokeWidth={2.6} />
+						<ChevronRight size={17} stroke={1.6} />
 					</div>
 				</div>
 			</a>

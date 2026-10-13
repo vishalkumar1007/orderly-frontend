@@ -5,20 +5,33 @@
 	import type { DayPoint } from '$lib/tenant/analytics';
 
 	type Metric = 'revenue' | 'orders';
+	type Granularity = 'day' | 'week' | 'month';
 
 	let {
 		title = 'Performance',
 		data = [] as DayPoint[],
 		loading = false,
 		formatValue = (n: number) => String(n),
-		emptyLabel = 'No orders in this window'
+		emptyLabel = 'No orders in this window',
+		granularity = 'day',
+		ongranularity,
+		allowed = { week: true, month: true }
 	}: {
 		title?: string;
+		/** `day` is the first day of each bucket (Monday for weeks, the 1st for months). */
 		data?: DayPoint[];
 		loading?: boolean;
 		formatValue?: (n: number) => string;
 		emptyLabel?: string;
+		granularity?: Granularity;
+		/** When set, the chart shows a Day / Week / Month switch. */
+		ongranularity?: (g: Granularity) => void;
+		/** Buckets that make no sense for the selected window are disabled. */
+		allowed?: { week: boolean; month: boolean };
 	} = $props();
+
+	const UNIT = { day: 'daily', week: 'weekly', month: 'monthly' } as const;
+	const NOUN = { day: 'day', week: 'week', month: 'month' } as const;
 
 	let active = $state<Metric>('revenue');
 
@@ -38,8 +51,8 @@
 
 	const summary = $derived(
 		active === 'revenue'
-			? `${formatValue(total)} total · ${formatValue(average)} daily average`
-			: `${total} orders · ${average.toFixed(1)} per day`
+			? `${formatValue(total)} total · ${formatValue(average)} ${UNIT[granularity]} average`
+			: `${total} orders · ${average.toFixed(1)} per ${NOUN[granularity]}`
 	);
 </script>
 
@@ -49,6 +62,23 @@
 			<h3 class="panel-h" style="margin:0;">{title}</h3>
 			<p class="sub">{summary}</p>
 		</div>
+		<div class="controls">
+		{#if ongranularity}
+			<div class="toggle" role="tablist" aria-label="Group by">
+				{#each ['day', 'week', 'month'] as g (g)}
+					<button
+						type="button"
+						role="tab"
+						aria-selected={granularity === g}
+						class:active={granularity === g}
+						disabled={(g === 'week' && !allowed.week) || (g === 'month' && !allowed.month)}
+						onclick={() => ongranularity(g as Granularity)}
+					>
+						{g === 'day' ? 'Day' : g === 'week' ? 'Week' : 'Month'}
+					</button>
+				{/each}
+			</div>
+		{/if}
 		<div class="toggle" role="tablist" aria-label="Metric">
 			<button
 				type="button"
@@ -64,6 +94,7 @@
 				class:active={active === 'orders'}
 				onclick={() => (active = 'orders')}>Orders</button
 			>
+		</div>
 		</div>
 	</div>
 
@@ -84,7 +115,7 @@
 			>
 				<Svg>
 					<Axis placement="left" />
-					<Axis placement="bottom" />
+					<Axis placement="bottom" ticks={granularity === 'day' ? undefined : points.map((p) => p.date)} />
 					<Area class="trend-fill" />
 					<Spline class="trend-stroke" />
 					<Highlight points={false} />
@@ -93,7 +124,10 @@
 		</div>
 		<p class="foot">
 			Peak {active === 'revenue' ? formatValue(peak) : `${peak} orders`}
-			{active === 'revenue' ? 'in a single day' : 'in a single day'}
+			in a single {NOUN[granularity]}
+			{#if granularity !== 'day'}
+				· the first and latest {NOUN[granularity]}s may be partial
+			{/if}
 		</p>
 	{/if}
 </section>
@@ -126,6 +160,17 @@
 		font-size: var(--fs-code);
 		color: var(--text-3);
 		font-variant-numeric: tabular-nums;
+	}
+
+	.controls {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.toggle button:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
 	}
 
 	.toggle {

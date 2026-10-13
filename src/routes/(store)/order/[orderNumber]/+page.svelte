@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onDestroy, onMount } from 'svelte';
-	import Check from '@lucide/svelte/icons/check';
-	import CircleCheck from '@lucide/svelte/icons/circle-check';
-	import CircleX from '@lucide/svelte/icons/circle-x';
-	import ChefHat from '@lucide/svelte/icons/chef-hat';
-	import Clock from '@lucide/svelte/icons/clock';
-	import MapPin from '@lucide/svelte/icons/map-pin';
-	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+	import Check from '@tabler/icons-svelte/icons/check';
+	import CircleCheck from '@tabler/icons-svelte/icons/circle-check';
+	import CircleX from '@tabler/icons-svelte/icons/circle-x';
+	import ChefHat from '@tabler/icons-svelte/icons/chef-hat';
+	import Clock from '@tabler/icons-svelte/icons/clock';
+	import MapPin from '@tabler/icons-svelte/icons/map-pin';
+	import RefreshCw from '@tabler/icons-svelte/icons/refresh';
 	import { friendlyError, storefrontApi, type OrderDetail } from '$lib/storefront/api';
 	import { customerToken } from '$lib/storefront/session.svelte';
 	import { money, minutesUntil, orderCode, timeOfDay } from '$lib/storefront/format';
@@ -181,11 +181,11 @@
 				aria-hidden="true"
 			>
 				{#if isCancelled}
-					<CircleX size={32} strokeWidth={1.9} />
+					<CircleX size={32} stroke={1.6} />
 				{:else if isCompleted || isReady}
-					<CircleCheck size={32} strokeWidth={1.9} />
+					<CircleCheck size={32} stroke={1.6} />
 				{:else}
-					<ChefHat size={32} strokeWidth={1.9} />
+					<ChefHat size={32} stroke={1.6} />
 				{/if}
 			</span>
 			<h1>
@@ -240,7 +240,7 @@
 			{#each order.timeline as step (step.key)}
 				<li data-state={step.state}>
 					<span class="sf-timeline-dot" data-pulse={String(step.state === 'CURRENT' && !isCancelled)} aria-hidden="true">
-						<Check size={13} strokeWidth={3.2} />
+						<Check size={13} stroke={1.6} />
 					</span>
 					<span class="sf-timeline-body">
 						<span class="sf-timeline-label">{step.label}</span>
@@ -302,12 +302,12 @@
 			</div>
 			<div class="sf-info-list">
 				<div class="sf-info-row">
-					<MapPin size={17} strokeWidth={1.9} aria-hidden="true" />
+					<MapPin size={17} stroke={1.6} aria-hidden="true" />
 					<span>{order.store.address || config?.store?.address || 'Collect from the counter'}</span>
 				</div>
 				{#if order.estimated_ready_at && !isCompleted && !isCancelled}
 					<div class="sf-info-row">
-						<Clock size={17} strokeWidth={1.9} aria-hidden="true" />
+						<Clock size={17} stroke={1.6} aria-hidden="true" />
 						<span>Expected {timeOfDay(order.estimated_ready_at)}</span>
 					</div>
 				{/if}
@@ -321,8 +321,17 @@
 							data-tone={order.payment.status === 'PAID' ? 'veg' : undefined}
 							style="margin-left:6px;"
 						>
-							{order.payment.status}
+							{order.payment.status === 'REFUNDED'
+								? 'Refunded'
+								: order.payment.status === 'REFUNDING'
+									? 'Refund on its way'
+									: order.payment.status === 'EXPIRED'
+										? 'Payment expired'
+										: order.payment.status}
 						</span>
+						{#if order.payment.is_test}
+							<span class="sf-tag" style="margin-left:6px;">Test</span>
+						{/if}
 					</span>
 					<span>
 						{order.payment.method === 'CASH' ? 'Cash at pickup' : 'Online'} ·{' '}
@@ -339,7 +348,7 @@
 				onclick={() => load()}
 				disabled={loading}
 			>
-				<RefreshCw size={16} strokeWidth={2} aria-hidden="true" />
+				<RefreshCw size={16} stroke={1.6} aria-hidden="true" />
 				Refresh
 			</button>
 			<button class="sf-btn sf-btn-primary sf-btn-block" type="button" onclick={orderAgain}>

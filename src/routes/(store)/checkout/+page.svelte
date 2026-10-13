@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
-	import Lock from '@lucide/svelte/icons/lock';
+	import ArrowLeft from '@tabler/icons-svelte/icons/arrow-left';
+	import Lock from '@tabler/icons-svelte/icons/lock';
 	import { useCart } from '$lib/storefront/cart-state.svelte';
 	import { lineTotal, quoteRequest } from '$lib/storefront/cart.svelte';
 	import { friendlyError, storefrontApi, type OrderDetail } from '$lib/storefront/api';
@@ -164,7 +164,7 @@
 		href="/cart"
 		style="display:inline-flex;align-items:center;gap:4px;padding:8px 0;font-size:var(--fs-body);font-weight:600;color:var(--sf-text-2);text-decoration:none;"
 	>
-		<ArrowLeft size={16} strokeWidth={2.2} aria-hidden="true" />
+		<ArrowLeft size={16} stroke={1.6} aria-hidden="true" />
 		Cart
 	</a>
 
@@ -360,7 +360,7 @@
 			<p
 				style="display:flex;align-items:center;justify-content:center;gap:5px;margin:12px 0 0;font-size:var(--fs-code);color:var(--sf-text-3);text-align:center;line-height:1.4;"
 			>
-				<Lock size={13} strokeWidth={1.9} aria-hidden="true" />
+				<Lock size={13} stroke={1.6} aria-hidden="true" />
 				Your details are used only for this order.
 			</p>
 		</form>

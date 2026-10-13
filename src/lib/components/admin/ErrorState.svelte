@@ -1,6 +1,6 @@
 <script lang="ts">
-	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
-	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+	import TriangleAlert from '@tabler/icons-svelte/icons/alert-triangle';
+	import RefreshCw from '@tabler/icons-svelte/icons/refresh';
 
 	let {
 		message,
@@ -13,12 +13,12 @@
 
 <div class="error-state">
 	<span class="empty-icon" style="background: var(--danger-bg); color: var(--danger);">
-		<TriangleAlert size={18} strokeWidth={1.9} />
+		<TriangleAlert size={18} stroke={1.6} />
 	</span>
 	<p>{message}</p>
 	{#if onretry}
 		<button type="button" class="btn btn-ghost btn-sm" onclick={onretry}>
-			<RefreshCw size={14} strokeWidth={2} />
+			<RefreshCw size={14} stroke={1.6} />
 			Retry
 		</button>
 	{/if}

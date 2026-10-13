@@ -1,20 +1,38 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Send from '@lucide/svelte/icons/send';
-	import Volume2 from '@lucide/svelte/icons/volume-2';
+	import Bell from '@tabler/icons-svelte/icons/bell';
+	import History from '@tabler/icons-svelte/icons/history';
+	import Lock from '@tabler/icons-svelte/icons/lock';
+	import Mail from '@tabler/icons-svelte/icons/mail';
+	import MessageSquare from '@tabler/icons-svelte/icons/message';
+	import SlidersHorizontal from '@tabler/icons-svelte/icons/adjustments-horizontal';
+	import Volume2 from '@tabler/icons-svelte/icons/volume';
+	import type { Component } from 'svelte';
+	import EmptyState from '$lib/components/admin/EmptyState.svelte';
+	import ErrorState from '$lib/components/admin/ErrorState.svelte';
+	import EventChannelGrid from '$lib/components/admin/EventChannelGrid.svelte';
 	import FormField from '$lib/components/admin/FormField.svelte';
 	import SelectField from '$lib/components/admin/SelectField.svelte';
+	import Skeleton from '$lib/components/admin/Skeleton.svelte';
+	import SlideOver from '$lib/components/admin/SlideOver.svelte';
+	import StatusBadge from '$lib/components/admin/StatusBadge.svelte';
 	import Switch from '$lib/components/admin/Switch.svelte';
 	import TextInput from '$lib/components/admin/TextInput.svelte';
+	import UpgradeNote from '$lib/components/admin/UpgradeNote.svelte';
+	import { toast } from '$lib/components/admin/toast';
+	import MessageTemplates from './MessageTemplates.svelte';
 	import { storefrontAdminApi } from '$lib/storefront/admin';
 	import { seed, useStorefront, type StorefrontContext } from '$lib/storefront/admin-context';
-	import { testTenantConfigAction } from '$lib/admin/configApi';
+	import { fetchTenantConfigs } from '$lib/admin/configApi';
 	import { errorMessage } from '$lib/admin/errors';
 	import { formatRelative } from '$lib/admin/format';
-	import { toast } from '$lib/components/admin/toast';
 	import { settingsHref } from '$lib/tenant/settings';
+	import { featureAccess } from '$lib/tenant/entitlements.svelte';
 	import { playSound, SOUND_OPTIONS } from '$lib/sound';
-	import { soundEnabled as bellSoundEnabled, setSoundEnabled as setBellSoundEnabled } from '$lib/notifications.svelte';
+	import {
+		soundEnabled as bellSoundEnabled,
+		setSoundEnabled as setBellSoundEnabled
+	} from '$lib/notifications.svelte';
 	import {
 		fetchMyNotificationPreferences,
 		fetchTenantNotificationDeliveries,
@@ -27,110 +45,61 @@
 	} from '$lib/admin/notificationsApi';
 	import {
 		isCustomerFacing,
+		type NotificationChannel,
 		type NotificationDelivery,
 		type NotificationEventDef,
 		type NotificationRule
 	} from '$lib/admin/notificationTypes';
-	import EventRuleMatrix from '$lib/components/admin/EventRuleMatrix.svelte';
-	import ErrorState from '$lib/components/admin/ErrorState.svelte';
-	import Skeleton from '$lib/components/admin/Skeleton.svelte';
-	import StatusBadge from '$lib/components/admin/StatusBadge.svelte';
 
 	/**
-	 * Notifications.
+	 * Notifications — one page, no sub-sections.
 	 *
-	 * What a customer hears from you while their order is being made, and proof
-	 * that the mail actually leaves the building. The stages themselves belong
-	 * to Order workflow; this screen owns only the messages.
+	 *   channel strip   is each way of reaching people actually available?
+	 *   audience toggle Team | Customers
+	 *   event table     one switch per event and channel; every change saves itself
+	 *
+	 * Everything secondary opens in a side drawer so the page stays a single
+	 * table: the delivery log, sounds and quiet hours, and message wording.
 	 */
 	let props: Partial<StorefrontContext> = $props();
 	const ctx = useStorefront(() => props);
-	const save = (run: Parameters<StorefrontContext['save']>[0]) => ctx.save(run);
 
-	let readyNotification = $state(seed(() => ctx.config.workflow.ready_notification));
-	let newOrderSound = $state(seed(() => ctx.config.workflow.new_order_sound || 'CHIME'));
-	let orderReadySound = $state(seed(() => ctx.config.workflow.order_ready_sound || 'CHIME'));
-	let inAppNewOrder = $state(seed(() => ctx.config.workflow.in_app_new_order_enabled ?? true));
-	let inAppOrderReady = $state(seed(() => ctx.config.workflow.in_app_order_ready_enabled ?? true));
-	let saving = $state(false);
+	/* ---------- audience ---------- */
 
-	let dirty = $state(false);
-	$effect(() => {
-		const w = ctx.config.workflow;
-		if (!dirty && w) {
-			readyNotification = w.ready_notification;
-			newOrderSound = w.new_order_sound || 'CHIME';
-			orderReadySound = w.order_ready_sound || 'CHIME';
-			inAppNewOrder = w.in_app_new_order_enabled ?? true;
-			inAppOrderReady = w.in_app_order_ready_enabled ?? true;
-		}
-	});
+	let audience = $state<'team' | 'customers'>('team');
 
-	let testEmail = $state('');
-	let testing = $state(false);
-
-	async function submit(event: SubmitEvent) {
-		event.preventDefault();
-		saving = true;
-		const ok = await save(() =>
-			storefrontAdminApi.saveWorkflow({
-				ready_notification: readyNotification,
-				new_order_sound: newOrderSound,
-				order_ready_sound: orderReadySound,
-				in_app_new_order_enabled: inAppNewOrder,
-				in_app_order_ready_enabled: inAppOrderReady
-			})
-		);
-		saving = false;
-		dirty = false;
-		if (ok) toast.success('Notification settings saved');
-		else toast.error('Could not save your notification settings');
-	}
-
-	async function sendTest() {
-		const to = testEmail.trim();
-		if (!to) {
-			toast.error('Enter an email address to send a test');
-			return;
-		}
-		testing = true;
-		try {
-			const outcome = await testTenantConfigAction('SMTP', 'send_email', { to });
-			if (outcome.ok) toast.success(outcome.message || 'Test email sent');
-			else toast.error(outcome.message || 'Could not send test email');
-		} catch (err) {
-			toast.error(errorMessage(err, 'send the test email'));
-		} finally {
-			testing = false;
-		}
-	}
-
-	/* ---------- rules engine: events, admin/storefront matrix ---------- */
+	/* ---------- rules ---------- */
 
 	let events = $state<NotificationEventDef[]>([]);
 	let rules = $state<NotificationRule[]>([]);
-	let rulesLoading = $state(true);
-	let rulesError = $state('');
+	let loading = $state(true);
+	let error = $state('');
 	let busyRuleKey = $state('');
 
 	async function loadRules() {
-		rulesLoading = true;
-		rulesError = '';
+		loading = true;
+		error = '';
 		try {
-			[events, rules] = await Promise.all([fetchTenantNotificationEvents(), fetchTenantNotificationRules()]);
+			[events, rules] = await Promise.all([
+				fetchTenantNotificationEvents(),
+				fetchTenantNotificationRules()
+			]);
 		} catch (err) {
-			rulesError = errorMessage(err, 'load notification rules');
+			error = errorMessage(err, 'load notification settings');
 		} finally {
-			rulesLoading = false;
+			loading = false;
 		}
 	}
 
-	const adminRules = $derived(rules.filter((r) => !isCustomerFacing(r)));
-	const storefrontRules = $derived(rules.filter(isCustomerFacing));
+	// Team: every rule not aimed at a customer or at the Orderly team itself
+	// (those PLATFORM-audience rules belong to the superadmin console).
+	const teamRules = $derived(
+		rules.filter((r) => !isCustomerFacing(r) && r.recipient_policy !== 'PLATFORM')
+	);
+	const customerRules = $derived(rules.filter(isCustomerFacing));
+	const shownRules = $derived(audience === 'team' ? teamRules : customerRules);
 
-	function ruleKey(r: NotificationRule) {
-		return `${r.event_code}:${r.channel}:${r.recipient_policy}`;
-	}
+	const ruleKey = (r: NotificationRule) => `${r.event_code}:${r.channel}:${r.recipient_policy}`;
 
 	async function onRuleChange(rule: NotificationRule, enabled: boolean) {
 		busyRuleKey = ruleKey(rule);
@@ -143,8 +112,9 @@
 				priority: rule.priority
 			});
 			rules = rules.map((r) => (ruleKey(r) === ruleKey(rule) ? saved : r));
+			toast.success(enabled ? 'Turned on' : 'Turned off');
 		} catch (err) {
-			toast.error(errorMessage(err, 'save that notification rule'));
+			toast.error(errorMessage(err, 'save that change'));
 		} finally {
 			busyRuleKey = '';
 		}
@@ -154,29 +124,108 @@
 		try {
 			await revertTenantNotificationRule(rule.event_code, rule.channel, rule.recipient_policy);
 			await loadRules();
-			toast.success('Reverted to the platform default');
+			toast.success('Back to the standard setting');
 		} catch (err) {
-			toast.error(errorMessage(err, 'revert that rule'));
+			toast.error(errorMessage(err, 'reset that setting'));
 		}
 	}
 
-	/* ---------- delivery history ---------- */
+	/* ---------- plan and channel availability ---------- */
 
+	const sms = $derived(featureAccess('NOTIFY_SMS'));
+	const templatesAccess = $derived(featureAccess('NOTIFY_TEMPLATES'));
+	const lockedChannels = $derived(sms.enabled ? {} : { SMS: sms.requiredPlan ?? 'higher' });
+
+	const TEAM_CHANNELS: { id: NotificationChannel; label: string }[] = [
+		{ id: 'IN_APP', label: 'In-app' },
+		{ id: 'EMAIL', label: 'Email' },
+		{ id: 'SMS', label: 'SMS' }
+	];
+	const CUSTOMER_CHANNELS: { id: NotificationChannel; label: string }[] = [
+		{ id: 'EMAIL', label: 'Email' },
+		{ id: 'SMS', label: 'SMS' }
+	];
+
+	type Tone = 'ok' | 'warn' | 'neutral';
+	type Chip = { id: string; name: string; icon: typeof Bell; tone: Tone; state: string; href?: string };
+
+	let providers = $state<{ email: boolean; sms: boolean } | null>(null);
+
+	async function loadProviders() {
+		try {
+			const { services } = await fetchTenantConfigs();
+			const ready = (code: string) => {
+				const s = services.find((x) => x.own_config.service === code);
+				if (!s) return false;
+				const own = s.own_config.enabled && s.own_config.status !== 'UNCONFIGURED';
+				return own || s.options.platform_available;
+			};
+			providers = { email: ready('SMTP'), sms: ready('SMS') };
+		} catch {
+			providers = null; // unknown: show no verdict rather than a wrong one
+		}
+	}
+
+	const chips = $derived<Chip[]>([
+		{ id: 'app', name: 'In-app', icon: Bell, tone: 'ok', state: 'Always on' },
+		{
+			id: 'email',
+			name: 'Email',
+			icon: Mail,
+			tone: providers === null ? 'neutral' : providers.email ? 'ok' : 'warn',
+			state: providers === null ? 'Status unknown' : providers.email ? 'Ready to send' : 'Set up email',
+			href: providers && !providers.email ? settingsHref('integrations') : undefined
+		},
+		{
+			id: 'sms',
+			name: 'SMS',
+			icon: MessageSquare,
+			tone: !sms.enabled ? 'neutral' : providers === null ? 'neutral' : providers.sms ? 'ok' : 'warn',
+			state: !sms.enabled
+				? `${sms.requiredPlan ?? 'Higher'} plan`
+				: providers === null
+					? 'Status unknown'
+					: providers.sms
+						? 'Ready to send'
+						: 'Set up SMS',
+			href: sms.enabled && providers && !providers.sms ? settingsHref('integrations') : undefined
+		}
+	]);
+
+	/* ---------- drawer: message wording ---------- */
+
+	let wordingOpen = $state(false);
+	let wordingEvent = $state('');
+
+	function editWording(ev: NotificationEventDef) {
+		wordingEvent = ev.code;
+		wordingOpen = true;
+	}
+
+	/* ---------- drawer: delivery log ---------- */
+
+	let logOpen = $state(false);
 	let deliveries = $state<NotificationDelivery[]>([]);
-	let deliveriesLoading = $state(true);
-	let deliveriesError = $state('');
+	let logLoading = $state(false);
+	let logError = $state('');
+	let logLoaded = $state(false);
 
 	async function loadDeliveries() {
-		deliveriesLoading = true;
-		deliveriesError = '';
+		logLoading = true;
+		logError = '';
 		try {
 			deliveries = await fetchTenantNotificationDeliveries();
+			logLoaded = true;
 		} catch (err) {
-			deliveriesError = errorMessage(err, 'load delivery history');
+			logError = errorMessage(err, 'load the delivery log');
 		} finally {
-			deliveriesLoading = false;
+			logLoading = false;
 		}
 	}
+
+	$effect(() => {
+		if (logOpen && !logLoaded) void loadDeliveries();
+	});
 
 	async function retryDelivery(id: string) {
 		try {
@@ -196,12 +245,31 @@
 		DEAD: 'danger'
 	};
 
-	/* ---------- personal preferences ---------- */
+	/* ---------- drawer: sounds and quiet hours ---------- */
 
+	let settingsOpen = $state(false);
+	let saving = $state(false);
+
+	let readyNotification = $state(seed(() => ctx.config.workflow.ready_notification));
+	let newOrderSound = $state(seed(() => ctx.config.workflow.new_order_sound || 'CHIME'));
+	let inAppNewOrder = $state(seed(() => ctx.config.workflow.in_app_new_order_enabled ?? true));
+	let inAppOrderReady = $state(seed(() => ctx.config.workflow.in_app_order_ready_enabled ?? true));
+	let orderReadySound = $state(seed(() => ctx.config.workflow.order_ready_sound || 'CHIME'));
 	let soundOn = $state(bellSoundEnabled());
 	let quietStart = $state('');
 	let quietEnd = $state('');
-	let prefsSaving = $state(false);
+
+	// Re-seed from the server each time the drawer opens, so a discarded edit
+	// never lingers into the next visit.
+	$effect(() => {
+		if (!settingsOpen) return;
+		const w = ctx.config.workflow;
+		readyNotification = w.ready_notification;
+		newOrderSound = w.new_order_sound || 'CHIME';
+		orderReadySound = w.order_ready_sound || 'CHIME';
+		inAppNewOrder = w.in_app_new_order_enabled ?? true;
+		inAppOrderReady = w.in_app_order_ready_enabled ?? true;
+	});
 
 	async function loadPreferences() {
 		try {
@@ -213,253 +281,339 @@
 		}
 	}
 
-	function toggleSound(on: boolean) {
-		soundOn = on;
-		setBellSoundEnabled(on);
-	}
-
-	async function savePreferences() {
-		prefsSaving = true;
+	async function saveSettings() {
+		saving = true;
 		try {
+			const ok = await ctx.save(() =>
+				storefrontAdminApi.saveWorkflow({
+					ready_notification: readyNotification,
+					new_order_sound: newOrderSound,
+					order_ready_sound: orderReadySound,
+					in_app_new_order_enabled: inAppNewOrder,
+					in_app_order_ready_enabled: inAppOrderReady
+				})
+			);
+			if (!ok) throw new Error('workflow');
+			setBellSoundEnabled(soundOn);
 			await saveMyNotificationPreferences('/api/v1/tenant', {
 				sound_enabled: soundOn,
 				quiet_hours_start: quietStart || undefined,
 				quiet_hours_end: quietEnd || undefined
 			});
-			toast.success('Preferences saved');
+			toast.success('Alert settings saved');
+			settingsOpen = false;
 		} catch (err) {
-			toast.error(errorMessage(err, 'save your preferences'));
+			toast.error(errorMessage(err, 'save your alert settings'));
 		} finally {
-			prefsSaving = false;
+			saving = false;
 		}
 	}
 
 	onMount(() => {
 		void loadRules();
-		void loadDeliveries();
+		void loadProviders();
 		void loadPreferences();
 	});
 </script>
 
-<form onsubmit={submit}>
-	<div class="sfctl-section">
-		<h2>Order updates</h2>
-		<p class="sfctl-note">
-			What a customer is told while their order is being made. The tracking screen is always
-			available to them; this decides whether you push an update to it.
-		</p>
-		<div style="display:grid;gap:0.4rem;">
-			<button
-				class="sfopt"
-				type="button"
-				aria-pressed={readyNotification}
-				onclick={() => {
-					readyNotification = !readyNotification;
-					dirty = true;
-				}}
-			>
-				<span class="sfopt-mark" aria-hidden="true"></span>
-				<span class="sfopt-body">
-					<span class="sfopt-label">Tell customers when an order is ready</span>
-					<span class="sfopt-hint">
-						{readyNotification
-							? 'The tracking screen updates the moment you mark an order ready.'
-							: 'Customers will still see the tracking screen; it just updates less eagerly.'}
-					</span>
+<div class="np">
+	<div class="chips" aria-label="Where notifications can go">
+		{#each chips as chip (chip.id)}
+			<div class={['chip', chip.tone].join(' ')}>
+				<span class="chip-icon"><chip.icon size={15} stroke={1.6} /></span>
+				<span class="chip-text">
+					<strong>{chip.name}</strong>
+					{#if chip.href}
+						<a href={chip.href}>{chip.state} →</a>
+					{:else}
+						<span>{chip.state}</span>
+					{/if}
 				</span>
+				{#if chip.id === 'sms' && !sms.enabled}<Lock size={13} stroke={1.6} aria-hidden="true" />{/if}
+			</div>
+		{/each}
+	</div>
+
+	<div class="toolbar">
+		<div class="seg" role="radiogroup" aria-label="Who is notified">
+			<button type="button" role="radio" aria-checked={audience === 'team'} onclick={() => (audience = 'team')}>
+				Your team
+			</button>
+			<button
+				type="button"
+				role="radio"
+				aria-checked={audience === 'customers'}
+				onclick={() => (audience = 'customers')}
+			>
+				Customers
+			</button>
+		</div>
+		<div class="actions">
+			<button type="button" class="btn btn-ghost btn-sm" onclick={() => (logOpen = true)}>
+				<History size={14} stroke={1.6} /> Delivery log
+			</button>
+			<button type="button" class="btn btn-ghost btn-sm" onclick={() => (settingsOpen = true)}>
+				<SlidersHorizontal size={14} stroke={1.6} /> Alert settings
 			</button>
 		</div>
 	</div>
 
-	<div class="sfctl-section">
-		<h2>In-app notifications</h2>
-		<p class="sfctl-note">
-			What shows up in the bell, for everyone who works Selling on this business. Independent of
-			the sounds below — mute the sound and keep the bell, or the other way around.
-		</p>
-		<div style="display:flex;flex-direction:column;gap:0.6rem;">
-			<Switch
-				bind:checked={inAppNewOrder}
-				label="New order arrives"
-				onchange={() => (dirty = true)}
-			/>
-			<Switch
-				bind:checked={inAppOrderReady}
-				label="Order marked ready"
-				onchange={() => (dirty = true)}
-			/>
-		</div>
-	</div>
-
-	<div class="sfctl-section">
-		<h2>Sounds</h2>
-		<p class="sfctl-note">
-			What plays where: the shop console when a new order arrives, and the customer's tracking
-			screen when their order is marked ready. "No sound" is silent.
-		</p>
-		<div class="sfctl-grid">
-			<FormField label="New order (shop console)" htmlFor="ns-new-order">
-				<div style="display:flex;gap:0.5rem;align-items:center;">
-					<SelectField id="ns-new-order" bind:value={newOrderSound} options={SOUND_OPTIONS} />
-					<button
-						type="button"
-						class="btn btn-ghost btn-sm"
-						aria-label="Preview new order sound"
-						onclick={() => playSound(newOrderSound)}
-					>
-						<Volume2 size={15} strokeWidth={2} />
-					</button>
-				</div>
-			</FormField>
-			<FormField label="Order ready (customer tracking)" htmlFor="ns-order-ready">
-				<div style="display:flex;gap:0.5rem;align-items:center;">
-					<SelectField id="ns-order-ready" bind:value={orderReadySound} options={SOUND_OPTIONS} />
-					<button
-						type="button"
-						class="btn btn-ghost btn-sm"
-						aria-label="Preview order ready sound"
-						onclick={() => playSound(orderReadySound)}
-					>
-						<Volume2 size={15} strokeWidth={2} />
-					</button>
-				</div>
-			</FormField>
-		</div>
-	</div>
-
-	<div class="sfctl-section">
-		<h2>Email delivery</h2>
-		<p class="sfctl-note">
-			Order mail goes out over the email service configured under
-			<a href={settingsHref('integrations')}>Integrations</a>. Send yourself a test to confirm it
-			is working before a customer finds out for you.
-		</p>
-		<div class="sfctl-grid">
-			<FormField label="Send a test to" hint="Any address you can open right now.">
-				<TextInput bind:value={testEmail} type="email" placeholder="you@example.com" />
-			</FormField>
-		</div>
-		<button
-			type="button"
-			class="btn btn-secondary btn-sm"
-			style="margin-top:0.6rem;"
-			onclick={sendTest}
-			disabled={testing}
-		>
-			<Send size={14} strokeWidth={2} />
-			{testing ? 'Sending…' : 'Send test email'}
-		</button>
-	</div>
-
-	<div class="sfctl-foot">
-		<span class="sfctl-foot-note">Applies to orders placed from now on.</span>
-		<button class="btn btn-primary" type="submit" disabled={saving}>
-			{saving ? 'Saving…' : 'Save notification settings'}
-		</button>
-	</div>
-</form>
-
-<div class="sfctl-section">
-	<h2>Admin notifications</h2>
-	<p class="sfctl-note">
-		What reaches your staff, and over which channel. Email and SMS need a provider configured
-		under <a href={settingsHref('integrations')}>Integrations</a> first — a channel with none
-		configured simply won't send until it is.
+	<p class="lede">
+		{#if audience === 'team'}
+			Choose which events alert the people who work here. Changes save as you make them.
+		{:else}
+			Messages that leave the building. Customers can always follow their order on the tracking
+			screen. Changes save as you make them.
+		{/if}
 	</p>
-	{#if rulesError}
-		<ErrorState message={rulesError} onretry={loadRules} />
-	{:else if rulesLoading}
+
+	{#if audience === 'customers' && !sms.enabled}
+		<UpgradeNote feature="SMS messages" requiredPlan={sms.requiredPlan} />
+	{/if}
+
+	{#if error}
+		<ErrorState message={error} onretry={loadRules} />
+	{:else if loading}
+		<Skeleton height="14rem" />
+	{:else}
+		<EventChannelGrid
+			{events}
+			rules={shownRules}
+			channels={audience === 'team' ? TEAM_CHANNELS : CUSTOMER_CHANNELS}
+			locked={lockedChannels}
+			busyKey={busyRuleKey}
+			onchange={onRuleChange}
+			onrevert={onRuleRevert}
+			onedit={audience === 'customers' ? editWording : undefined}
+			editLocked={!templatesAccess.enabled}
+		/>
+	{/if}
+</div>
+
+<SlideOver bind:open={wordingOpen} title="Message wording">
+	{#if templatesAccess.enabled}
+		<p class="drawer-note">
+			Change what a customer message says. Until you do, the standard wording is used.
+		</p>
+		{#key wordingEvent}
+			<MessageTemplates
+				events={events.filter((e) => customerRules.some((r) => r.event_code === e.code))}
+				rules={customerRules}
+				initialEvent={wordingEvent}
+			/>
+		{/key}
+	{:else}
+		<UpgradeNote feature="Custom message wording" requiredPlan={templatesAccess.requiredPlan} />
+	{/if}
+</SlideOver>
+
+<SlideOver bind:open={logOpen} title="Delivery log">
+	<p class="drawer-note">Recent emails and texts from this business. Failed ones can be retried.</p>
+	{#if logError}
+		<ErrorState message={logError} onretry={loadDeliveries} />
+	{:else if logLoading && !logLoaded}
 		<Skeleton height="8rem" />
-	{:else}
-		<EventRuleMatrix
-			events={events.filter((e) => e.category !== 'PLATFORM')}
-			rules={adminRules}
-			busyKey={busyRuleKey}
-			onchange={onRuleChange}
-			onrevert={onRuleRevert}
-		/>
-	{/if}
-</div>
-
-<div class="sfctl-section">
-	<h2>Storefront notifications</h2>
-	<p class="sfctl-note">
-		What a customer is told, and how. These are the messages that leave the building — review
-		before turning one on.
-	</p>
-	{#if !rulesLoading && !rulesError}
-		<EventRuleMatrix
-			events={events.filter((e) => e.category !== 'PLATFORM')}
-			rules={storefrontRules}
-			busyKey={busyRuleKey}
-			onchange={onRuleChange}
-			onrevert={onRuleRevert}
-		/>
-	{/if}
-</div>
-
-<div class="sfctl-section">
-	<h2>Delivery history</h2>
-	<p class="sfctl-note">Recent email and SMS attempts for this business.</p>
-	{#if deliveriesError}
-		<ErrorState message={deliveriesError} onretry={loadDeliveries} />
-	{:else if deliveriesLoading}
-		<Skeleton height="6rem" />
 	{:else if deliveries.length === 0}
-		<p class="muted" style="padding:0.5rem 0;">Nothing has been queued yet.</p>
+		<EmptyState title="Nothing sent yet" description="Emails and texts will appear here once one goes out." />
 	{:else}
-		<ul class="dlv-list">
+		<ul class="dlv">
 			{#each deliveries as d (d.id)}
-				<li class="dlv-row">
+				<li>
 					<div class="dlv-main">
-						<strong>{d.event_code}</strong>
-						<span class="dlv-meta">{d.channel} · {d.recipient} · {formatRelative(d.created_at)}</span>
-						{#if d.last_error}<span class="dlv-error">{d.last_error}</span>{/if}
+						<strong>{d.event_code.replaceAll('_', ' ').toLowerCase()}</strong>
+						<span>{d.channel === 'SMS' ? 'Text' : 'Email'} · {d.recipient} · {formatRelative(d.created_at)}</span>
+						{#if d.last_error}<span class="dlv-err">{d.last_error}</span>{/if}
 					</div>
 					<div class="dlv-end">
 						<StatusBadge status={d.status} kind={DELIVERY_TONE[d.status] ?? 'neutral'} />
 						{#if d.status === 'FAILED' || d.status === 'DEAD'}
-							<button type="button" class="btn btn-quiet btn-sm" onclick={() => retryDelivery(d.id)}>
-								Retry
-							</button>
+							<button type="button" class="btn btn-quiet btn-sm" onclick={() => retryDelivery(d.id)}>Retry</button>
 						{/if}
 					</div>
 				</li>
 			{/each}
 		</ul>
 	{/if}
-</div>
+</SlideOver>
 
-<div class="sfctl-section">
-	<h2>Your preferences</h2>
-	<p class="sfctl-note">
-		Personal, within what the business allows above — this is about you, not the business.
-	</p>
-	<div style="display:flex;flex-direction:column;gap:0.6rem;">
+<SlideOver bind:open={settingsOpen} title="Alert settings">
+	<div class="form">
+		<Switch bind:checked={inAppNewOrder} label="Show new orders in the bell" hint="Everyone who works Selling." />
+		<Switch bind:checked={inAppOrderReady} label="Show ready orders in the bell" hint="Everyone who works Selling." />
 		<Switch
-			checked={soundOn}
-			label="Play a sound for important alerts"
-			hint="Applies to the notification bell in this browser only."
-			onchange={toggleSound}
+			bind:checked={readyNotification}
+			label="Update the tracking screen when an order is ready"
+			hint="What the customer sees."
 		/>
-		<div class="sfctl-grid">
-			<FormField label="Quiet hours start" hint="Optional. Non-critical alerts are held until after this.">
+
+		<FormField label="New order sound" htmlFor="ns-new-order" hint="Plays in the shop console.">
+			<div class="sound">
+				<SelectField id="ns-new-order" bind:value={newOrderSound} options={SOUND_OPTIONS} />
+				<button type="button" class="btn btn-ghost btn-sm" aria-label="Preview sound" onclick={() => playSound(newOrderSound)}>
+					<Volume2 size={15} stroke={1.6} />
+				</button>
+			</div>
+		</FormField>
+		<FormField label="Order ready sound" htmlFor="ns-order-ready" hint="Plays on the customer's tracking screen.">
+			<div class="sound">
+				<SelectField id="ns-order-ready" bind:value={orderReadySound} options={SOUND_OPTIONS} />
+				<button type="button" class="btn btn-ghost btn-sm" aria-label="Preview sound" onclick={() => playSound(orderReadySound)}>
+					<Volume2 size={15} stroke={1.6} />
+				</button>
+			</div>
+		</FormField>
+
+		<Switch bind:checked={soundOn} label="Play a sound for alerts in this browser" hint="Just you." />
+		<div class="quiet">
+			<FormField label="Quiet hours from" hint="Just you. Alert emails to you are held.">
 				<TextInput bind:value={quietStart} type="time" />
 			</FormField>
-			<FormField label="Quiet hours end">
+			<FormField label="Until">
 				<TextInput bind:value={quietEnd} type="time" />
 			</FormField>
 		</div>
-		<div>
-			<button type="button" class="btn btn-secondary btn-sm" disabled={prefsSaving} onclick={savePreferences}>
-				{prefsSaving ? 'Saving…' : 'Save preferences'}
-			</button>
-		</div>
 	</div>
-</div>
+	{#snippet footer()}
+		<button type="button" class="btn btn-ghost" onclick={() => (settingsOpen = false)}>Cancel</button>
+		<button type="button" class="btn btn-primary" disabled={saving} onclick={saveSettings}>
+			{saving ? 'Saving…' : 'Save'}
+		</button>
+	{/snippet}
+</SlideOver>
 
 <style>
-	.dlv-list {
+	.np {
+		display: flex;
+		flex-direction: column;
+		gap: 0.9rem;
+	}
+
+	.chips {
+		display: flex;
+		flex-wrap: wrap;
+		overflow: hidden;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-lg);
+		background: var(--card-bg);
+	}
+
+	.chip {
+		display: flex;
+		flex: 1 1 11rem;
+		align-items: center;
+		gap: var(--sp-5);
+		padding: var(--sp-5) var(--sp-7);
+		border: 0;
+		border-left: 1px solid var(--border-subtle);
+		background: none;
+		color: var(--text-3);
+	}
+
+	.chip:first-child {
+		border-left: 0;
+	}
+
+	.chip-icon {
+		display: inline-flex;
+		color: var(--text-3);
+		flex-shrink: 0;
+	}
+
+	.chip.ok .chip-text span {
+		color: var(--success);
+	}
+
+	.chip.warn .chip-text span,
+	.chip.warn .chip-text a {
+		color: var(--warn);
+	}
+
+	.chip-text {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		font-size: var(--fs-code);
+	}
+
+	.chip-text strong {
+		color: var(--text-2);
+		font-size: 0.875rem;
+	}
+
+	.toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.6rem;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.actions {
+		display: flex;
+		gap: 0.4rem;
+		flex-wrap: wrap;
+	}
+
+	.seg {
+		display: inline-flex;
+		gap: var(--sp-1);
+	}
+
+	.seg button {
+		padding: var(--sp-2) var(--sp-5);
+		border: 0;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		font: inherit;
+		font-size: var(--fs-tab);
+		font-weight: 500;
+		color: var(--text-3);
+		cursor: default;
+	}
+
+	.seg button:hover {
+		color: var(--text);
+		background: var(--surface-hover);
+	}
+
+	.seg button[aria-checked='true'] {
+		color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 14%, transparent);
+		font-weight: 500;
+		box-shadow: none;
+	}
+
+	.lede {
+		margin: 0;
+		font-size: 0.875rem;
+		color: var(--text-3);
+	}
+
+	.drawer-note {
+		margin: 0 0 0.9rem;
+		font-size: 0.875rem;
+		color: var(--text-3);
+	}
+
+	.form {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.sound {
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
+	}
+
+	.quiet {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.75rem;
+	}
+
+	.dlv {
 		list-style: none;
 		margin: 0;
 		padding: 0;
@@ -468,18 +622,17 @@
 		overflow: hidden;
 	}
 
-	.dlv-row {
+	.dlv li {
 		display: flex;
-		align-items: flex-start;
 		justify-content: space-between;
 		gap: 0.75rem;
-		padding: 0.6rem 0.85rem;
+		padding: 0.65rem 0.85rem;
 		border-top: 1px solid var(--border-subtle);
-		background: var(--surface-1);
+		background: var(--card-bg);
 	}
 
-	.dlv-row:first-child {
-		border-top: none;
+	.dlv li:first-child {
+		border-top: 0;
 	}
 
 	.dlv-main {
@@ -487,22 +640,24 @@
 		flex-direction: column;
 		gap: 0.1rem;
 		min-width: 0;
-	}
-
-	.dlv-meta {
 		font-size: var(--fs-code);
 		color: var(--text-3);
 	}
 
-	.dlv-error {
-		font-size: var(--fs-code);
+	.dlv-main strong {
+		color: var(--text-2);
+		font-size: 0.875rem;
+		text-transform: capitalize;
+	}
+
+	.dlv-err {
 		color: var(--danger, #dc2626);
 	}
 
 	.dlv-end {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.4rem;
 		flex-shrink: 0;
 	}
 </style>

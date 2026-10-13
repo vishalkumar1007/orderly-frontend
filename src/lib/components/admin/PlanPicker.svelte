@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Check from '@lucide/svelte/icons/check';
-	import Sparkles from '@lucide/svelte/icons/sparkles';
+	import Check from '@tabler/icons-svelte/icons/check';
+	import Sparkles from '@tabler/icons-svelte/icons/sparkles';
 	import type { PlanOption } from '$lib/admin/types';
 
 	let {
@@ -61,12 +61,12 @@
 					<span class="plan-option-name">{plan.label}</span>
 					{#if plan.code === defaultCode}
 						<span class="plan-tag">
-							<Sparkles size={10} strokeWidth={2.4} />
+							<Sparkles size={10} stroke={1.6} />
 							Default
 						</span>
 					{/if}
 					{#if selected}
-						<span class="plan-check" aria-hidden="true"><Check size={12} strokeWidth={3} /></span>
+						<span class="plan-check" aria-hidden="true"><Check size={12} stroke={1.6} /></span>
 					{/if}
 				</div>
 

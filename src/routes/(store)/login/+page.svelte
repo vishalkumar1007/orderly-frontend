@@ -2,8 +2,8 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
-	import Lock from '@lucide/svelte/icons/lock';
+	import ChevronLeft from '@tabler/icons-svelte/icons/chevron-left';
+	import Lock from '@tabler/icons-svelte/icons/lock';
 	import { friendlyError, storefrontApi } from '$lib/storefront/api';
 	import { formatPhone } from '$lib/storefront/format';
 
@@ -75,7 +75,7 @@
 		href={safeNext}
 		style="display:inline-flex;align-items:center;gap:4px;padding:8px 0;font-size:var(--fs-body);font-weight:600;color:var(--sf-text-2);text-decoration:none;"
 	>
-		<ChevronLeft size={16} strokeWidth={2.2} aria-hidden="true" />
+		<ChevronLeft size={16} stroke={1.6} aria-hidden="true" />
 		Back
 	</a>
 
@@ -145,7 +145,7 @@
 			<p
 				style="display:flex;align-items:center;justify-content:center;gap:5px;margin:16px 0 0;font-size:var(--fs-code);color:var(--sf-text-3);"
 			>
-				<Lock size={13} strokeWidth={1.9} aria-hidden="true" />
+				<Lock size={13} stroke={1.6} aria-hidden="true" />
 				We only use your number for sign-in and order updates.
 			</p>
 		{/if}

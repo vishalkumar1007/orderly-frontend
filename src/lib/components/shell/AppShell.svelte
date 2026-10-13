@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { onMount, type Component, type Snippet } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
+	import type { IconComponent } from '$lib/icons';
 	import type { AdminCrumb as Crumb } from '$lib/admin/nav';
-	import Menu from '@lucide/svelte/icons/menu';
+	import Menu from '@tabler/icons-svelte/icons/menu-2';
 	import SidebarNavLink from '$lib/components/admin/SidebarNavLink.svelte';
 	import AdminTopbar from '$lib/components/admin/AdminTopbar.svelte';
 	import SidebarHeader from '$lib/components/admin/SidebarHeader.svelte';
@@ -10,7 +11,7 @@
 	export type ShellNavItem = {
 		href: string;
 		label: string;
-		icon: Component;
+		icon: IconComponent;
 		/** Only show to these roles. */
 		roles?: string[];
 		/** Match only this exact path, not its children. */
@@ -28,7 +29,7 @@
 	export type ShellQuickLink = {
 		href: string;
 		label: string;
-		icon: Component;
+		icon: IconComponent;
 	};
 
 	/** At or below this the rail becomes an overlay drawer instead of a column. */
@@ -229,7 +230,7 @@
 					aria-label="Open menu"
 					aria-expanded={mobileOpen}
 				>
-					<Menu size={18} strokeWidth={1.75} />
+					<Menu size={18} stroke={1.6} />
 				</button>
 				<span class="rail-mobile-name">{brandName}</span>
 				{#if quickLinks.length > 0}
@@ -244,7 +245,7 @@
 								aria-current={quickActive(link.href) ? 'page' : undefined}
 								title={link.label}
 							>
-								<Icon size={15} strokeWidth={2} />
+								<Icon size={15} stroke={1.6} />
 								<span>{link.label}</span>
 							</a>
 						{/each}

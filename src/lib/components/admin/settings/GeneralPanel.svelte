@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Building2 from '@lucide/svelte/icons/building-2';
-	import Globe from '@lucide/svelte/icons/globe';
-	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
+	import Building2 from '@tabler/icons-svelte/icons/building';
+	import Globe from '@tabler/icons-svelte/icons/world';
+	import SlidersHorizontal from '@tabler/icons-svelte/icons/adjustments-horizontal';
 	import { fetchSettings, updateSettings, type SettingsPatch } from '$lib/admin/api';
 	import { errorMessage } from '$lib/admin/errors';
 	import type { PlatformSettings } from '$lib/admin/types';

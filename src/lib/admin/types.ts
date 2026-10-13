@@ -331,6 +331,8 @@ export type Plan = {
 	features: string[];
 	/** Business types the plan is offered to. Empty means all of them. */
 	business_types: string[];
+	/** Feature codes the API enforces for this plan (see EntitlementFeature). */
+	entitlements: string[];
 	/** Present on the list endpoint only. */
 	tenant_count?: number;
 	active_subscriptions?: number;
@@ -347,7 +349,11 @@ export type PlanWritePayload = {
 	trial_days?: number;
 	features?: string[];
 	business_types?: string[];
+	entitlements?: string[];
 };
+
+/** A feature a plan can switch on, from the API's catalog. */
+export type EntitlementFeature = { code: string; label: string };
 
 /** A plan as offered during tenant onboarding (mirrors GET /admin/plans). */
 export type PlanOption = {

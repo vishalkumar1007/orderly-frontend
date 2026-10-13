@@ -1,8 +1,8 @@
 <script lang="ts">
-	import Minus from '@lucide/svelte/icons/minus';
-	import Plus from '@lucide/svelte/icons/plus';
-	import Sparkles from '@lucide/svelte/icons/sparkles';
-	import Flame from '@lucide/svelte/icons/flame';
+	import Minus from '@tabler/icons-svelte/icons/minus';
+	import Plus from '@tabler/icons-svelte/icons/plus';
+	import Sparkles from '@tabler/icons-svelte/icons/sparkles';
+	import Flame from '@tabler/icons-svelte/icons/flame';
 	import type { StoreProduct } from '$lib/storefront/api';
 	import { lineKey } from '$lib/storefront/cart.svelte';
 	import { money } from '$lib/storefront/format';
@@ -77,12 +77,12 @@
 
 			{#if product.is_popular}
 				<span class="sf-badge sf-badge-popular">
-					<Flame size={12} strokeWidth={2.5} aria-hidden="true" />
+					<Flame size={12} stroke={1.6} aria-hidden="true" />
 					Bestseller
 				</span>
 			{:else if product.is_featured}
 				<span class="sf-badge sf-badge-featured">
-					<Sparkles size={11} strokeWidth={2.4} aria-hidden="true" />
+					<Sparkles size={11} stroke={1.6} aria-hidden="true" />
 					{featuredLabel}
 				</span>
 			{/if}
@@ -158,7 +158,7 @@
 								aria-label="Remove one {product.name}"
 								onclick={() => onstep?.(product, -1)}
 							>
-								<Minus size={14} strokeWidth={2.6} aria-hidden="true" />
+								<Minus size={14} stroke={1.6} aria-hidden="true" />
 							</button>
 							<span class="sf-qty-value" data-key={simpleKey}>{inCart}</span>
 							<button
@@ -167,7 +167,7 @@
 								aria-label="Add one {product.name}"
 								onclick={() => onstep?.(product, 1)}
 							>
-								<Plus size={14} strokeWidth={2.6} aria-hidden="true" />
+								<Plus size={14} stroke={1.6} aria-hidden="true" />
 							</button>
 						</div>
 					{:else}
@@ -177,7 +177,7 @@
 							onclick={() => onadd?.(product)}
 						>
 							<span class="sf-add-text">ADD</span>
-							<Plus size={14} strokeWidth={2.8} aria-hidden="true" />
+							<Plus size={14} stroke={1.6} aria-hidden="true" />
 							<span class="sf-sr-only">Add {product.name} to cart</span>
 						</button>
 					{/if}
@@ -187,7 +187,7 @@
 						href={'/product/' + product.id}
 					>
 						<span class="sf-add-text">ADD</span>
-						<Plus size={14} strokeWidth={2.8} aria-hidden="true" />
+						<Plus size={14} stroke={1.6} aria-hidden="true" />
 					</a>
 					<span class="sf-customisable-hint">Customisable</span>
 				{/if}

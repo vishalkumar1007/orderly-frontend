@@ -1,18 +1,18 @@
 <script lang="ts">
-	import Palette from '@lucide/svelte/icons/palette';
-	import Image from '@lucide/svelte/icons/image';
-	import LayoutTemplate from '@lucide/svelte/icons/layout-template';
-	import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
-	import Users from '@lucide/svelte/icons/users';
-	import CreditCard from '@lucide/svelte/icons/credit-card';
+	import Palette from '@tabler/icons-svelte/icons/palette';
+	import Image from '@tabler/icons-svelte/icons/photo';
+	import LayoutTemplate from '@tabler/icons-svelte/icons/layout';
+	import UtensilsCrossed from '@tabler/icons-svelte/icons/tools-kitchen-2';
+	import Users from '@tabler/icons-svelte/icons/users';
+	import CreditCard from '@tabler/icons-svelte/icons/credit-card';
 	import OpeningHoursForm from '$lib/components/storefront/OpeningHoursForm.svelte';
-	import ArrowUp from '@lucide/svelte/icons/arrow-up';
-	import ArrowDown from '@lucide/svelte/icons/arrow-down';
-	import Sparkles from '@lucide/svelte/icons/sparkles';
-	import Eye from '@lucide/svelte/icons/eye';
-	import EyeOff from '@lucide/svelte/icons/eye-off';
-	import Check from '@lucide/svelte/icons/check';
-	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+	import ArrowUp from '@tabler/icons-svelte/icons/arrow-up';
+	import ArrowDown from '@tabler/icons-svelte/icons/arrow-down';
+	import Sparkles from '@tabler/icons-svelte/icons/sparkles';
+	import Eye from '@tabler/icons-svelte/icons/eye';
+	import EyeOff from '@tabler/icons-svelte/icons/eye-off';
+	import Check from '@tabler/icons-svelte/icons/check';
+	import RefreshCw from '@tabler/icons-svelte/icons/refresh';
 	import type { StudioDraftStore } from '$lib/storefront/studioDraft.svelte';
 	import type { ConfigControl, Terminology } from '$lib/admin/businessTypes';
 	import type { StudioSectionId } from '$lib/storefront/studioSections';
@@ -209,7 +209,7 @@
 							</div>
 							{#if isSelected}
 								<span class="studio-preset-check">
-									<Check size={14} strokeWidth={2.8} />
+									<Check size={14} stroke={1.6} />
 								</span>
 							{/if}
 						</button>
@@ -626,9 +626,9 @@
 									onclick={() => toggleSection(section.id)}
 								>
 									{#if section.enabled}
-										<Eye size={16} strokeWidth={2} />
+										<Eye size={16} stroke={1.6} />
 									{:else}
-										<EyeOff size={16} strokeWidth={2} />
+										<EyeOff size={16} stroke={1.6} />
 									{/if}
 								</button>
 								<div class="studio-section-item-text">
@@ -662,7 +662,7 @@
 									title="Move Up"
 									onclick={() => moveSection(section.id, 'up')}
 								>
-									<ArrowUp size={14} strokeWidth={2.4} />
+									<ArrowUp size={14} stroke={1.6} />
 								</button>
 								<button
 									type="button"
@@ -674,7 +674,7 @@
 									title="Move Down"
 									onclick={() => moveSection(section.id, 'down')}
 								>
-									<ArrowDown size={14} strokeWidth={2.4} />
+									<ArrowDown size={14} stroke={1.6} />
 								</button>
 							</div>
 						</div>

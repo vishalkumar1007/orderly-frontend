@@ -20,12 +20,12 @@
 		loadTenantConfig,
 		setTenantConfig
 	} from '$lib/admin/tenantConfigCache.svelte';
-	import CircleCheck from '@lucide/svelte/icons/circle-check';
-	import CircleSlash from '@lucide/svelte/icons/circle-slash';
-	import Info from '@lucide/svelte/icons/info';
-	import Send from '@lucide/svelte/icons/send';
-	import Trash2 from '@lucide/svelte/icons/trash-2';
-	import Upload from '@lucide/svelte/icons/upload';
+	import CircleCheck from '@tabler/icons-svelte/icons/circle-check';
+	import CircleSlash from '@tabler/icons-svelte/icons/ban';
+	import Info from '@tabler/icons-svelte/icons/info-circle';
+	import Send from '@tabler/icons-svelte/icons/send';
+	import Trash2 from '@tabler/icons-svelte/icons/trash';
+	import Upload from '@tabler/icons-svelte/icons/upload';
 	import ConfigForm from '$lib/components/admin/ConfigForm.svelte';
 	import ConfigSourcePicker from '$lib/components/admin/ConfigSourcePicker.svelte';
 	import ConfigStatusBadge from '$lib/components/admin/ConfigStatusBadge.svelte';
@@ -233,7 +233,7 @@
 
 			{#if effective && !effective.available}
 				<div class="alert alert-warn" role="status">
-					<CircleSlash size={16} strokeWidth={1.9} />
+					<CircleSlash size={16} stroke={1.6} />
 					<div>
 						<strong>Currently unavailable.</strong>
 						{effective.reason}
@@ -289,22 +289,22 @@
 
 					<div class="actions">
 						<button type="button" class="btn btn-ghost" disabled={testing || busy} onclick={testConnection}>
-							<CircleCheck size={14} strokeWidth={2} />
+							<CircleCheck size={14} stroke={1.6} />
 							{testing ? 'Testing…' : 'Test connection'}
 						</button>
 						{#if service === 'SMTP'}
 							<button type="button" class="btn btn-ghost" disabled={busy} onclick={() => testAction('send_email')}>
-								<Send size={14} strokeWidth={2} /> Send test email
+								<Send size={14} stroke={1.6} /> Send test email
 							</button>
 						{/if}
 						{#if service === 'STORAGE'}
 							<button type="button" class="btn btn-ghost" disabled={busy} onclick={() => testAction('upload')}>
-								<Upload size={14} strokeWidth={2} /> Test upload
+								<Upload size={14} stroke={1.6} /> Test upload
 							</button>
 						{/if}
 						{#if service === 'AI'}
 							<button type="button" class="btn btn-ghost" disabled={busy} onclick={() => testAction('test_model')}>
-								<CircleCheck size={14} strokeWidth={2} /> Test model
+								<CircleCheck size={14} stroke={1.6} /> Test model
 							</button>
 						{/if}
 						<button type="button" class="btn btn-primary" disabled={saving} onclick={save}>
@@ -312,7 +312,7 @@
 						</button>
 						{#if options.organization_configured}
 							<button type="button" class="btn btn-ghost btn-danger" disabled={busy} onclick={() => (deleteOpen = true)}>
-								<Trash2 size={14} strokeWidth={2} /> Remove
+								<Trash2 size={14} stroke={1.6} /> Remove
 							</button>
 						{/if}
 					</div>
@@ -336,7 +336,7 @@
 		{:else}
 			<div class="panel">
 				<div class="panel-body read-only">
-					<Info size={15} strokeWidth={2} />
+					<Info size={15} stroke={1.6} />
 					<span>
 						Your organization is using the platform {CONFIG_SERVICE_LABEL[service].toLowerCase()}
 						configuration. Switch to your organization configuration above to manage your own settings.

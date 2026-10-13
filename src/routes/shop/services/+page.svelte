@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Plus from '@lucide/svelte/icons/plus';
+	import Plus from '@tabler/icons-svelte/icons/plus';
 	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
 	import DataTable from '$lib/components/admin/DataTable.svelte';
 	import FormField from '$lib/components/admin/FormField.svelte';
@@ -125,7 +125,7 @@
 	<header class="services-head">
 		<p class="muted">What customers can book an appointment for.</p>
 		<button type="button" class="btn btn-primary" onclick={openCreate}>
-			<Plus size={15} strokeWidth={2.2} />
+			<Plus size={15} stroke={1.6} />
 			Add service
 		</button>
 	</header>

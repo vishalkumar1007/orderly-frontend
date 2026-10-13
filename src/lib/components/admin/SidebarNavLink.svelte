@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Component } from 'svelte';
+	import type { IconComponent } from '$lib/icons';
 
 	let {
 		href,
@@ -22,7 +22,7 @@
 	}: {
 		href: string;
 		label: string;
-		icon: Component;
+		icon: IconComponent;
 		pathname?: string;
 		collapsed?: boolean;
 		exact?: boolean;
@@ -49,6 +49,6 @@
 	title={collapsed ? label : undefined}
 	{onclick}
 >
-	<span class="rail-link-icon"><Icon size={14} strokeWidth={2} /></span>
+	<span class="rail-link-icon"><Icon size={15} stroke={1.6} /></span>
 	<span class="rail-link-label">{label}</span>
 </a>

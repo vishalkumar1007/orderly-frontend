@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import House from '@lucide/svelte/icons/house';
-	import Receipt from '@lucide/svelte/icons/receipt';
-	import User from '@lucide/svelte/icons/user';
-	import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
+	import House from '@tabler/icons-svelte/icons/home';
+	import Receipt from '@tabler/icons-svelte/icons/receipt';
+	import User from '@tabler/icons-svelte/icons/user';
+	import UtensilsCrossed from '@tabler/icons-svelte/icons/tools-kitchen-2';
 
 	/**
 	 * Bottom navigation for a phone.
@@ -64,7 +64,7 @@
 			aria-current={tab.current ? 'page' : undefined}
 			aria-label={tab.label}
 		>
-			<tab.icon size={21} strokeWidth={tab.current ? 2.2 : 1.8} />
+			<tab.icon size={21} stroke={1.6} />
 			<span>{tab.label}</span>
 		</a>
 	{/each}

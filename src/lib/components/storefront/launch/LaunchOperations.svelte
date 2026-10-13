@@ -1,6 +1,6 @@
 <script lang="ts">
-	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
-	import ExternalLink from '@lucide/svelte/icons/external-link';
+	import SlidersHorizontal from '@tabler/icons-svelte/icons/adjustments-horizontal';
+	import ExternalLink from '@tabler/icons-svelte/icons/external-link';
 	import type { StorefrontContext } from '$lib/storefront/admin-context';
 	import './launch-shared.css';
 
@@ -12,7 +12,7 @@
 <div class="studio-content-grid">
 	<div class="panel studio-section-intro">
 		<div class="intro-icon-wrap">
-			<SlidersHorizontal size={24} strokeWidth={1.8} />
+			<SlidersHorizontal size={24} stroke={1.6} />
 		</div>
 		<div>
 			<h2 class="intro-h">Store status &amp; ordering</h2>
@@ -35,7 +35,7 @@
 			</li>
 		</ul>
 		<a class="btn btn-primary" href="/shop/customize?section=ordering">
-			<ExternalLink size={15} strokeWidth={2} />
+			<ExternalLink size={15} stroke={1.6} />
 			Edit in Customize → Store rules
 		</a>
 	</div>

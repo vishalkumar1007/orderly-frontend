@@ -7,27 +7,42 @@
 		data = [] as ProductPoint[],
 		loading = false,
 		formatMoney = (n: number) => String(n),
-		emptyLabel = 'No sales in this window'
+		emptyLabel = 'No sales in this window',
+		metric = 'units',
+		onmetric
 	}: {
 		title?: string;
 		data?: ProductPoint[];
 		loading?: boolean;
 		formatMoney?: (n: number) => string;
 		emptyLabel?: string;
+		/** What the bars and the headline figure rank by. */
+		metric?: 'units' | 'revenue';
+		/** When set, the panel shows a By volume / By revenue switch. */
+		onmetric?: (m: 'units' | 'revenue') => void;
 	} = $props();
 
 	/** Bars are relative to the leader, so the shape stays readable. */
-	const peak = $derived(Math.max(...data.map((d) => d.units), 1));
+	const peak = $derived(Math.max(...data.map((d) => d[metric]), 1));
 	const units = $derived(data.reduce((sum, d) => sum + d.units, 0));
+	const revenue = $derived(data.reduce((sum, d) => sum + d.revenue, 0));
 </script>
 
 <section class="panel">
 	<div class="head">
 		<h3 class="panel-h" style="margin:0;">{title}</h3>
-		{#if data.length > 0}
+		{#if onmetric}
+			<div class="toggle" role="tablist" aria-label="Rank by">
+				<button type="button" role="tab" aria-selected={metric === 'units'} class:active={metric === 'units'} onclick={() => onmetric('units')}>Volume</button>
+				<button type="button" role="tab" aria-selected={metric === 'revenue'} class:active={metric === 'revenue'} onclick={() => onmetric('revenue')}>Revenue</button>
+			</div>
+		{:else if data.length > 0}
 			<p class="sub">{units} sold</p>
 		{/if}
 	</div>
+	{#if onmetric && data.length > 0}
+		<p class="sub sub-line">{metric === 'units' ? `${units} sold` : `${formatMoney(revenue)} from these`}</p>
+	{/if}
 
 	{#if loading}
 		<div class="body">
@@ -45,13 +60,13 @@
 					<span class="row-main">
 						<span class="top">
 							<span class="name">{row.name}</span>
-							<span class="qty">{row.units}</span>
+							<span class="qty">{metric === 'units' ? row.units : formatMoney(row.revenue)}</span>
 						</span>
 						<span class="track">
-							<span class="fill" style={`width:${Math.max((row.units / peak) * 100, 3)}%`}
+							<span class="fill" style={`width:${Math.max((row[metric] / peak) * 100, 3)}%`}
 							></span>
 						</span>
-						<span class="rev">{formatMoney(row.revenue)}</span>
+						<span class="rev">{metric === 'units' ? formatMoney(row.revenue) : `${row.units} sold`}</span>
 					</span>
 				</li>
 			{/each}
@@ -84,6 +99,31 @@
 		margin: 0;
 		font-size: var(--fs-code);
 		color: var(--text-3);
+	}
+
+	.sub-line {
+		padding: 0 1rem 0.25rem;
+	}
+
+	.toggle {
+		display: inline-flex;
+		padding: 2px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		background: var(--surface-2);
+	}
+
+	.toggle button {
+		padding: 0.2rem 0.55rem;
+		font-weight: 600;
+		font-size: var(--fs-code);
+		color: var(--text-3);
+		border-radius: calc(var(--radius-sm) - 2px);
+	}
+
+	.toggle button.active {
+		background: var(--surface);
+		color: var(--text);
 	}
 
 	.rows {

@@ -100,7 +100,9 @@ export function apiBaseURL(_hostSlug?: string | null): string {
 	return platformApiOrigin();
 }
 
-export type ApiError = { error: { code: string; message: string } };
+export type ApiError = {
+	error: { code: string; message: string; details?: Record<string, unknown> };
+};
 
 /**
  * `ApiOptions` extends `RequestInit` with an explicit credential.
@@ -122,6 +124,11 @@ export type ApiOptions = RequestInit & {
 	 * to disable. Server loads inherit AbortSignal when provided via `signal`.
 	 */
 	timeoutMs?: number;
+	/**
+	 * Skip the global upgrade prompt for a plan/license refusal. For a panel
+	 * that renders its own "not in your plan" state instead of a dialog.
+	 */
+	quiet?: boolean;
 };
 
 const DEFAULT_TIMEOUT_MS = 8_000;
@@ -166,11 +173,31 @@ function mergeAbortSignal(
 export class ApiClientError extends Error {
 	code: string;
 	status: number;
-	constructor(status: number, code: string, message: string) {
+	/** Machine-readable context from the API, e.g. the plan to upgrade to. */
+	details: Record<string, unknown>;
+	constructor(status: number, code: string, message: string, details: Record<string, unknown> = {}) {
 		super(message);
 		this.status = status;
 		this.code = code;
+		this.details = details;
 	}
+}
+
+/** Failures that mean "your plan or license does not allow this", not "something broke". */
+export const PLAN_BLOCK_CODES = new Set(['plan_limit', 'feature_not_in_plan', 'license_inactive']);
+
+type PlanBlockHandler = (err: ApiClientError) => void;
+let planBlockHandler: PlanBlockHandler | null = null;
+
+/**
+ * Register the one place that turns a plan/license refusal into an upgrade
+ * prompt, so no screen has to remember to. Returns an unsubscribe function.
+ */
+export function onPlanBlock(handler: PlanBlockHandler): () => void {
+	planBlockHandler = handler;
+	return () => {
+		if (planBlockHandler === handler) planBlockHandler = null;
+	};
 }
 
 type Tokens = {
@@ -238,7 +265,7 @@ export async function api<T>(
 	auth = true
 ): Promise<T> {
 	// `hostSlug` / `timeoutMs` are client-side options, not fetch options.
-	const { authToken, hostSlug, timeoutMs, ...init } = options;
+	const { authToken, hostSlug, timeoutMs, quiet, ...init } = options;
 	const base = apiBaseURL(hostSlug);
 	const headers = new Headers(init.headers || {});
 	// FormData must keep the browser-generated multipart boundary; forcing
@@ -350,14 +377,18 @@ export async function api<T>(
 	if (!res.ok) {
 		let code = 'error';
 		let message = res.statusText;
+		let details: Record<string, unknown> = {};
 		try {
 			const body = (await res.json()) as ApiError;
 			code = body.error?.code || code;
 			message = body.error?.message || message;
+			details = body.error?.details ?? {};
 		} catch {
 			/* ignore */
 		}
-		throw new ApiClientError(res.status, code, message);
+		const failure = new ApiClientError(res.status, code, message, details);
+		if (!quiet && res.status === 403 && PLAN_BLOCK_CODES.has(code)) planBlockHandler?.(failure);
+		throw failure;
 	}
 
 	if (res.status === 204) return undefined as T;

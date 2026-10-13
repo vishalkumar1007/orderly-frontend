@@ -175,6 +175,10 @@ export type OrderPayment = {
 	attempts?: number;
 	paid_at?: string;
 	failure_reason?: string;
+	/** Dummy payment: nobody was charged. */
+	is_test?: boolean;
+	refund_status?: string;
+	refunded_amount?: number;
 };
 
 export type OrderSummary = {
@@ -249,6 +253,18 @@ export type CustomerProfile = {
 	benefits: string[];
 };
 
+/** What the browser needs to open the gateway's payment window. */
+export type PaymentCheckout = {
+	gateway: 'razorpay';
+	key_id: string;
+	order_id: string;
+	amount_minor: number;
+	currency: string;
+	name: string;
+	description: string;
+	prefill?: { contact?: string; email?: string };
+};
+
 export type PaymentSession = {
 	order_number: number;
 	order_status: string;
@@ -261,6 +277,11 @@ export type PaymentSession = {
 	payment_methods: string[];
 	can_pay_online: boolean;
 	payable: boolean;
+	/** SANDBOX (dummy, nobody is charged) or LIVE. Absent on older servers. */
+	payment_mode?: 'SANDBOX' | 'LIVE';
+	is_test?: boolean;
+	/** Present when a live gateway payment was just started: public values only. */
+	checkout?: PaymentCheckout;
 	payment_token?: string;
 	failure_reason?: string;
 	attempts?: number;

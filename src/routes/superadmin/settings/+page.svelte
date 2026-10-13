@@ -2,13 +2,13 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import type { Component } from 'svelte';
-	import Building2 from '@lucide/svelte/icons/building-2';
-	import Globe from '@lucide/svelte/icons/globe';
-	import Shapes from '@lucide/svelte/icons/shapes';
-	import ShieldCheck from '@lucide/svelte/icons/shield-check';
-	import UserRound from '@lucide/svelte/icons/user-round';
-	import Palette from '@lucide/svelte/icons/palette';
+	import Building2 from '@tabler/icons-svelte/icons/building';
+	import Globe from '@tabler/icons-svelte/icons/world';
+	import Shapes from '@tabler/icons-svelte/icons/category';
+	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
+	import UserRound from '@tabler/icons-svelte/icons/user';
+	import Palette from '@tabler/icons-svelte/icons/palette';
+	import SettingsShell from '$lib/components/admin/SettingsShell.svelte';
 	import { me, type User } from '$lib/auth';
 	import AppearancePanel from '$lib/components/tenant/settings/AppearancePanel.svelte';
 	import BusinessTypesPanel from '$lib/components/admin/settings/BusinessTypesPanel.svelte';
@@ -33,7 +33,7 @@
 	type Section = {
 		id: string;
 		label: string;
-		icon: Component;
+		icon: typeof Building2;
 		group: 'Platform' | 'Your account';
 		/** Capability the API requires. Sections you cannot use are not shown. */
 		requires?: string;
@@ -132,162 +132,24 @@
 	}
 </script>
 
-<div class="set-shell">
-	<nav class="set-rail" aria-label="Settings sections">
-		{#each groups as group (group.label)}
-			<p class="set-rail-label">{group.label}</p>
-			{#each group.items as section (section.id)}
-				<button
-					type="button"
-					class={['set-rail-link', active.id === section.id ? 'active' : ''].join(' ')}
-					aria-current={active.id === section.id ? 'page' : undefined}
-					onclick={() => select(section.id)}
-				>
-					<section.icon size={15} strokeWidth={1.9} />
-					{section.label}
-				</button>
-			{/each}
-		{/each}
-	</nav>
-
-	<div class="set-main">
-		<header class="set-page-head">
-			<h1 class="set-page-title">{active.label}</h1>
-			<p class="set-lede">{active.lede}</p>
-		</header>
-
-		{#if active.id === 'general'}
-			<GeneralPanel />
-		{:else if active.id === 'business-types'}
-			<BusinessTypesPanel />
-		{:else if active.id === 'security'}
-			<SecurityPanel />
-		{:else if active.id === 'appearance'}
-			<AppearancePanel kind="platform" canSetBusinessDefault={canWritePlatformSettings} />
-		{:else if active.id === 'tenant-access'}
-			<TenantAccessTable />
-		{:else}
-			<ProfilePanel />
-		{/if}
-	</div>
-</div>
-
-<style>
-	.set-shell {
-		display: grid;
-		gap: 1.75rem;
-		align-items: start;
-	}
-
-	@media (min-width: 1000px) {
-		.set-shell {
-			grid-template-columns: 12.5rem minmax(0, 1fr);
-			gap: 2rem;
-		}
-	}
-
-	.set-rail {
-		display: flex;
-		flex-direction: column;
-		gap: 0.15rem;
-		padding: 0.35rem;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-lg);
-		background: var(--surface);
-	}
-
-	@media (min-width: 1000px) {
-		.set-rail {
-			position: sticky;
-			top: calc(var(--topbar-h) + 1rem);
-		}
-	}
-
-	@media (max-width: 999px) {
-		/* A column of section links above a form reads as part of the form on a
-		   phone, so it becomes a scrolling row instead. */
-		.set-rail {
-			flex-direction: row;
-			overflow-x: auto;
-			padding: 0.35rem;
-			gap: 0.25rem;
-		}
-
-		.set-rail-label {
-			display: none;
-		}
-	}
-
-	.set-rail-label {
-		margin: 0.65rem 0 0.2rem;
-		padding: 0 0.55rem;
-		font-size: var(--fs-micro);
-		font-weight: 700;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--text-3);
-	}
-
-	.set-rail-label:first-child {
-		margin-top: 0.15rem;
-	}
-
-	.set-rail-link {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.45rem 0.55rem;
-		border: 0;
-		border-radius: var(--radius-sm);
-		background: transparent;
-		color: var(--text-2);
-		font-family: inherit;
-		font-size: var(--fs-body);
-		font-weight: 500;
-		text-align: left;
-		white-space: nowrap;
-		cursor: pointer;
-		transition:
-			background var(--tr),
-			color var(--tr);
-	}
-
-	.set-rail-link:hover {
-		background: var(--surface-2);
-		color: var(--text);
-	}
-
-	.set-rail-link.active {
-		background: var(--accent-soft);
-		color: var(--accent-dark);
-		font-weight: 600;
-	}
-
-	.set-main {
-		min-width: 0;
-	}
-
-	.set-page-head {
-		margin-bottom: 0.35rem;
-		padding-bottom: 1.15rem;
-		border-bottom: 1px solid var(--border-subtle);
-	}
-
-	.set-page-title {
-		margin: 0;
-		font-family: var(--font-display);
-		font-size: var(--fs-h1);
-		font-weight: 650;
-		letter-spacing: -0.025em;
-		color: var(--text);
-		line-height: 1.2;
-	}
-
-	.set-lede {
-		margin: 0.4rem 0 0;
-		font-size: var(--fs-body);
-		line-height: 1.55;
-		color: var(--text-3);
-		max-width: 42rem;
-	}
-</style>
+<SettingsShell
+	{groups}
+	activeId={active.id}
+	title={active.label}
+	lede={active.lede}
+	onselect={select}
+>
+	{#if active.id === 'general'}
+		<GeneralPanel />
+	{:else if active.id === 'business-types'}
+		<BusinessTypesPanel />
+	{:else if active.id === 'security'}
+		<SecurityPanel />
+	{:else if active.id === 'appearance'}
+		<AppearancePanel kind="platform" canSetBusinessDefault={canWritePlatformSettings} />
+	{:else if active.id === 'tenant-access'}
+		<TenantAccessTable />
+	{:else}
+		<ProfilePanel />
+	{/if}
+</SettingsShell>

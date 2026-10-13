@@ -2,9 +2,9 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import ArrowRight from '@lucide/svelte/icons/arrow-right';
-	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
-	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
+	import ArrowRight from '@tabler/icons-svelte/icons/arrow-right';
+	import RefreshCw from '@tabler/icons-svelte/icons/refresh';
+	import TriangleAlert from '@tabler/icons-svelte/icons/alert-triangle';
 	import { fetchAuditLogs, fetchTenants } from '$lib/admin/api';
 	import { errorMessage } from '$lib/admin/errors';
 	import { formatDateTime, formatRelative, initials } from '$lib/admin/format';
@@ -175,7 +175,7 @@
 
 {#if tab === 'audit' && !loading && (denied > 0 || failed > 0)}
 	<div class="alert alert-warn" style="margin-bottom:0.85rem;flex-wrap:wrap;gap:0.5rem;">
-		<TriangleAlert size={16} strokeWidth={1.9} />
+		<TriangleAlert size={16} stroke={1.6} />
 		<span>
 			{denied} refused and {failed} failed attempt{denied + failed === 1 ? '' : 's'} in the last
 			100 events. A refusal is the platform doing its job, not a fault.
@@ -206,7 +206,7 @@
 			</p>
 		</div>
 		<button type="button" class="btn btn-ghost btn-sm" onclick={() => load(true)}>
-			<RefreshCw size={13} strokeWidth={2} class={refreshing ? 'spin' : ''} />
+			<RefreshCw size={13} stroke={1.6} class={refreshing ? 'spin' : ''} />
 			Refresh
 		</button>
 	</div>
@@ -302,7 +302,7 @@
 								</div>
 								{#if href}
 									<a class="ev-go" href={href} aria-label={`Open ${log.tenant}`}>
-										<ArrowRight size={14} strokeWidth={2} />
+										<ArrowRight size={14} stroke={1.6} />
 									</a>
 								{/if}
 							</li>

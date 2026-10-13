@@ -2,18 +2,18 @@
 	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
-	import CircleCheck from '@lucide/svelte/icons/circle-check';
-	import CloudOff from '@lucide/svelte/icons/cloud-off';
-	import ExternalLink from '@lucide/svelte/icons/external-link';
-	import FileDiff from '@lucide/svelte/icons/file-diff';
-	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
-	import Sparkles from '@lucide/svelte/icons/sparkles';
-	import Trash2 from '@lucide/svelte/icons/trash-2';
-	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
-	import Upload from '@lucide/svelte/icons/upload';
-	import PanelRightClose from '@lucide/svelte/icons/panel-right-close';
-	import PanelRightOpen from '@lucide/svelte/icons/panel-right-open';
+	import ArrowLeft from '@tabler/icons-svelte/icons/arrow-left';
+	import CircleCheck from '@tabler/icons-svelte/icons/circle-check';
+	import CloudOff from '@tabler/icons-svelte/icons/cloud-off';
+	import ExternalLink from '@tabler/icons-svelte/icons/external-link';
+	import FileDiff from '@tabler/icons-svelte/icons/file-diff';
+	import RotateCcw from '@tabler/icons-svelte/icons/rotate';
+	import Sparkles from '@tabler/icons-svelte/icons/sparkles';
+	import Trash2 from '@tabler/icons-svelte/icons/trash';
+	import TriangleAlert from '@tabler/icons-svelte/icons/alert-triangle';
+	import Upload from '@tabler/icons-svelte/icons/upload';
+	import PanelRightClose from '@tabler/icons-svelte/icons/layout-sidebar-right-collapse';
+	import PanelRightOpen from '@tabler/icons-svelte/icons/layout-sidebar-right-expand';
 	import { templateFor } from '$lib/admin/businessTypes';
 	import { useStorefront, type StorefrontContext } from '$lib/storefront/admin-context';
 	import { StudioDraftStore } from '$lib/storefront/studioDraft.svelte';
@@ -234,7 +234,7 @@
 	<header class="studio-bar">
 		<div class="studio-bar-left">
 			<a class="btn btn-ghost btn-sm" href="/shop" aria-label="Back to the console">
-				<ArrowLeft size={15} strokeWidth={2} />
+				<ArrowLeft size={15} stroke={1.6} />
 			</a>
 			<div class="studio-id">
 				<h1>Storefront Studio</h1>
@@ -247,7 +247,7 @@
 				<span class="studio-chip">Loading…</span>
 			{:else if store.isStale}
 				<span class="studio-chip chip-warn">
-					<TriangleAlert size={13} strokeWidth={2.2} />
+					<TriangleAlert size={13} stroke={1.6} />
 					Storefront changed elsewhere
 				</span>
 			{:else if isDirty}
@@ -257,7 +257,7 @@
 				</span>
 			{:else}
 				<span class="studio-chip chip-live">
-					<CircleCheck size={13} strokeWidth={2.4} />
+					<CircleCheck size={13} stroke={1.6} />
 					Everything published
 				</span>
 			{/if}
@@ -265,7 +265,7 @@
 			{#if savedLabel}
 				<span class="studio-saved">
 					{#if store.error}
-						<CloudOff size={12} strokeWidth={2} />
+						<CloudOff size={12} stroke={1.6} />
 					{/if}
 					{savedLabel}{store.savedBy ? ` · ${store.savedBy}` : ''}
 				</span>
@@ -280,10 +280,10 @@
 				title={previewHidden ? 'Show live preview' : 'Hide live preview'}
 			>
 				{#if previewHidden}
-					<PanelRightOpen size={14} strokeWidth={2} />
+					<PanelRightOpen size={14} stroke={1.6} />
 					<span class="studio-action-label">Show preview</span>
 				{:else}
-					<PanelRightClose size={14} strokeWidth={2} />
+					<PanelRightClose size={14} stroke={1.6} />
 					<span class="studio-action-label">Hide preview</span>
 				{/if}
 			</button>
@@ -293,7 +293,7 @@
 				onclick={() => (showAi = true)}
 				title="Ask the design assistant"
 			>
-				<Sparkles size={14} strokeWidth={2.1} />
+				<Sparkles size={14} stroke={1.6} />
 				<span class="studio-action-label">Ask AI</span>
 			</button>
 			<button
@@ -303,7 +303,7 @@
 				onclick={undo}
 				title="Undo the last change"
 			>
-				<RotateCcw size={14} strokeWidth={2} />
+				<RotateCcw size={14} stroke={1.6} />
 			</button>
 			<button
 				class="btn btn-ghost btn-sm"
@@ -312,7 +312,7 @@
 				onclick={() => (discardOpen = true)}
 				title="Discard the draft"
 			>
-				<Trash2 size={14} strokeWidth={2} />
+				<Trash2 size={14} stroke={1.6} />
 			</button>
 			<button
 				class="btn btn-secondary btn-sm"
@@ -320,7 +320,7 @@
 				disabled={!isDirty}
 				onclick={() => (showReview = true)}
 			>
-				<FileDiff size={14} strokeWidth={2} />
+				<FileDiff size={14} stroke={1.6} />
 				<span class="studio-action-label">Review</span>
 				{#if isDirty}<span class="studio-count">{changeCount}</span>{/if}
 			</button>
@@ -330,7 +330,7 @@
 				disabled={!isDirty || store.isPublishing}
 				onclick={() => void publish()}
 			>
-				<Upload size={14} strokeWidth={2.1} />
+				<Upload size={14} stroke={1.6} />
 				{store.isPublishing ? 'Publishing…' : 'Publish'}
 			</button>
 			{#if ctx.config?.public_url}
@@ -341,7 +341,7 @@
 					rel="noopener"
 					title="Open the live storefront"
 				>
-					<ExternalLink size={14} strokeWidth={2} />
+					<ExternalLink size={14} stroke={1.6} />
 				</a>
 			{/if}
 		</div>
@@ -362,7 +362,7 @@
 							aria-current={on ? 'page' : undefined}
 							onclick={() => select(section.id)}
 						>
-							<span class="studio-rail-icon"><section.icon size={16} strokeWidth={1.9} /></span>
+							<span class="studio-rail-icon"><section.icon size={16} stroke={1.6} /></span>
 							<span class="studio-rail-text">
 								<span class="studio-rail-label">{section.label(terms)}</span>
 								<span class="studio-rail-hint">{section.hint(terms)}</span>

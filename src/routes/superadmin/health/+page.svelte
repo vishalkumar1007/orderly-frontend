@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+	import RefreshCw from '@tabler/icons-svelte/icons/refresh';
 	import { fetchSystemHealth } from '$lib/admin/api';
 	import { errorLines } from '$lib/admin/errors';
 	import { formatRelative } from '$lib/admin/format';
@@ -92,7 +92,7 @@
 		</div>
 	</div>
 	<button type="button" class="btn btn-ghost btn-sm" disabled={loading} onclick={() => void load(true)}>
-		<RefreshCw size={13} strokeWidth={2} class={loading ? 'spin' : ''} />
+		<RefreshCw size={13} stroke={1.6} class={loading ? 'spin' : ''} />
 		Check now
 	</button>
 </section>

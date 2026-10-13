@@ -1,6 +1,6 @@
 <script lang="ts">
-	import ShieldCheck from '@lucide/svelte/icons/shield-check';
-	import ShieldAlert from '@lucide/svelte/icons/shield-alert';
+	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
+	import ShieldAlert from '@tabler/icons-svelte/icons/shield-exclamation';
 	import BusinessPolicyModal from '$lib/components/tenant/BusinessPolicyModal.svelte';
 	import { policyStore, type PolicySignature } from '$lib/tenant/policyStore';
 	import { toast } from '$lib/components/admin/toast';
@@ -50,7 +50,7 @@
 <div class="studio-content-grid">
 	<div class="panel studio-section-intro">
 		<div class="intro-icon-wrap policy">
-			<ShieldCheck size={24} strokeWidth={1.8} />
+			<ShieldCheck size={24} stroke={1.6} />
 		</div>
 		<div>
 			<h2 class="intro-h">Merchant Policy</h2>
@@ -64,7 +64,7 @@
 		<div class="panel policy-verified-card">
 			<div class="verified-header">
 				<div class="verified-icon-circle">
-					<ShieldCheck size={28} strokeWidth={2} />
+					<ShieldCheck size={28} stroke={1.6} />
 				</div>
 				<div>
 					<span class="verified-badge">Digitally Verified</span>
@@ -89,7 +89,7 @@
 	{:else}
 		<div class="panel policy-signing-panel">
 			<div class="signing-alert-banner">
-				<ShieldAlert size={20} strokeWidth={2} />
+				<ShieldAlert size={20} stroke={1.6} />
 				<div>
 					<strong>Signature required</strong>
 					<p>Publishing is blocked until an authorized representative signs.</p>
@@ -147,7 +147,7 @@
 						disabled={signingPolicy || !agreedToTerms || !signerName.trim()}
 						onclick={handleSignPolicy}
 					>
-						<ShieldCheck size={16} strokeWidth={2.2} />
+						<ShieldCheck size={16} stroke={1.6} />
 						{signingPolicy ? 'Signing…' : 'Sign & Unlock Publish'}
 					</button>
 					<button type="button" class="btn btn-ghost" onclick={() => (showPolicyModal = true)}>

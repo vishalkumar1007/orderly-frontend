@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import Receipt from '@lucide/svelte/icons/receipt';
-	import Search from '@lucide/svelte/icons/search';
+	import Receipt from '@tabler/icons-svelte/icons/receipt';
+	import Search from '@tabler/icons-svelte/icons/search';
 	import { friendlyError, storefrontApi, type OrderSummary } from '$lib/storefront/api';
 	import { customerToken } from '$lib/storefront/session.svelte';
 	import { money, relativeTime } from '$lib/storefront/format';
@@ -93,7 +93,7 @@
 						/>
 					</label>
 					<button class="sf-btn sf-btn-secondary sf-btn-block" type="submit" disabled={looking}>
-						<Search size={16} strokeWidth={2} aria-hidden="true" />
+						<Search size={16} stroke={1.6} aria-hidden="true" />
 						{looking ? 'Looking…' : 'Find my orders'}
 					</button>
 				</form>
@@ -119,7 +119,7 @@
 		{#if orders.length === 0}
 			<div class="sf-empty">
 				<span class="sf-empty-icon" aria-hidden="true">
-					<Receipt size={26} strokeWidth={1.7} />
+					<Receipt size={26} stroke={1.6} />
 				</span>
 				<h3>{signedIn ? 'No orders yet' : 'No orders found'}</h3>
 				<p>

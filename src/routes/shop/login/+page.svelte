@@ -2,12 +2,12 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { env } from '$env/dynamic/public';
-	import ArrowRight from '@lucide/svelte/icons/arrow-right';
-	import Eye from '@lucide/svelte/icons/eye';
-	import EyeOff from '@lucide/svelte/icons/eye-off';
-	import Lock from '@lucide/svelte/icons/lock';
-	import Mail from '@lucide/svelte/icons/mail';
-	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
+	import ArrowRight from '@tabler/icons-svelte/icons/arrow-right';
+	import Eye from '@tabler/icons-svelte/icons/eye';
+	import EyeOff from '@tabler/icons-svelte/icons/eye-off';
+	import Lock from '@tabler/icons-svelte/icons/lock';
+	import Mail from '@tabler/icons-svelte/icons/mail';
+	import TriangleAlert from '@tabler/icons-svelte/icons/alert-triangle';
 	import {
 		adminLogin,
 		enrollMfaConfirm,
@@ -25,7 +25,7 @@
 	import type { MfaSetup } from '$lib/mfaApi';
 	import { brandVars, type BrandTheme } from '$lib/brandTheme';
 	import { isIosLike, isStandalone, promptInstall, canInstall, onInstallPromptChange } from '$lib/pwa.svelte';
-	import ShieldCheck from '@lucide/svelte/icons/shield-check';
+	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
 
 	let email = $state('');
 	let password = $state('');
@@ -301,7 +301,7 @@
 			<div class="osh-login-field">
 				<label class="osh-login-label" for="enroll-code">6-digit code</label>
 				<div class="osh-login-input">
-					<ShieldCheck size={16} strokeWidth={1.85} />
+					<ShieldCheck size={16} stroke={1.6} />
 					<input
 						id="enroll-code"
 						type="text"
@@ -343,7 +343,7 @@
 					{useRecoveryCode ? 'Recovery code' : 'Authentication code'}
 				</label>
 				<div class="osh-login-input">
-					<ShieldCheck size={16} strokeWidth={1.85} />
+					<ShieldCheck size={16} stroke={1.6} />
 					<input
 						id="mfa-code"
 						type="text"
@@ -376,7 +376,7 @@
 			<div class="osh-login-field">
 				<label class="osh-login-label" for="email">Email</label>
 				<div class="osh-login-input">
-					<Mail size={16} strokeWidth={1.85} />
+					<Mail size={16} stroke={1.6} />
 					<input
 						id="email"
 						type="email"
@@ -393,7 +393,7 @@
 			<div class="osh-login-field">
 				<label class="osh-login-label" for="password">Password</label>
 				<div class="osh-login-input">
-					<Lock size={16} strokeWidth={1.85} />
+					<Lock size={16} stroke={1.6} />
 					<input
 						id="password"
 						type={showPassword ? 'text' : 'password'}
@@ -409,9 +409,9 @@
 						onclick={() => (showPassword = !showPassword)}
 					>
 						{#if showPassword}
-							<EyeOff size={16} strokeWidth={1.85} />
+							<EyeOff size={16} stroke={1.6} />
 						{:else}
-							<Eye size={16} strokeWidth={1.85} />
+							<Eye size={16} stroke={1.6} />
 						{/if}
 					</button>
 				</div>
@@ -420,7 +420,7 @@
 
 		{#if error}
 			<p class="osh-login-alert" role="alert">
-				<TriangleAlert size={16} strokeWidth={2} />
+				<TriangleAlert size={16} stroke={1.6} />
 				<span>{error}</span>
 			</p>
 		{/if}
@@ -437,7 +437,7 @@
 			{:else}
 				{loading ? 'Signing in…' : 'Sign in'}
 			{/if}
-			{#if !loading}<ArrowRight size={16} strokeWidth={2.2} />{/if}
+			{#if !loading}<ArrowRight size={16} stroke={1.6} />{/if}
 		</button>
 
 		{#if mfaStep && !enrollStep}

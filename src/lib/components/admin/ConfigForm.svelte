@@ -77,13 +77,13 @@
 			hint={field.hint ?? ''}
 			type={field.type ?? 'text'}
 			placeholder={field.secret
-				? view.has_secret
+				? (view.secrets_stored?.[field.key] ?? view.has_secret)
 					? 'Unchanged — type to replace'
 					: 'Enter a secret'
 				: ''}
 			options={optionsFor(field.key)}
 			secret={field.secret ?? false}
-			set={field.secret ? view.has_secret : false}
+			set={field.secret ? (view.secrets_stored?.[field.key] ?? view.has_secret) : false}
 			onvalue={(v: string) => set(field.key, v)}
 		/>
 	{/each}

@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { Camera, Loader2, X } from '@lucide/svelte/icons';
+	import Camera from '@tabler/icons-svelte/icons/camera';
+	import Loader2 from '@tabler/icons-svelte/icons/loader-2';
+	import X from '@tabler/icons-svelte/icons/x';
 	import { api } from '$lib/api/client';
 	import { toast } from '$lib/components/admin/toast';
 
@@ -98,7 +100,7 @@
 					aria-label="Remove image"
 					onclick={handleRemove}
 				>
-					<X size={14} strokeWidth={2.2} />
+					<X size={14} stroke={1.6} />
 				</button>
 			{/if}
 		</div>
@@ -114,10 +116,10 @@
 			ondrop={handleDrop}
 		>
 			{#if uploading}
-				<Loader2 size={20} strokeWidth={1.8} class="spin" />
+				<Loader2 size={20} stroke={1.6} class="spin" />
 				<span>Uploading…</span>
 			{:else}
-				<Camera size={20} strokeWidth={1.8} />
+				<Camera size={20} stroke={1.6} />
 				<span>Add photo</span>
 				<span class="img-upload-hint">800×800 · max 5MB</span>
 			{/if}

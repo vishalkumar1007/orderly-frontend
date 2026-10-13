@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import LogOut from '@lucide/svelte/icons/log-out';
+	import LogOut from '@tabler/icons-svelte/icons/logout';
 	import { friendlyError, storefrontApi, type CustomerProfile } from '$lib/storefront/api';
 	import { customerSession, customerToken } from '$lib/storefront/session.svelte';
 	import { money, relativeTime } from '$lib/storefront/format';
@@ -202,7 +202,7 @@
 		<div style="margin-top:20px;display:grid;gap:10px;">
 			<a class="sf-btn sf-btn-primary sf-btn-block" href="/menu">Order again</a>
 			<button class="sf-btn sf-btn-secondary sf-btn-block" type="button" onclick={signOut}>
-				<LogOut size={16} strokeWidth={2} aria-hidden="true" />
+				<LogOut size={16} stroke={1.6} aria-hidden="true" />
 				Sign out
 			</button>
 		</div>

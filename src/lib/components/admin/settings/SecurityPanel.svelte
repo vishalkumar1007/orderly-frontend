@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import KeyRound from '@lucide/svelte/icons/key-round';
-	import Mail from '@lucide/svelte/icons/mail';
-	import ShieldCheck from '@lucide/svelte/icons/shield-check';
-	import Timer from '@lucide/svelte/icons/timer';
+	import KeyRound from '@tabler/icons-svelte/icons/key';
+	import Mail from '@tabler/icons-svelte/icons/mail';
+	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
+	import Timer from '@tabler/icons-svelte/icons/clock-hour-4';
 	import { fetchSettings, updateSettings } from '$lib/admin/api';
 	import { errorMessage } from '$lib/admin/errors';
 	import type { PlatformSettings } from '$lib/admin/types';

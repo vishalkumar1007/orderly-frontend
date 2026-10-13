@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Check from '@lucide/svelte/icons/check';
-	import Minus from '@lucide/svelte/icons/minus';
-	import ShieldCheck from '@lucide/svelte/icons/shield-check';
-	import UserPlus from '@lucide/svelte/icons/user-plus';
+	import Check from '@tabler/icons-svelte/icons/check';
+	import Minus from '@tabler/icons-svelte/icons/minus';
+	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
+	import UserPlus from '@tabler/icons-svelte/icons/user-plus';
 	import { errorMessage } from '$lib/admin/errors';
 	import { formatDate, formatRelative, initials } from '$lib/admin/format';
 	import { fetchIam, type IamOverview, type IamUser, type PermissionKey } from '$lib/tenant/iamApi';
@@ -231,7 +231,7 @@
 {/if}
 
 <section class="panel intro">
-	<span class="intro-icon"><ShieldCheck size={16} strokeWidth={1.9} /></span>
+	<span class="intro-icon"><ShieldCheck size={16} stroke={1.6} /></span>
 	<div>
 		<strong>Staff is who works here. Access control is what they can reach.</strong>
 		<p>
@@ -241,7 +241,7 @@
 		</p>
 	</div>
 	<a class="btn btn-ghost btn-sm" href="/shop/staff">
-		<UserPlus size={14} strokeWidth={2} />
+		<UserPlus size={14} stroke={1.6} />
 		Manage staff
 	</a>
 </section>
@@ -372,12 +372,12 @@
 										<td class="matrix-cell">
 											{#if roleHas(role.key, permission.key)}
 												<span class="yes" title={`${role.label} can ${permission.label.toLowerCase()}`}>
-													<Check size={13} strokeWidth={2.6} />
+													<Check size={13} stroke={1.6} />
 													<span class="sr-only">Allowed</span>
 												</span>
 											{:else}
 												<span class="no" title={`${role.label} cannot ${permission.label.toLowerCase()}`}>
-													<Minus size={13} strokeWidth={2.6} />
+													<Minus size={13} stroke={1.6} />
 													<span class="sr-only">Not allowed</span>
 												</span>
 											{/if}

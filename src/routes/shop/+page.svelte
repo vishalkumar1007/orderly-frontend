@@ -1,15 +1,16 @@
 <script lang="ts">
+	import { ApiClientError } from '$lib/api/client';
 	import { onMount } from 'svelte';
-	import ArrowRight from '@lucide/svelte/icons/arrow-right';
-	import CircleCheck from '@lucide/svelte/icons/circle-check';
-	import ClipboardList from '@lucide/svelte/icons/clipboard-list';
-	import Copy from '@lucide/svelte/icons/copy';
-	import Check from '@lucide/svelte/icons/check';
-	import ExternalLink from '@lucide/svelte/icons/external-link';
-	import ChefHat from '@lucide/svelte/icons/chef-hat';
-	import QrCode from '@lucide/svelte/icons/qr-code';
-	import Rocket from '@lucide/svelte/icons/rocket';
-	import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
+	import ArrowRight from '@tabler/icons-svelte/icons/arrow-right';
+	import CircleCheck from '@tabler/icons-svelte/icons/circle-check';
+	import ClipboardList from '@tabler/icons-svelte/icons/clipboard-list';
+	import Copy from '@tabler/icons-svelte/icons/copy';
+	import Check from '@tabler/icons-svelte/icons/check';
+	import ExternalLink from '@tabler/icons-svelte/icons/external-link';
+	import ChefHat from '@tabler/icons-svelte/icons/chef-hat';
+	import QrCode from '@tabler/icons-svelte/icons/qrcode';
+	import Rocket from '@tabler/icons-svelte/icons/rocket';
+	import UtensilsCrossed from '@tabler/icons-svelte/icons/tools-kitchen-2';
 	import { api } from '$lib/api/client';
 	import EmptyState from '$lib/components/admin/EmptyState.svelte';
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
@@ -86,6 +87,7 @@
 	}
 	import {
 		fetchTenantAnalytics,
+		type Granularity,
 		percentChange,
 		type AnalyticsWindow,
 		type TenantAnalytics
@@ -192,6 +194,8 @@
 		switch (method) {
 			case 'ONLINE':
 				return 'Online payment';
+			case 'ONLINE_TEST':
+				return 'Online (test — not counted)';
 			case 'CASH':
 				return 'Cash';
 			case 'UNRECORDED':
@@ -241,12 +245,33 @@
 		}
 	}
 
-	async function loadAnalytics(target: AnalyticsWindow) {
-		analyticsLoading = true;
+	/** Set when the plan does not include analytics: the API's own sentence. */
+	let analyticsLocked = $state('');
+
+	/** How the trend chart groups days, and which ranking the best sellers use. */
+	let granularity = $state<Granularity>('day');
+	let productsBy = $state<'units' | 'revenue'>('units');
+
+	/** Weeks need at least two of them to mean anything; months a full 30 days. */
+	const granularityAllowed = $derived({
+		week: window === '14d' || window === '30d' || window === '90d',
+		month: window === '30d' || window === '90d'
+	});
+
+	/**
+	 * `soft` keeps the current charts on screen while a re-grouped trend loads,
+	 * so flipping Day/Week/Month does not blank the whole dashboard.
+	 */
+	async function loadAnalytics(target: AnalyticsWindow, soft = false) {
+		if (!soft) analyticsLoading = true;
+		analyticsLocked = '';
 		try {
-			analytics = await fetchTenantAnalytics(target);
-		} catch {
+			analytics = await fetchTenantAnalytics(target, granularity);
+		} catch (err) {
 			analytics = null;
+			if (err instanceof ApiClientError && err.code === 'feature_not_in_plan') {
+				analyticsLocked = err.message;
+			}
 		} finally {
 			analyticsLoading = false;
 		}
@@ -379,10 +404,10 @@
 								aria-label="Copy storefront link"
 							>
 								{#if copiedLink}
-									<Check size={14} strokeWidth={2.4} />
+									<Check size={14} stroke={1.6} />
 									<span>Copied</span>
 								{:else}
-									<Copy size={14} strokeWidth={2} />
+									<Copy size={14} stroke={1.6} />
 									<span>Copy</span>
 								{/if}
 							</button>
@@ -393,7 +418,7 @@
 								rel="noreferrer"
 								aria-label="Open storefront"
 							>
-								<ExternalLink size={14} strokeWidth={2} />
+								<ExternalLink size={14} stroke={1.6} />
 								<span>Open</span>
 							</a>
 							<a
@@ -401,7 +426,7 @@
 								href="/shop/storefront/promote?tab=marketing&asset=qr"
 								aria-label="QR code and marketing"
 							>
-								<QrCode size={14} strokeWidth={2} />
+								<QrCode size={14} stroke={1.6} />
 								<span>QR</span>
 							</a>
 						</div>
@@ -487,13 +512,13 @@
 				{@const Icon = action.icon}
 				<a class="dash-action" href={action.href}>
 					<span class="dash-action-icon">
-						<Icon size={18} strokeWidth={1.85} />
+						<Icon size={18} stroke={1.6} />
 					</span>
 					<span class="dash-action-body">
 						<strong>{action.label}</strong>
 						<span>{action.hint}</span>
 					</span>
-					<ArrowRight size={14} strokeWidth={2} />
+					<ArrowRight size={14} stroke={1.6} />
 				</a>
 			{/each}
 		</div>
@@ -509,7 +534,7 @@
 				</div>
 				{#if setup.steps.menu}
 					<a class="btn btn-primary btn-sm" href="/shop/storefront/promote">
-						<Rocket size={14} strokeWidth={2} /> Go live
+						<Rocket size={14} stroke={1.6} /> Go live
 					</a>
 				{/if}
 			</div>
@@ -541,10 +566,10 @@
 							}}
 						>
 							<span class="dash-check-box">
-								{#if isDone}<CircleCheck size={15} strokeWidth={2.2} />{/if}
+								{#if isDone}<CircleCheck size={15} stroke={1.6} />{/if}
 							</span>
 							<span>{c.label}</span>
-							<ArrowRight size={14} strokeWidth={1.9} />
+							<ArrowRight size={14} stroke={1.6} />
 						</a>
 					</li>
 				{/each}
@@ -558,6 +583,13 @@
 			<div class="dash-section-head">
 				<h2>Performance</h2>
 				<p>Order analytics aren't tracked for this business type yet.</p>
+			</div>
+		</section>
+	{:else if analyticsLocked}
+		<section class="dash-section">
+			<div class="dash-section-head">
+				<h2>Performance</h2>
+				<p>{analyticsLocked} Ask your platform administrator to change your plan.</p>
 			</div>
 		</section>
 	{:else}
@@ -576,6 +608,13 @@
 						class:active={window === opt.v}
 						onclick={() => {
 							window = opt.v;
+							// A grouping the new window cannot fill falls back to days.
+							if (
+								(granularity === 'week' && !granularityAllowed.week) ||
+								(granularity === 'month' && !granularityAllowed.month)
+							) {
+								granularity = 'day';
+							}
 							void loadAnalytics(opt.v);
 						}}
 					>
@@ -634,9 +673,15 @@
 				loading={analyticsLoading}
 			/>
 			<MetricCard
-				label="Completion rate"
-				value={analyticsLoading ? '—' : `${analytics?.completion_rate ?? 0}%`}
-				hint={`Across ${periodLabel}`}
+				label="Fulfilment rate"
+				value={analyticsLoading
+					? '—'
+					: analytics?.fulfilment_rate == null
+						? '—'
+						: `${analytics.fulfilment_rate}%`}
+				hint={analytics && analytics.completed_orders + analytics.cancelled_orders > 0
+					? `${analytics.completed_orders} completed · ${analytics.cancelled_orders} cancelled`
+					: 'Of orders that have finished'}
 				loading={analyticsLoading}
 			/>
 			<MetricCard
@@ -651,9 +696,16 @@
 
 		<TrendAreaChart
 			title="Trend"
-			data={analytics?.orders_by_day ?? []}
+			data={analytics?.orders_by_period ?? analytics?.orders_by_day ?? []}
 			loading={analyticsLoading}
 			formatValue={money}
+			{granularity}
+			allowed={granularityAllowed}
+			ongranularity={(g) => {
+				if (g === granularity) return;
+				granularity = g;
+				void loadAnalytics(window, true);
+			}}
 		/>
 
 		<div class="dash-charts">
@@ -663,9 +715,11 @@
 
 		<div class="dash-charts">
 			<TopProductsPanel
-				data={analytics?.top_products ?? []}
+				data={(productsBy === 'revenue' ? analytics?.top_products_by_revenue : analytics?.top_products) ?? []}
 				loading={analyticsLoading}
 				formatMoney={money}
+				metric={productsBy}
+				onmetric={(m) => (productsBy = m)}
 			/>
 			<TopProductsPanel
 				title="Best categories"

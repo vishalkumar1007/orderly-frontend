@@ -1,10 +1,10 @@
 <script lang="ts">
-	import Smartphone from '@lucide/svelte/icons/smartphone';
-	import Monitor from '@lucide/svelte/icons/monitor';
-	import ExternalLink from '@lucide/svelte/icons/external-link';
-	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
-	import Minus from '@lucide/svelte/icons/minus';
-	import Plus from '@lucide/svelte/icons/plus';
+	import Smartphone from '@tabler/icons-svelte/icons/device-mobile';
+	import Monitor from '@tabler/icons-svelte/icons/device-desktop';
+	import ExternalLink from '@tabler/icons-svelte/icons/external-link';
+	import RefreshCw from '@tabler/icons-svelte/icons/refresh';
+	import Minus from '@tabler/icons-svelte/icons/minus';
+	import Plus from '@tabler/icons-svelte/icons/plus';
 	import type { AdminStorefront } from '$lib/storefront/admin';
 
 	let { config }: { config: AdminStorefront } = $props();
@@ -161,7 +161,7 @@
 					aria-checked={mode === 'phone'}
 					onclick={() => (mode = 'phone')}
 				>
-					<Smartphone size={15} strokeWidth={2} />
+					<Smartphone size={15} stroke={1.6} />
 					<span>Phone</span>
 				</button>
 				<button
@@ -172,7 +172,7 @@
 					aria-checked={mode === 'desktop'}
 					onclick={() => (mode = 'desktop')}
 				>
-					<Monitor size={15} strokeWidth={2} />
+					<Monitor size={15} stroke={1.6} />
 					<span>Web</span>
 				</button>
 			</div>
@@ -208,7 +208,7 @@
 					disabled={scalePct <= 50}
 					aria-label="Decrease preview size"
 				>
-					<Minus size={14} strokeWidth={2.4} />
+					<Minus size={14} stroke={1.6} />
 				</button>
 				<span class="studio-scale-val">{scalePct}%</span>
 				<button
@@ -218,13 +218,13 @@
 					disabled={scalePct >= 130}
 					aria-label="Increase preview size"
 				>
-					<Plus size={14} strokeWidth={2.4} />
+					<Plus size={14} stroke={1.6} />
 				</button>
 			</div>
 
 			<div class="studio-preview-actions">
 				<button type="button" class="studio-link-btn" onclick={reloadPreview} title="Reload preview">
-					<RefreshCw size={13} strokeWidth={2} />
+					<RefreshCw size={13} stroke={1.6} />
 				</button>
 				{#if liveUrl}
 					<a
@@ -234,7 +234,7 @@
 						rel="noopener"
 						title="Open published store"
 					>
-						<ExternalLink size={13} strokeWidth={2} />
+						<ExternalLink size={13} stroke={1.6} />
 					</a>
 				{/if}
 			</div>

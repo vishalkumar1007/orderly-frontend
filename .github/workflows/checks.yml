@@ -1,0 +1,38 @@
+name: Checks
+
+# Type-check, navigation check and production build on every push and pull
+# request, so a broken page cannot reach main unnoticed (ci-deploy.yml deploys on
+# every push to main and does not run these). Require the "Frontend checks" status
+# on main in the repository settings to make it a gate.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Type-check (svelte-check)
+        run: npm run check
+      - name: Navigation and breadcrumb checks
+        run: npm run check:nav
+      - name: Production build
+        run: npm run build

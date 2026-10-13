@@ -1,6 +1,7 @@
 <script lang="ts">
-	import type { Component, Snippet } from 'svelte';
-	import Check from '@lucide/svelte/icons/check';
+	import type { Snippet } from 'svelte';
+	import type { IconComponent } from '$lib/icons';
+	import IconCheck from '@tabler/icons-svelte/icons/check';
 
 	/**
 	 * One settings block: title and description on top, full-width form card below.
@@ -13,7 +14,6 @@
 	let {
 		title,
 		description = '',
-		icon,
 		/** Disables the save button until something actually changed. */
 		dirty = false,
 		saving = false,
@@ -27,7 +27,7 @@
 	}: {
 		title: string;
 		description?: string;
-		icon?: Component;
+		icon?: IconComponent;
 		dirty?: boolean;
 		saving?: boolean;
 		saved?: boolean;
@@ -39,17 +39,13 @@
 		footer?: Snippet;
 	} = $props();
 
-	const Icon = $derived(icon);
+	// `icon` stays in the prop type so existing call sites compile, but sections no
+	// longer draw one: an icon beside every heading is decoration, not wayfinding.
 </script>
 
 <section class="set-section">
 	<header class="set-head">
-		<h2>
-			{#if Icon}
-				<span class="set-icon"><Icon size={15} strokeWidth={1.9} /></span>
-			{/if}
-			{title}
-		</h2>
+		<h2>{title}</h2>
 		{#if description}<p>{description}</p>{/if}
 	</header>
 
@@ -67,7 +63,7 @@
 						Saving…
 					{:else if saved}
 						<span class="set-saved">
-							<Check size={13} strokeWidth={2.6} />
+							<IconCheck size={13} stroke={2} />
 							Saved
 						</span>
 					{:else if dirty}
@@ -96,44 +92,20 @@
 	.set-section {
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
-		padding: 1.75rem 0;
-		border-top: 1px solid var(--border-subtle);
-	}
-
-	.set-section:first-of-type {
-		border-top: 0;
-		padding-top: 0;
+		gap: var(--sp-5);
 	}
 
 	.set-head h2 {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
 		margin: 0;
-		font-family: var(--font-display);
-		font-size: var(--fs-title);
+		font-size: var(--fs-body);
 		font-weight: 600;
-		letter-spacing: -0.015em;
 		color: var(--text);
 	}
 
-	.set-icon {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 1.5rem;
-		height: 1.5rem;
-		border-radius: var(--radius-sm);
-		background: var(--surface-3);
-		color: var(--icon-fg);
-		flex-shrink: 0;
-	}
-
 	.set-head p {
-		margin: 0.35rem 0 0;
-		font-size: var(--fs-body);
-		line-height: 1.55;
+		margin: var(--sp-2) 0 0;
+		font-size: var(--fs-tab);
+		line-height: 1.5;
 		color: var(--text-3);
 		max-width: 40rem;
 	}
@@ -141,8 +113,7 @@
 	.set-body {
 		border: 1px solid var(--border);
 		border-radius: var(--radius-lg);
-		background: var(--surface);
-		box-shadow: var(--shadow-sm);
+		background: var(--card-bg);
 		overflow: hidden;
 		min-width: 0;
 		width: 100%;
@@ -151,8 +122,17 @@
 	.set-fields {
 		display: flex;
 		flex-direction: column;
-		gap: 1.1rem;
-		padding: 1.25rem 1.35rem;
+		gap: var(--sp-7);
+		padding: var(--sp-9) var(--sp-10);
+	}
+
+	/* A toggle reads label-left, switch-right, like every settings screen people know. */
+	.set-fields :global(.switch) {
+		width: 100%;
+		flex-direction: row-reverse;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: var(--sp-10);
 	}
 
 	.set-foot {
@@ -160,22 +140,21 @@
 		align-items: center;
 		justify-content: flex-end;
 		flex-wrap: wrap;
-		gap: 0.55rem;
-		padding: 0.7rem 1.35rem;
-		background: var(--surface-2);
+		gap: var(--sp-4);
+		padding: var(--sp-5) var(--sp-10);
 		border-top: 1px solid var(--border-subtle);
 	}
 
 	.set-state {
 		margin-right: auto;
-		font-size: var(--fs-code);
+		font-size: var(--fs-meta);
 		color: var(--text-3);
 	}
 
 	.set-saved {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.3rem;
+		gap: var(--sp-2);
 		color: var(--success);
 		font-weight: 600;
 	}

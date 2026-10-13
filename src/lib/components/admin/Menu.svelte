@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { Snippet } from 'svelte';
-	import MoreHorizontal from '@lucide/svelte/icons/more-horizontal';
+	import MoreHorizontal from '@tabler/icons-svelte/icons/dots';
 
 	type Item = {
 		label: string;
@@ -113,7 +113,7 @@
 		onclick={() => (open = !open)}
 		onkeydown={onTriggerKeydown}
 	>
-		<MoreHorizontal size={16} strokeWidth={2} />
+		<MoreHorizontal size={16} stroke={1.6} />
 	</button>
 
 	{#if open}

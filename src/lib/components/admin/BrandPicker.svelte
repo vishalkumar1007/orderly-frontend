@@ -1,16 +1,16 @@
 <script lang="ts">
-	import Monitor from '@lucide/svelte/icons/monitor';
-	import Moon from '@lucide/svelte/icons/moon';
-	import Sun from '@lucide/svelte/icons/sun';
-	import CloudMoon from '@lucide/svelte/icons/cloud-moon';
-	import CloudSun from '@lucide/svelte/icons/cloud-sun';
-	import Cloud from '@lucide/svelte/icons/cloud';
-	import Contrast from '@lucide/svelte/icons/contrast';
-	import Circle from '@lucide/svelte/icons/circle';
-	import MoonStar from '@lucide/svelte/icons/moon-star';
+	import Monitor from '@tabler/icons-svelte/icons/device-desktop';
+	import Moon from '@tabler/icons-svelte/icons/moon';
+	import Sun from '@tabler/icons-svelte/icons/sun';
+	import CloudMoon from '@tabler/icons-svelte/icons/cloud';
+	import CloudSun from '@tabler/icons-svelte/icons/sun';
+	import Cloud from '@tabler/icons-svelte/icons/cloud';
+	import Contrast from '@tabler/icons-svelte/icons/contrast';
+	import Circle from '@tabler/icons-svelte/icons/circle';
+	import MoonStar from '@tabler/icons-svelte/icons/moon-stars';
 	import type { ThemePreset } from '$lib/brandTheme';
 	import { COLOR_MODES, type ColorMode } from '$lib/appearance.svelte';
-	import type { Component } from 'svelte';
+	import type { IconComponent as Component } from '$lib/icons';
 
 	let {
 		presets = [] as ThemePreset[],
@@ -124,7 +124,7 @@
 						</span>
 						<span class="mode-card-meta">
 							<span class="mode-card-title">
-								<Icon size={13} strokeWidth={2.1} />
+								<Icon size={13} stroke={1.6} />
 								{m.label}
 							</span>
 							<span class="mode-card-hint">{m.hint}</span>

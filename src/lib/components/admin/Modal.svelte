@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import X from '@lucide/svelte/icons/x';
+	import X from '@tabler/icons-svelte/icons/x';
 
 	let {
 		open = $bindable(false),
@@ -36,7 +36,7 @@
 			<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;margin-bottom:0.85rem;">
 				<h3>{title}</h3>
 				<button type="button" class="btn btn-quiet btn-sm" aria-label="Close" onclick={close}>
-					<X size={16} strokeWidth={2} />
+					<X size={16} stroke={1.6} />
 				</button>
 			</div>
 			{@render children()}

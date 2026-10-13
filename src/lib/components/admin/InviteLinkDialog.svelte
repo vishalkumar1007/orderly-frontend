@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Copy from '@lucide/svelte/icons/copy';
-	import Mail from '@lucide/svelte/icons/mail';
+	import Copy from '@tabler/icons-svelte/icons/copy';
+	import Mail from '@tabler/icons-svelte/icons/mail';
 	import Modal from './Modal.svelte';
 	import { toast } from './toast';
 
@@ -49,7 +49,7 @@
 			aria-label="Copy setup link"
 			onclick={copy}
 		>
-			<Copy size={13} strokeWidth={2} />
+			<Copy size={13} stroke={1.6} />
 			Copy
 		</button>
 	</div>

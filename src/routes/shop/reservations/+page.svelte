@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Plus from '@lucide/svelte/icons/plus';
+	import Plus from '@tabler/icons-svelte/icons/plus';
 	import {
 		addCharge,
 		cancelReservation,
@@ -190,7 +190,7 @@
 	<header class="res-head">
 		<p class="muted">Bookings against a room type, assigned to a room at check-in.</p>
 		<button type="button" class="btn btn-primary" onclick={openCreate} disabled={roomTypes.length === 0}>
-			<Plus size={15} strokeWidth={2.2} />
+			<Plus size={15} stroke={1.6} />
 			New reservation
 		</button>
 	</header>

@@ -140,9 +140,24 @@ function fromStatus(status: number, message: string): DescribedError {
 	}
 }
 
+/** Plan and license refusals: the server's sentence is written for a person. */
+const PLAN_TITLES: Record<string, string> = {
+	plan_limit: 'Your plan limit has been reached',
+	feature_not_in_plan: 'That feature is not in your plan',
+	license_inactive: "This business's license is not active"
+};
+
 /** Describe any thrown value as something worth putting on screen. */
 export function describeError(err: unknown): DescribedError {
 	if (err instanceof ApiClientError) {
+		if (PLAN_TITLES[err.code]) {
+			return {
+				kind: 'permission',
+				title: PLAN_TITLES[err.code],
+				detail: cleanDetail(err.message),
+				retryable: false
+			};
+		}
 		const known = CODE_MESSAGES[err.code];
 		if (known) {
 			return { ...known, retryable: known.kind === 'network' || known.kind === 'timeout' };

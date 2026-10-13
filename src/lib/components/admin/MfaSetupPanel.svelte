@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Copy from '@lucide/svelte/icons/copy';
-	import Download from '@lucide/svelte/icons/download';
-	import Mail from '@lucide/svelte/icons/mail';
-	import ShieldCheck from '@lucide/svelte/icons/shield-check';
+	import Copy from '@tabler/icons-svelte/icons/copy';
+	import Download from '@tabler/icons-svelte/icons/download';
+	import Mail from '@tabler/icons-svelte/icons/mail';
+	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
 	import {
 		confirmEmailOtp,
 		confirmMfa,
@@ -269,7 +269,7 @@
 				{/if}
 				{#if available && !enrolledSet.has('EMAIL_OTP')}
 					<button type="button" class="btn btn-secondary btn-sm" disabled={emailSending} onclick={startEmailEnroll}>
-						<Mail size={14} strokeWidth={2} /> Add email code
+						<Mail size={14} stroke={1.6} /> Add email code
 					</button>
 				{/if}
 				{#if methods.length > 0}
@@ -350,10 +350,10 @@
 			</div>
 			<div class="mfa-actions">
 				<button type="button" class="btn btn-ghost btn-sm" onclick={copyRecoveryCodes}>
-					<Copy size={14} strokeWidth={2} /> Copy
+					<Copy size={14} stroke={1.6} /> Copy
 				</button>
 				<button type="button" class="btn btn-ghost btn-sm" onclick={downloadRecoveryCodes}>
-					<Download size={14} strokeWidth={2} /> Download
+					<Download size={14} stroke={1.6} /> Download
 				</button>
 			</div>
 			<label class="mfa-confirm-saved">

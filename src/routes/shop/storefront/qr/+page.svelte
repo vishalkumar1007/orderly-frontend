@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Copy from '@lucide/svelte/icons/copy';
-	import Download from '@lucide/svelte/icons/download';
-	import ExternalLink from '@lucide/svelte/icons/external-link';
+	import Copy from '@tabler/icons-svelte/icons/copy';
+	import Download from '@tabler/icons-svelte/icons/download';
+	import ExternalLink from '@tabler/icons-svelte/icons/external-link';
 	import { toast } from '$lib/components/admin/toast';
 	import { storefrontAdminApi, type AdminQr } from '$lib/storefront/admin';
 	import type { AdminStorefront } from '$lib/storefront/admin';
@@ -124,17 +124,17 @@
 			<div style="display:flex;flex-wrap:wrap;gap:0.4rem;">
 				{#if qr}
 					<button class="btn btn-primary btn-sm" type="button" onclick={download}>
-						<Download size={14} strokeWidth={2} />
+						<Download size={14} stroke={1.6} />
 						Download PNG
 					</button>
 				{/if}
 				{#if effectiveUrl}
 					<button class="btn btn-secondary btn-sm" type="button" onclick={copyUrl}>
-						<Copy size={14} strokeWidth={2} />
+						<Copy size={14} stroke={1.6} />
 						{copied ? 'Copied' : 'Copy address'}
 					</button>
 					<a class="btn btn-secondary btn-sm" href={effectiveUrl} target="_blank" rel="noopener">
-						<ExternalLink size={14} strokeWidth={2} />
+						<ExternalLink size={14} stroke={1.6} />
 						Open storefront
 					</a>
 				{/if}

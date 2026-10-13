@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import ShieldCheck from '@lucide/svelte/icons/shield-check';
+	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
 	import {
 		fetchTenantMfaPolicy,
 		updateTenantMfaPolicy,

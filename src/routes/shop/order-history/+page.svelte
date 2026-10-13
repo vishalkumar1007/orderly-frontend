@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Download from '@lucide/svelte/icons/download';
+	import Download from '@tabler/icons-svelte/icons/download';
 	import { errorMessage } from '$lib/admin/errors';
 	import { formatDateTime, rupees } from '$lib/admin/format';
 	import {
@@ -255,7 +255,7 @@
 				disabled={orders.length === 0}
 				onclick={exportCsv}
 			>
-				<Download size={13} strokeWidth={2} />
+				<Download size={13} stroke={1.6} />
 				Export this page
 			</button>
 		</div>

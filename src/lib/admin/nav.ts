@@ -8,17 +8,17 @@
  * real module instead of a copy that agrees with itself forever.
  */
 
-import type { Component } from 'svelte';
-import Activity from '@lucide/svelte/icons/activity';
-import Bell from '@lucide/svelte/icons/bell';
-import Building2 from '@lucide/svelte/icons/building-2';
-import CreditCard from '@lucide/svelte/icons/credit-card';
-import HeartPulse from '@lucide/svelte/icons/heart-pulse';
-import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
-import Plug from '@lucide/svelte/icons/plug';
-import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
-import UserPlus from '@lucide/svelte/icons/user-plus';
-import Users from '@lucide/svelte/icons/users';
+import type { IconComponent as Component } from '$lib/icons';
+import Activity from '@tabler/icons-svelte/icons/activity';
+import Bell from '@tabler/icons-svelte/icons/bell';
+import Building2 from '@tabler/icons-svelte/icons/building';
+import CreditCard from '@tabler/icons-svelte/icons/credit-card';
+import HeartPulse from '@tabler/icons-svelte/icons/heartbeat';
+import LayoutDashboard from '@tabler/icons-svelte/icons/layout-dashboard';
+import Plug from '@tabler/icons-svelte/icons/plug';
+import SlidersHorizontal from '@tabler/icons-svelte/icons/adjustments-horizontal';
+import UserPlus from '@tabler/icons-svelte/icons/user-plus';
+import Users from '@tabler/icons-svelte/icons/users';
 
 export type AdminNavItem = {
 	href: string;

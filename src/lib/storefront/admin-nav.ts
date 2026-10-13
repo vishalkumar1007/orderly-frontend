@@ -1,5 +1,5 @@
-import type { Component } from 'svelte';
-import Store from '@lucide/svelte/icons/store';
+import type { IconComponent as Component } from '$lib/icons';
+import Store from '@tabler/icons-svelte/icons/building-store';
 
 /**
  * Storefront Customize navigation.

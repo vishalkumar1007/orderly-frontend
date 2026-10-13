@@ -2,6 +2,7 @@
 	import { PAYMENT_METHODS, storefrontAdminApi, type AdminStorefront } from '$lib/storefront/admin';
 	import { seed, useStorefront, type StorefrontContext } from '$lib/storefront/admin-context';
 	import { toast } from '$lib/components/admin/toast';
+	import PaymentModeBanner from '$lib/components/shop/PaymentModeBanner.svelte';
 
 	let props: Partial<StorefrontContext> = $props();
 	const ctx = useStorefront(() => props);
@@ -56,6 +57,8 @@
 </script>
 
 <form onsubmit={submit}>
+	<PaymentModeBanner />
+
 	<div class="sfctl-section">
 		<h2>How customers can pay</h2>
 		<p class="sfctl-note">

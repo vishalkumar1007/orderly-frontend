@@ -1,10 +1,9 @@
 <script lang="ts">
-	import CircleCheck from '@lucide/svelte/icons/circle-check';
-	import Clock from '@lucide/svelte/icons/clock';
-	import Mail from '@lucide/svelte/icons/mail';
-	import PauseCircle from '@lucide/svelte/icons/pause-circle';
-	import Plug from '@lucide/svelte/icons/plug';
-	import type { Component } from 'svelte';
+	import CircleCheck from '@tabler/icons-svelte/icons/circle-check';
+	import Clock from '@tabler/icons-svelte/icons/clock';
+	import Mail from '@tabler/icons-svelte/icons/mail';
+	import PauseCircle from '@tabler/icons-svelte/icons/ban';
+	import Plug from '@tabler/icons-svelte/icons/plug';
 	import { formatRelative } from '$lib/admin/format';
 	import type {
 		AwaitingSetup,
@@ -49,7 +48,7 @@
 	type Row = {
 		id: string;
 		severity: Severity;
-		icon: Component;
+		icon: typeof Plug;
 		title: string;
 		detail: string;
 		href: string;
@@ -117,7 +116,7 @@
 					? `${subscription.tenant_name}'s ${label(subscription.status)} has lapsed`
 					: `${subscription.tenant_name}'s ${label(subscription.status)} ends in ${days} day${days === 1 ? '' : 's'}`,
 				detail: `On the ${subscription.plan} plan. Change the plan or let it lapse.`,
-				href: `/superadmin/businesses/${subscription.tenant_id}?tab=subscription`
+				href: `/superadmin/businesses/${subscription.tenant_id}?tab=controls`
 			});
 		}
 
@@ -160,9 +159,7 @@
 		</div>
 	{:else if rows.length === 0}
 		<div class="att-clear">
-			<span class="empty-icon" style="background:var(--success-bg);color:var(--success);">
-				<CircleCheck size={18} strokeWidth={1.9} />
-			</span>
+			<span class="att-ok"><CircleCheck size={16} stroke={1.6} /></span>
 			<div>
 				<strong>Nothing needs you right now</strong>
 				<p>
@@ -177,7 +174,7 @@
 				<li>
 					<a class="att-row" href={row.href}>
 						<span class={['att-icon', row.severity].join(' ')}>
-							<row.icon size={14} strokeWidth={2} />
+							<row.icon size={15} stroke={1.6} />
 						</span>
 						<span class="att-text">
 							<strong>{row.title}</strong>
@@ -219,28 +216,20 @@
 
 	.att-icon {
 		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 1.7rem;
-		height: 1.7rem;
-		border-radius: 8px;
 		flex-shrink: 0;
-		margin-top: 0.1rem;
+		margin-top: 0.15rem;
 	}
 
 	.att-icon.danger {
-		background: var(--danger-bg);
 		color: var(--danger);
 	}
 
 	.att-icon.warn {
-		background: var(--warn-bg);
 		color: var(--warn);
 	}
 
 	.att-icon.info {
-		background: var(--info-bg);
-		color: var(--info);
+		color: var(--text-3);
 	}
 
 	.att-text {
@@ -287,6 +276,12 @@
 		padding: 0 1.25rem 1rem;
 		font-size: var(--fs-code);
 		color: var(--text-3);
+	}
+
+	.att-ok {
+		display: inline-flex;
+		margin-top: 0.1rem;
+		color: var(--success);
 	}
 
 	.att-more a {

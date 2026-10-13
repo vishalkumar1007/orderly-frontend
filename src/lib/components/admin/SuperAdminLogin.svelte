@@ -2,15 +2,15 @@
 	import { onMount } from 'svelte';
 	import { authErrorMessage, errorMessage } from '$lib/admin/errors';
 	import { goto } from '$app/navigation';
-	import ArrowRight from '@lucide/svelte/icons/arrow-right';
-	import Eye from '@lucide/svelte/icons/eye';
-	import EyeOff from '@lucide/svelte/icons/eye-off';
-	import KeyRound from '@lucide/svelte/icons/key-round';
-	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
-	import Lock from '@lucide/svelte/icons/lock';
-	import Mail from '@lucide/svelte/icons/mail';
-	import ShieldCheck from '@lucide/svelte/icons/shield-check';
-	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
+	import ArrowRight from '@tabler/icons-svelte/icons/arrow-right';
+	import Eye from '@tabler/icons-svelte/icons/eye';
+	import EyeOff from '@tabler/icons-svelte/icons/eye-off';
+	import KeyRound from '@tabler/icons-svelte/icons/key';
+	import LoaderCircle from '@tabler/icons-svelte/icons/loader-2';
+	import Lock from '@tabler/icons-svelte/icons/lock';
+	import Mail from '@tabler/icons-svelte/icons/mail';
+	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
+	import TriangleAlert from '@tabler/icons-svelte/icons/alert-triangle';
 	import { getAccessToken } from '$lib/api/client';
 	import {
 		adminLogin,
@@ -215,7 +215,7 @@
 {#if checking}
 	<AuthLayout title="Signing you in" subtitle="Checking your session and platform status…">
 		<div class="auth-loading">
-			<LoaderCircle class="auth-spinner" size={22} strokeWidth={2} />
+			<LoaderCircle class="auth-spinner" size={22} stroke={1.6} />
 			<p class="muted text-sm">Loading…</p>
 		</div>
 	</AuthLayout>
@@ -224,7 +224,7 @@
 		title="Run every shop from one console"
 		subtitle="Onboard tenants, assign plans, and watch platform-wide orders and revenue — with every shop's data strictly separated."
 	>
-		<span class="auth-eyebrow"><ShieldCheck size={13} strokeWidth={2.2} /> Super Admin access</span>
+		<span class="auth-eyebrow"><ShieldCheck size={13} stroke={1.6} /> Super Admin access</span>
 
 		{#if enrollStep}
 			<h2 class="auth-title">Set up two-factor authentication</h2>
@@ -260,7 +260,7 @@
 				<div class="auth-field">
 					<label class="auth-label" for="sa-enroll-code">6-digit code</label>
 					<div class="auth-input-wrap">
-						<span class="auth-input-icon"><ShieldCheck size={16} strokeWidth={1.9} /></span>
+						<span class="auth-input-icon"><ShieldCheck size={16} stroke={1.6} /></span>
 						<input
 							id="sa-enroll-code"
 							class="input auth-input"
@@ -277,18 +277,18 @@
 
 				{#if error}
 					<p class="auth-alert" id="sa-error" role="alert">
-						<TriangleAlert size={16} strokeWidth={2} />
+						<TriangleAlert size={16} stroke={1.6} />
 						<span>{error}</span>
 					</p>
 				{/if}
 
 				<button class="btn btn-primary auth-submit" type="submit" disabled={loading}>
 					{#if loading}
-						<LoaderCircle class="auth-spinner" size={17} strokeWidth={2.2} />
+						<LoaderCircle class="auth-spinner" size={17} stroke={1.6} />
 						Confirming…
 					{:else}
 						Confirm and sign in
-						<ArrowRight size={16} strokeWidth={2.2} />
+						<ArrowRight size={16} stroke={1.6} />
 					{/if}
 				</button>
 				<button type="button" class="btn btn-ghost auth-submit" onclick={backToPassword}>
@@ -326,7 +326,7 @@
 						{useRecoveryCode ? 'Recovery code' : 'Authentication code'}
 					</label>
 					<div class="auth-input-wrap">
-						<span class="auth-input-icon"><ShieldCheck size={16} strokeWidth={1.9} /></span>
+						<span class="auth-input-icon"><ShieldCheck size={16} stroke={1.6} /></span>
 						<input
 							id="sa-mfa-code"
 							class="input auth-input"
@@ -345,18 +345,18 @@
 
 				{#if error}
 					<p class="auth-alert" id="sa-error" role="alert">
-						<TriangleAlert size={16} strokeWidth={2} />
+						<TriangleAlert size={16} stroke={1.6} />
 						<span>{error}</span>
 					</p>
 				{/if}
 
 				<button class="btn btn-primary auth-submit" type="submit" disabled={loading}>
 					{#if loading}
-						<LoaderCircle class="auth-spinner" size={17} strokeWidth={2.2} />
+						<LoaderCircle class="auth-spinner" size={17} stroke={1.6} />
 						Verifying…
 					{:else}
 						Verify and sign in
-						<ArrowRight size={16} strokeWidth={2.2} />
+						<ArrowRight size={16} stroke={1.6} />
 					{/if}
 				</button>
 
@@ -383,7 +383,7 @@
 			<div class="auth-field">
 				<label class="auth-label" for="sa-email">Email address</label>
 				<div class="auth-input-wrap">
-					<span class="auth-input-icon"><Mail size={16} strokeWidth={1.9} /></span>
+					<span class="auth-input-icon"><Mail size={16} stroke={1.6} /></span>
 					<input
 						id="sa-email"
 						class="input auth-input"
@@ -404,7 +404,7 @@
 			<div class="auth-field">
 				<label class="auth-label" for="sa-password">Password</label>
 				<div class="auth-input-wrap">
-					<span class="auth-input-icon"><Lock size={16} strokeWidth={1.9} /></span>
+					<span class="auth-input-icon"><Lock size={16} stroke={1.6} /></span>
 					<input
 						id="sa-password"
 						class="input auth-input"
@@ -426,9 +426,9 @@
 						tabindex="-1"
 					>
 						{#if showPassword}
-							<EyeOff size={16} strokeWidth={1.9} />
+							<EyeOff size={16} stroke={1.6} />
 						{:else}
-							<Eye size={16} strokeWidth={1.9} />
+							<Eye size={16} stroke={1.6} />
 						{/if}
 					</button>
 				</div>
@@ -436,25 +436,25 @@
 
 			{#if error}
 				<p class="auth-alert" id="sa-error" role="alert">
-					<TriangleAlert size={16} strokeWidth={2} />
+					<TriangleAlert size={16} stroke={1.6} />
 					<span>{error}</span>
 				</p>
 			{/if}
 
 			<button class="btn btn-primary auth-submit" type="submit" disabled={loading}>
 				{#if loading}
-					<LoaderCircle class="auth-spinner" size={17} strokeWidth={2.2} />
+					<LoaderCircle class="auth-spinner" size={17} stroke={1.6} />
 					Signing in…
 				{:else}
 					Sign in
-					<ArrowRight size={16} strokeWidth={2.2} />
+					<ArrowRight size={16} stroke={1.6} />
 				{/if}
 			</button>
 		</form>
 		{/if}
 
 		<p class="auth-foot">
-			<KeyRound size={13} strokeWidth={2} />
+			<KeyRound size={13} stroke={1.6} />
 			Restricted to platform administrators
 		</p>
 	</AuthLayout>

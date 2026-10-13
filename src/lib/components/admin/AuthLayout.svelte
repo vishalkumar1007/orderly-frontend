@@ -1,8 +1,9 @@
 <script lang="ts">
-	import type { Component, Snippet } from 'svelte';
-	import Activity from '@lucide/svelte/icons/activity';
-	import ShieldCheck from '@lucide/svelte/icons/shield-check';
-	import Store from '@lucide/svelte/icons/store';
+	import type { Snippet } from 'svelte';
+	import type { IconComponent as Component } from '$lib/icons';
+	import Activity from '@tabler/icons-svelte/icons/activity';
+	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
+	import Store from '@tabler/icons-svelte/icons/building-store';
 	import OrderlyMark from './OrderlyMark.svelte';
 	import ThemeToggle from './ThemeToggle.svelte';
 
@@ -52,7 +53,7 @@
 					{#each points as point}
 						{@const Icon = POINT_ICONS[point.icon] ?? ShieldCheck}
 						<li>
-							<span class="auth-point-icon"><Icon size={16} strokeWidth={2} /></span>
+							<span class="auth-point-icon"><Icon size={16} stroke={1.6} /></span>
 							<span>{point.text}</span>
 						</li>
 					{/each}

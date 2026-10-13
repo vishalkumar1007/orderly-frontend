@@ -10,6 +10,7 @@ import type {
 	CreatedTenant,
 	DashboardData,
 	ExpiringSubscription,
+	EntitlementFeature,
 	Plan,
 	PlanWritePayload,
 	PlatformSettings,
@@ -162,8 +163,18 @@ export async function fetchTenantMfaPolicyAdmin(id: string): Promise<{
 
 /** Every plan, including withdrawn ones, with how many businesses use them. */
 export async function fetchPlans(): Promise<Plan[]> {
-	const data = await api<{ plans: Plan[] }>('/api/v1/admin/plans');
-	return data.plans.map(normalizePlan);
+	return (await fetchPlansWithCatalog()).plans;
+}
+
+/** Plans plus the catalog of features a plan can enforce, in one request. */
+export async function fetchPlansWithCatalog(): Promise<{
+	plans: Plan[];
+	catalog: EntitlementFeature[];
+}> {
+	const data = await api<{ plans: Plan[]; entitlement_catalog?: EntitlementFeature[] }>(
+		'/api/v1/admin/plans'
+	);
+	return { plans: data.plans.map(normalizePlan), catalog: data.entitlement_catalog ?? [] };
 }
 
 /**
@@ -191,6 +202,7 @@ function normalizePlan(p: Plan): Plan {
 		price: Number(p.price) || 0,
 		features: Array.isArray(p.features) ? p.features : [],
 		business_types: Array.isArray(p.business_types) ? p.business_types : [],
+		entitlements: Array.isArray(p.entitlements) ? p.entitlements : [],
 		trial_days: Number(p.trial_days) || 0,
 		billing_period: p.billing_period || 'monthly'
 	};

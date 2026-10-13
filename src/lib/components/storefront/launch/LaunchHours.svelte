@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Clock from '@lucide/svelte/icons/clock';
-	import ExternalLink from '@lucide/svelte/icons/external-link';
+	import Clock from '@tabler/icons-svelte/icons/clock';
+	import ExternalLink from '@tabler/icons-svelte/icons/external-link';
 	import './launch-shared.css';
 
 	let {
@@ -13,7 +13,7 @@
 <div class="studio-content-grid">
 	<div class="panel studio-section-intro">
 		<div class="intro-icon-wrap">
-			<Clock size={24} strokeWidth={1.8} />
+			<Clock size={24} stroke={1.6} />
 		</div>
 		<div>
 			<h2 class="intro-h">Opening hours</h2>
@@ -28,7 +28,7 @@
 			{config.hours.detail ? ` · ${config.hours.detail}` : ''}
 		</p>
 		<a class="btn btn-primary" href="/shop/customize?section=ordering">
-			<ExternalLink size={15} strokeWidth={2} />
+			<ExternalLink size={15} stroke={1.6} />
 			Edit hours in Customize
 		</a>
 	</div>

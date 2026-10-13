@@ -1,10 +1,9 @@
-import type { Component } from 'svelte';
-import Bell from '@lucide/svelte/icons/bell';
-import ListOrdered from '@lucide/svelte/icons/list-ordered';
-import Palette from '@lucide/svelte/icons/palette';
-import Plug from '@lucide/svelte/icons/plug';
-import ShieldCheck from '@lucide/svelte/icons/shield-check';
-import Store from '@lucide/svelte/icons/store';
+import Bell from '@tabler/icons-svelte/icons/bell';
+import ListOrdered from '@tabler/icons-svelte/icons/list-numbers';
+import Palette from '@tabler/icons-svelte/icons/palette';
+import Plug from '@tabler/icons-svelte/icons/plug';
+import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
+import Store from '@tabler/icons-svelte/icons/building-store';
 import type { ShopPermission } from './nav';
 
 /**
@@ -24,7 +23,7 @@ import type { ShopPermission } from './nav';
 export type SettingsSection = {
 	id: string;
 	label: string;
-	icon: Component;
+	icon: typeof Bell;
 	/** Rail heading this section sits under. */
 	group: 'Business' | 'You';
 	/**

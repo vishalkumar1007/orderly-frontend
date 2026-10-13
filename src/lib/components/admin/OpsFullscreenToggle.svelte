@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import Maximize2 from '@lucide/svelte/icons/maximize-2';
-	import Minimize2 from '@lucide/svelte/icons/minimize-2';
+	import Maximize2 from '@tabler/icons-svelte/icons/maximize';
+	import Minimize2 from '@tabler/icons-svelte/icons/minimize';
 
 	let { label = 'Fullscreen' }: { label?: string } = $props();
 
@@ -21,10 +21,10 @@
 	aria-pressed={fullscreen}
 >
 	{#if fullscreen}
-		<Minimize2 size={14} strokeWidth={2} />
+		<Minimize2 size={14} stroke={1.6} />
 		Exit {label}
 	{:else}
-		<Maximize2 size={14} strokeWidth={2} />
+		<Maximize2 size={14} stroke={1.6} />
 		{label}
 	{/if}
 </a>

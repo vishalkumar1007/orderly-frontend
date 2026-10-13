@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { Inbox } from '@lucide/svelte/icons';
+	import Inbox from '@tabler/icons-svelte/icons/inbox';
 	import Tooltip from '$lib/components/menu/Tooltip.svelte';
 
 	let {
@@ -17,7 +17,7 @@
 </script>
 
 <div class="empty">
-	<span class="empty-icon"><Inbox size={20} strokeWidth={1.6} /></span>
+	<span class="empty-icon"><Inbox size={20} stroke={1.6} /></span>
 	<h3>{title}</h3>
 	{#if description}<p>{description}</p>{/if}
 	{#if hint}

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Check from '@lucide/svelte/icons/check';
-	import Plus from '@lucide/svelte/icons/plus';
-	import Shapes from '@lucide/svelte/icons/shapes';
+	import Check from '@tabler/icons-svelte/icons/check';
+	import Plus from '@tabler/icons-svelte/icons/plus';
+	import Shapes from '@tabler/icons-svelte/icons/category';
 	import { createTenantType, fetchTenants, fetchTenantTypes, updateTenantType } from '$lib/admin/api';
 	import { BUSINESS_TYPE_TEMPLATES, templateFor } from '$lib/admin/businessTypes';
 	import { errorMessage } from '$lib/admin/errors';
@@ -208,7 +208,7 @@
 								{:else if isDirty(row)}
 									Save
 								{:else}
-									<Check size={13} strokeWidth={2.6} />
+									<Check size={13} stroke={1.6} />
 									Saved
 								{/if}
 							</button>

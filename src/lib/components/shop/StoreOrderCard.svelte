@@ -2,6 +2,7 @@
 	import type { Order, OrderStage } from '$lib/tenant/orders.svelte';
 	import { orderBoard, stageAfterAction } from '$lib/tenant/orders.svelte';
 	import { toast } from '$lib/components/admin/toast';
+	import PaymentChip from '$lib/components/shop/PaymentChip.svelte';
 
 	let {
 		order,
@@ -90,14 +91,7 @@
 	<div class="osorder-foot">
 		<span class="osorder-total">{totalLabel}</span>
 		{#if order.payment}
-			<span class="osorder-meta">
-				{order.payment.method}
-				{#if order.payment.status === 'PENDING'}
-					· <span class="osorder-unpaid">unpaid</span>
-				{:else if order.payment.status === 'PAID'}
-					· <span class="osorder-paid">paid</span>
-				{/if}
-			</span>
+			<PaymentChip payment={order.payment} />
 		{/if}
 		<span class="osorder-meta">{itemCount} item{itemCount === 1 ? '' : 's'}</span>
 		{#if order.customer_name}
@@ -134,13 +128,5 @@
 		outline-offset: 2px;
 	}
 
-	.osorder-unpaid {
-		color: var(--warn);
-		font-weight: 650;
-	}
 
-	.osorder-paid {
-		color: var(--success);
-		font-weight: 650;
-	}
 </style>

@@ -1,25 +1,26 @@
-import type { Component } from 'svelte';
-import Activity from '@lucide/svelte/icons/activity';
-import BedDouble from '@lucide/svelte/icons/bed-double';
-import CalendarCheck from '@lucide/svelte/icons/calendar-check';
-import CalendarClock from '@lucide/svelte/icons/calendar-clock';
-import ChefHat from '@lucide/svelte/icons/chef-hat';
-import ClipboardList from '@lucide/svelte/icons/clipboard-list';
-import CreditCard from '@lucide/svelte/icons/credit-card';
-import History from '@lucide/svelte/icons/history';
-import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
-import LayoutTemplate from '@lucide/svelte/icons/layout-template';
-import ListOrdered from '@lucide/svelte/icons/list-ordered';
-import MonitorPlay from '@lucide/svelte/icons/monitor-play';
-import Megaphone from '@lucide/svelte/icons/megaphone';
-import Scissors from '@lucide/svelte/icons/scissors';
-import Zap from '@lucide/svelte/icons/zap';
-import Settings from '@lucide/svelte/icons/settings';
-import Shield from '@lucide/svelte/icons/shield';
-import Store from '@lucide/svelte/icons/store';
-import Users from '@lucide/svelte/icons/users';
-import UserCog from '@lucide/svelte/icons/user-cog';
-import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
+import type { IconComponent as Component } from '$lib/icons';
+import Activity from '@tabler/icons-svelte/icons/activity';
+import BedDouble from '@tabler/icons-svelte/icons/bed';
+import CalendarCheck from '@tabler/icons-svelte/icons/calendar-check';
+import CalendarClock from '@tabler/icons-svelte/icons/calendar-clock';
+import ChefHat from '@tabler/icons-svelte/icons/chef-hat';
+import ClipboardList from '@tabler/icons-svelte/icons/clipboard-list';
+import CreditCard from '@tabler/icons-svelte/icons/credit-card';
+import History from '@tabler/icons-svelte/icons/history';
+import LayoutDashboard from '@tabler/icons-svelte/icons/layout-dashboard';
+import LayoutTemplate from '@tabler/icons-svelte/icons/layout';
+import ListOrdered from '@tabler/icons-svelte/icons/list-numbers';
+import MonitorPlay from '@tabler/icons-svelte/icons/device-tv';
+import Megaphone from '@tabler/icons-svelte/icons/speakerphone';
+import Package from '@tabler/icons-svelte/icons/package';
+import Scissors from '@tabler/icons-svelte/icons/scissors';
+import Zap from '@tabler/icons-svelte/icons/bolt';
+import Settings from '@tabler/icons-svelte/icons/settings';
+import Shield from '@tabler/icons-svelte/icons/shield';
+import Store from '@tabler/icons-svelte/icons/building-store';
+import Users from '@tabler/icons-svelte/icons/users';
+import UserCog from '@tabler/icons-svelte/icons/user-cog';
+import UtensilsCrossed from '@tabler/icons-svelte/icons/tools-kitchen-2';
 import { storefrontSegmentLabel } from '$lib/storefront/admin-nav';
 import { hasModule, termsFor, type ModuleKey, type Terminology } from '$lib/admin/businessTypes';
 
@@ -303,6 +304,14 @@ export const TENANT_NAV: ShopNavGroup[] = [
 				term: 'catalog',
 				module: 'catalog',
 				icon: UtensilsCrossed,
+				nested: true,
+				permission: 'menu'
+			},
+			{
+				href: '/shop/inventory',
+				label: 'Inventory',
+				module: 'catalog',
+				icon: Package,
 				nested: true,
 				permission: 'menu'
 			},

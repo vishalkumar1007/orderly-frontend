@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
-	import ShieldCheck from '@lucide/svelte/icons/shield-check';
+	import RefreshCw from '@tabler/icons-svelte/icons/refresh';
+	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
 	import { errorMessage } from '$lib/admin/errors';
 	import { formatDateTime, formatRelative, rupees } from '$lib/admin/format';
 	import {
@@ -161,7 +161,7 @@
 {#if tab === 'audit'}
 	{#if !loading && (denied > 0 || failed > 0)}
 		<div class="alert alert-warn" style="margin-bottom:0.85rem;">
-			<ShieldCheck size={16} strokeWidth={1.9} />
+			<ShieldCheck size={16} stroke={1.6} />
 			<span>
 				{denied} refused and {failed} failed sign-in attempt{denied + failed === 1 ? '' : 's'} in
 				the recent record. A refusal is the platform doing its job, not a fault.
@@ -258,7 +258,7 @@
 				</p>
 			</div>
 			<button type="button" class="btn btn-ghost btn-sm" onclick={() => load(true)}>
-				<RefreshCw size={13} strokeWidth={2} class={refreshing ? 'spin' : ''} />
+				<RefreshCw size={13} stroke={1.6} class={refreshing ? 'spin' : ''} />
 				Refresh
 			</button>
 		</div>

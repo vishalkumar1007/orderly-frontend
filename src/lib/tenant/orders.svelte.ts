@@ -17,6 +17,11 @@ export type OrderPayment = {
 	method: string;
 	amount?: number;
 	paid_at?: string;
+	/** Went through the dummy gateway: nobody was charged. */
+	is_test?: boolean;
+	/** PENDING | COMPLETED | FAILED for the latest refund, when there is one. */
+	refund_status?: string;
+	refunded_amount?: number;
 };
 
 export type Order = {
@@ -135,7 +140,10 @@ export function normalizeOrder(raw: Record<string, unknown>): Order {
 				status: typeof p.status === 'string' ? p.status : '',
 				method: typeof p.method === 'string' ? p.method : '',
 				amount: typeof p.amount === 'number' ? p.amount : undefined,
-				paid_at: typeof p.paid_at === 'string' ? p.paid_at : undefined
+				paid_at: typeof p.paid_at === 'string' ? p.paid_at : undefined,
+				is_test: p.is_test === true,
+				refund_status: typeof p.refund_status === 'string' ? p.refund_status : undefined,
+				refunded_amount: typeof p.refunded_amount === 'number' ? p.refunded_amount : undefined
 			};
 		}
 	}
@@ -327,6 +335,23 @@ class OrderBoard {
 		);
 	}
 
+	/**
+	 * Refund a paid online payment. Returns whether the money is already back
+	 * (false means the gateway accepted it and is still settling).
+	 */
+	async refund(order: Order, reason = ''): Promise<{ done: boolean }> {
+		if (!order.payment?.id) throw new Error('Payment is missing an id');
+		let done = false;
+		await this.#mutate(order.id, async () => {
+			const res = await api<{ done: boolean }>(`/api/v1/tenant/payments/${order.payment!.id}/refund`, {
+				method: 'POST',
+				body: JSON.stringify(reason ? { reason } : {})
+			});
+			done = res.done;
+		});
+		return { done };
+	}
+
 	async createCounterOrder(payload: CounterOrderPayload) {
 		const created = await api<Record<string, unknown>>('/api/v1/tenant/orders', {
 			method: 'POST',
@@ -347,6 +372,9 @@ class OrderBoard {
 			await this.refresh();
 		} catch (err) {
 			this.error = err instanceof Error ? err.message : 'Update failed';
+			// 409: the order moved on (another device, or a double tap). Reload so
+			// the card shows its real state instead of a stale action button.
+			if (err instanceof ApiClientError && err.status === 409) void this.refresh();
 			throw err;
 		} finally {
 			const next = { ...this.busy };

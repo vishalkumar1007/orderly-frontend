@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import KeyRound from '@lucide/svelte/icons/key-round';
-	import ShieldCheck from '@lucide/svelte/icons/shield-check';
-	import UserRound from '@lucide/svelte/icons/user-round';
+	import KeyRound from '@tabler/icons-svelte/icons/key';
+	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
+	import UserRound from '@tabler/icons-svelte/icons/user';
 	import { changePassword, me, type User } from '$lib/auth';
 	import { fetchSettings } from '$lib/admin/api';
 	import { errorMessage } from '$lib/admin/errors';

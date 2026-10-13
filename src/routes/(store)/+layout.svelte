@@ -2,11 +2,11 @@
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount, untrack } from 'svelte';
-	import WifiOff from '@lucide/svelte/icons/wifi-off';
-	import AlertCircle from '@lucide/svelte/icons/circle-alert';
-	import Sparkles from '@lucide/svelte/icons/sparkles';
-	import Megaphone from '@lucide/svelte/icons/megaphone';
-	import Info from '@lucide/svelte/icons/info';
+	import WifiOff from '@tabler/icons-svelte/icons/wifi-off';
+	import AlertCircle from '@tabler/icons-svelte/icons/alert-circle';
+	import Sparkles from '@tabler/icons-svelte/icons/sparkles';
+	import Megaphone from '@tabler/icons-svelte/icons/speakerphone';
+	import Info from '@tabler/icons-svelte/icons/info-circle';
 	import SuperAdminLogin from '$lib/components/admin/SuperAdminLogin.svelte';
 	import '$lib/storefront/storefront-app.css';
 	import { createCart, loadInitialCart, provideCart } from '$lib/storefront/cart-state.svelte';
@@ -178,7 +178,7 @@
 				{#if !online}
 					<div class="sf-wrap sf-notice">
 						<div class="sf-alert" data-tone="warn" role="status">
-							<WifiOff size={17} strokeWidth={1.9} aria-hidden="true" />
+							<WifiOff size={17} stroke={1.6} aria-hidden="true" />
 							<span>You are offline. You can browse, but ordering needs a connection.</span>
 						</div>
 					</div>
@@ -188,13 +188,13 @@
 					<div class="sf-wrap sf-notice">
 						<div class="sf-alert sf-broadcast-alert" data-tone={broadcast.type} role="status">
 							{#if broadcast.type === 'alert'}
-								<AlertCircle size={17} strokeWidth={2.2} />
+								<AlertCircle size={17} stroke={1.6} />
 							{:else if broadcast.type === 'offer'}
-								<Sparkles size={17} strokeWidth={2.2} />
+								<Sparkles size={17} stroke={1.6} />
 							{:else if broadcast.type === 'others'}
-								<Megaphone size={17} strokeWidth={2.2} />
+								<Megaphone size={17} stroke={1.6} />
 							{:else}
-								<Info size={17} strokeWidth={2.2} />
+								<Info size={17} stroke={1.6} />
 							{/if}
 							<div class="sf-broadcast-text">
 								{#if broadcast.type === 'offer'}

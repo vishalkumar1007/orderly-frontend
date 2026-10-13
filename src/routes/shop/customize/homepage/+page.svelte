@@ -1,7 +1,7 @@
 <script lang="ts">
-	import GripVertical from '@lucide/svelte/icons/grip-vertical';
-	import ChevronDown from '@lucide/svelte/icons/chevron-down';
-	import ChevronUp from '@lucide/svelte/icons/chevron-up';
+	import GripVertical from '@tabler/icons-svelte/icons/grip-vertical';
+	import ChevronDown from '@tabler/icons-svelte/icons/chevron-down';
+	import ChevronUp from '@tabler/icons-svelte/icons/chevron-up';
 	import TextArea from '$lib/components/admin/TextArea.svelte';
 	import TextInput from '$lib/components/admin/TextInput.svelte';
 	import { seed, useStorefront, type StorefrontContext } from '$lib/storefront/admin-context';
@@ -151,7 +151,7 @@
 						ondragend={onDragEnd}
 						onkeydown={(e) => onGripKey(index, e)}
 					>
-						<GripVertical size={16} strokeWidth={1.9} />
+						<GripVertical size={16} stroke={1.6} />
 					</button>
 
 					<div class="sfsection-body">
@@ -182,7 +182,7 @@
 								aria-label="Move up"
 								onclick={() => move(index, -1)}
 							>
-								<ChevronUp size={14} strokeWidth={2.2} />
+								<ChevronUp size={14} stroke={1.6} />
 							</button>
 							<button
 								type="button"
@@ -190,7 +190,7 @@
 								aria-label="Move down"
 								onclick={() => move(index, 1)}
 							>
-								<ChevronDown size={14} strokeWidth={2.2} />
+								<ChevronDown size={14} stroke={1.6} />
 							</button>
 						</div>
 					</div>

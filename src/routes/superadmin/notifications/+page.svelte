@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Bell from '@lucide/svelte/icons/bell';
-	import Building2 from '@lucide/svelte/icons/building-2';
-	import Mail from '@lucide/svelte/icons/mail';
-	import MessageSquare from '@lucide/svelte/icons/message-square';
-	import Send from '@lucide/svelte/icons/send';
+	import Bell from '@tabler/icons-svelte/icons/bell';
+	import Building2 from '@tabler/icons-svelte/icons/building';
+	import Mail from '@tabler/icons-svelte/icons/mail';
+	import MessageSquare from '@tabler/icons-svelte/icons/message';
+	import Send from '@tabler/icons-svelte/icons/send';
 	import { fetchSettings } from '$lib/admin/api';
 	import { fetchPlatformConfig, testPlatformConfigAction } from '$lib/admin/configApi';
 	import {
@@ -23,16 +23,17 @@
 		savePlatformNotificationRule
 	} from '$lib/admin/notificationsApi';
 	import type { NotificationDelivery, NotificationEventDef, NotificationRule } from '$lib/admin/notificationTypes';
+	import EventChannelGrid from '$lib/components/admin/EventChannelGrid.svelte';
 	import EventRuleMatrix from '$lib/components/admin/EventRuleMatrix.svelte';
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
 	import FormField from '$lib/components/admin/FormField.svelte';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
 	import StatusBadge from '$lib/components/admin/StatusBadge.svelte';
-	import Tabs from '$lib/components/admin/Tabs.svelte';
+	import EmptyState from '$lib/components/admin/EmptyState.svelte';
+	import SlideOver from '$lib/components/admin/SlideOver.svelte';
+	import History from '@tabler/icons-svelte/icons/history';
 	import TextInput from '$lib/components/admin/TextInput.svelte';
 	import { toast } from '$lib/components/admin/toast';
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
 
 	/**
 	 * Platform notifications.
@@ -50,7 +51,7 @@
 	type Channel = {
 		id: string;
 		name: string;
-		icon: typeof Mail;
+		icon: typeof Bell;
 		state: 'managed' | 'absent' | 'delegated';
 		detail: string;
 		href?: string;
@@ -87,8 +88,6 @@
 	}
 
 	onMount(() => {
-		const q = $page.url.searchParams.get('tab');
-		if (q && tabs.some((t) => t.id === q)) tab = q;
 		load();
 		void loadRules();
 		void loadDeliveries();
@@ -136,16 +135,9 @@
 		}
 	]);
 
-	const tabs = [
-		{ id: 'channels', label: 'Channels' },
-		{ id: 'rules', label: 'Rules & delivery log' }
-	];
-	let tab = $state('channels');
-
-	function setTab(next: string) {
-		tab = next;
-		goto(`?tab=${next}`, { replaceState: true, keepFocus: true, noScroll: true });
-	}
+	let logOpen = $state(false);
+	let senderOpen = $state(false);
+	let defaultsOpen = $state(false);
 
 	/* ---------- platform-default rules, every event in the catalog ---------- */
 
@@ -166,6 +158,10 @@
 			rulesLoading = false;
 		}
 	}
+
+	/** Alerts for the Orderly team itself vs what businesses start with. */
+	const platformRules = $derived(rules.filter((r) => r.recipient_policy === 'PLATFORM'));
+	const businessDefaultRules = $derived(rules.filter((r) => r.recipient_policy !== 'PLATFORM'));
 
 	function ruleKey(r: NotificationRule) {
 		return `${r.event_code}:${r.channel}:${r.recipient_policy}`;
@@ -225,21 +221,6 @@
 		DEAD: 'danger'
 	};
 
-	/** Everything the platform sends today, and what triggers it. */
-	const PLATFORM_MESSAGES = [
-		{
-			name: 'Administrator setup link',
-			audience: 'A business administrator or staff member',
-			triggers: [
-				'A business is onboarded',
-				'A user is invited to a business',
-				'A setup link is regenerated',
-				"A user's access is reset"
-			],
-			contents: 'A single-use link to choose a password. Never a password itself.'
-		}
-	];
-
 	async function sendTest() {
 		if (!testTo.trim()) {
 			toast.error('Enter an address to send the test to');
@@ -268,301 +249,228 @@
 
 {#if loading}
 	<div style="display:flex;flex-direction:column;gap:0.85rem;">
-		<Skeleton height="9rem" />
+		<Skeleton height="4rem" />
 		<Skeleton height="14rem" />
 	</div>
 {:else}
-	<Tabs {tabs} bind:active={tab} onchange={setTab} />
-
-	{#if tab === 'channels'}
-		<section class="panel" style="margin-bottom:0.85rem;margin-top:0.85rem;">
-			<div class="bento-head">
-				<h3 class="panel-h" style="margin:0;">
-					<span style="display:flex;align-items:center;gap:0.45rem;">
-						<Bell size={15} strokeWidth={1.9} />
-						Delivery channels
+	<div class="np">
+		<div class="chips" aria-label="Platform delivery channels">
+			{#each channels.filter((c) => c.id !== 'business') as channel (channel.id)}
+				<div class={['chip', channel.state === 'managed' ? 'ok' : 'warn'].join(' ')}>
+					<span class="chip-icon"><channel.icon size={15} stroke={1.6} /></span>
+					<span class="chip-text">
+						<strong>{channel.name}</strong>
+						{#if channel.state === 'managed'}
+							<span>Ready to send</span>
+						{:else}
+							<a href={channel.href}>Set up {channel.name.toLowerCase()} →</a>
+						{/if}
 					</span>
-				</h3>
-				{#if config}
-					<StatusBadge
-						status={CONFIG_STATUS_LABEL[config.status]}
-						kind={CONFIG_STATUS_TONE[config.status]}
-					/>
-				{/if}
-			</div>
-
-			<div class="ch-rows">
-				{#each channels as channel (channel.id)}
-					<div class="ch-row">
-						<span class={['ch-icon', channel.state].join(' ')}>
-							<channel.icon size={15} strokeWidth={1.8} />
-						</span>
-						<div class="ch-text">
-							<strong>{channel.name}</strong>
-							<p>{channel.detail}</p>
-						</div>
-						<div class="ch-end">
-							<StatusBadge
-								status={channel.state === 'managed'
-									? 'Active'
-									: channel.state === 'delegated'
-										? 'Per business'
-										: 'Unavailable'}
-								kind={channel.state === 'managed' ? 'ok' : 'neutral'}
-								dot={channel.state === 'managed'}
-							/>
-							{#if channel.href}
-								<a class="btn btn-quiet btn-sm" href={channel.href}>Open</a>
-							{/if}
-						</div>
-					</div>
-				{/each}
-			</div>
-		</section>
-
-		<div class="grid-2" style="margin-bottom:0.85rem;">
-			<section class="panel">
-				<h3 class="panel-h">Sender identity</h3>
-				<p class="panel-note" style="margin:0 0 0.85rem;">
-					Who platform email appears to come from. Edited with the email provider, because it is
-					part of that configuration rather than a separate setting.
-				</p>
-				<dl class="dl">
-					<div><dt>From name</dt><dd>{fromName || '—'}</dd></div>
-					<div><dt>From address</dt><dd class="mono">{fromEmail || '—'}</dd></div>
-					<div><dt>Reply-to</dt><dd class="mono">{replyTo || fromEmail || '—'}</dd></div>
-					<div>
-						<dt>Support address</dt>
-						<dd class="mono">{settings?.general.support_email || '—'}</dd>
-					</div>
-				</dl>
-				<div style="margin-top:0.9rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-					<a class="btn btn-ghost btn-sm" href="/superadmin/providers/smtp">Edit email provider</a>
-					<a class="btn btn-quiet btn-sm" href="/superadmin/settings">Edit support address</a>
 				</div>
-			</section>
-
-			<section class="panel">
-				<h3 class="panel-h">Send a test</h3>
-				<p class="panel-note" style="margin:0 0 0.85rem;">
-					Delivers a real message through the configured provider. Worth doing before onboarding a
-					business — a failed invite is discovered by the person who cannot sign in.
-				</p>
-				<FormField label="Send to" htmlFor="notif-test">
-					<TextInput id="notif-test" type="email" bind:value={testTo} placeholder="you@example.com" />
-				</FormField>
-				<div style="margin-top:0.85rem;">
-					<button
-						type="button"
-						class="btn btn-primary btn-sm"
-						disabled={sending || !emailReady}
-						onclick={sendTest}
-					>
-						<Send size={14} strokeWidth={2} />
-						{sending ? 'Sending…' : 'Send test email'}
-					</button>
-					{#if !emailReady}
-						<p class="field-hint" style="margin:0.5rem 0 0;">
-							Configure and enable the email provider first.
-						</p>
-					{/if}
-				</div>
-
-				{#if outcome}
-					<div class={['outcome', outcome.ok ? '' : 'bad'].join(' ')} role="status">
-						<strong>{outcome.ok ? 'Sent' : 'Failed'}</strong>
-						<span>{outcome.message}</span>
-						{#if outcome.detail}<span class="detail">{outcome.detail}</span>{/if}
-					</div>
-				{/if}
-			</section>
+			{/each}
+			<div class="chip ok">
+				<span class="chip-icon"><Bell size={15} stroke={1.6} /></span>
+				<span class="chip-text"><strong>In-app</strong><span>Always on</span></span>
+			</div>
 		</div>
 
-		<section class="panel">
-			<h3 class="panel-h">What the platform sends</h3>
-			<p class="panel-note" style="margin:0 0 0.85rem;">
-				The complete list. Anything not here is not sent by the platform — including order
-				updates, which belong to each business.
+		<div class="toolbar">
+			<p class="lede">
+				Alerts for the people running Orderly: new businesses, system errors, plan and security
+				events. Changes save as you make them.
 			</p>
+			<div class="actions">
+				<button type="button" class="btn btn-ghost btn-sm" onclick={() => (logOpen = true)}>
+					<History size={14} stroke={1.6} /> Delivery log
+				</button>
+				<button type="button" class="btn btn-ghost btn-sm" onclick={() => (senderOpen = true)}>
+					<Mail size={14} stroke={1.6} /> Sender &amp; test
+				</button>
+				<button type="button" class="btn btn-ghost btn-sm" onclick={() => (defaultsOpen = true)}>
+					<Building2 size={14} stroke={1.6} /> Business defaults
+				</button>
+			</div>
+		</div>
 
-			{#each PLATFORM_MESSAGES as message (message.name)}
-				<article class="msg">
-					<div class="msg-head">
-						<strong>{message.name}</strong>
-						<span>{message.audience}</span>
-					</div>
-					<p class="msg-body">{message.contents}</p>
-					<ul class="msg-triggers">
-						{#each message.triggers as trigger (trigger)}
-							<li>{trigger}</li>
-						{/each}
-					</ul>
-				</article>
-			{/each}
-
-			<p class="field-hint" style="margin:0.85rem 0 0;">
-				Setup links are single-use and expire after
-				{settings?.security.invite_expiry_hours ?? 168} hours, which is set under
-				<a href="/superadmin/settings/security">Security</a>.
-			</p>
-		</section>
-	{:else}
-		<section class="panel" style="margin-top:0.85rem;">
-			<h3 class="panel-h">Default notification rules</h3>
-			<p class="panel-note" style="margin:0 0 0.85rem;">
-				What every business starts with, for every event in the catalog — security and critical
-				platform alerts are marked Required and cannot be turned off by a business. A business's
-				own override always wins over what's set here once it writes one.
-			</p>
-			{#if rulesError}
-				<ErrorState message={rulesError} onretry={loadRules} />
-			{:else if rulesLoading}
-				<Skeleton height="10rem" />
-			{:else}
-				<EventRuleMatrix {events} {rules} busyKey={busyRuleKey} onchange={onRuleChange} />
-			{/if}
-		</section>
-
-		<section class="panel" style="margin-top:0.85rem;">
-			<h3 class="panel-h">Delivery log</h3>
-			<p class="panel-note" style="margin:0 0 0.85rem;">
-				Recent email and SMS attempts across every business, plus the platform's own.
-			</p>
-			{#if deliveriesError}
-				<ErrorState message={deliveriesError} onretry={loadDeliveries} />
-			{:else if deliveriesLoading}
-				<Skeleton height="8rem" />
-			{:else if deliveries.length === 0}
-				<p class="muted" style="padding:0.5rem 0;">Nothing has been queued yet.</p>
-			{:else}
-				<ul class="dlv-list">
-					{#each deliveries as d (d.id)}
-						<li class="dlv-row">
-							<div class="dlv-main">
-								<strong>{d.event_code}</strong>
-								<span class="dlv-meta">
-									{d.channel} · {d.recipient}
-									{d.tenant_id ? `· tenant ${d.tenant_id.slice(0, 8)}` : '· platform'} ·
-									{formatRelative(d.created_at)}
-								</span>
-								{#if d.last_error}<span class="dlv-error">{d.last_error}</span>{/if}
-							</div>
-							<div class="dlv-end">
-								<StatusBadge status={d.status} kind={DELIVERY_TONE[d.status] ?? 'neutral'} />
-								{#if d.status === 'FAILED' || d.status === 'DEAD'}
-									<button type="button" class="btn btn-quiet btn-sm" onclick={() => retryDelivery(d.id)}>
-										Retry
-									</button>
-								{/if}
-							</div>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-		</section>
-	{/if}
+		{#if rulesError}
+			<ErrorState message={rulesError} onretry={loadRules} />
+		{:else if rulesLoading}
+			<Skeleton height="12rem" />
+		{:else}
+			<EventChannelGrid
+				{events}
+				rules={platformRules}
+				channels={[
+					{ id: 'IN_APP', label: 'In-app' },
+					{ id: 'EMAIL', label: 'Email' }
+				]}
+				busyKey={busyRuleKey}
+				onchange={onRuleChange}
+			/>
+		{/if}
+	</div>
 {/if}
 
+<SlideOver bind:open={logOpen} title="Delivery log">
+	<p class="drawer-note">Recent email and SMS attempts across every business, plus the platform's own.</p>
+	{#if deliveriesError}
+		<ErrorState message={deliveriesError} onretry={loadDeliveries} />
+	{:else if deliveriesLoading}
+		<Skeleton height="8rem" />
+	{:else if deliveries.length === 0}
+		<EmptyState title="Nothing sent yet" description="Deliveries will appear here once one is queued." />
+	{:else}
+		<ul class="dlv-list">
+			{#each deliveries as d (d.id)}
+				<li class="dlv-row">
+					<div class="dlv-main">
+						<strong>{d.event_code}</strong>
+						<span class="dlv-meta">
+							{d.channel} · {d.recipient}
+							{d.tenant_id ? `· tenant ${d.tenant_id.slice(0, 8)}` : '· platform'} ·
+							{formatRelative(d.created_at)}
+						</span>
+						{#if d.last_error}<span class="dlv-error">{d.last_error}</span>{/if}
+					</div>
+					<div class="dlv-end">
+						<StatusBadge status={d.status} kind={DELIVERY_TONE[d.status] ?? 'neutral'} />
+						{#if d.status === 'FAILED' || d.status === 'DEAD'}
+							<button type="button" class="btn btn-quiet btn-sm" onclick={() => retryDelivery(d.id)}>Retry</button>
+						{/if}
+					</div>
+				</li>
+			{/each}
+		</ul>
+	{/if}
+</SlideOver>
+
+<SlideOver bind:open={senderOpen} title="Sender & test">
+	<dl class="dl">
+		<div><dt>From name</dt><dd>{fromName || '—'}</dd></div>
+		<div><dt>From address</dt><dd class="mono">{fromEmail || '—'}</dd></div>
+		<div><dt>Reply-to</dt><dd class="mono">{replyTo || fromEmail || '—'}</dd></div>
+		<div><dt>Support address</dt><dd class="mono">{settings?.general.support_email || '—'}</dd></div>
+	</dl>
+	<div style="margin:0.9rem 0 1.4rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+		<a class="btn btn-ghost btn-sm" href="/superadmin/providers/smtp">Edit email provider</a>
+		<a class="btn btn-quiet btn-sm" href="/superadmin/settings">Edit support address</a>
+	</div>
+	<FormField label="Send a test email to" htmlFor="notif-test" hint="Worth doing before onboarding a business.">
+		<TextInput id="notif-test" type="email" bind:value={testTo} placeholder="you@example.com" />
+	</FormField>
+	<div style="margin-top:0.75rem;">
+		<button type="button" class="btn btn-primary btn-sm" disabled={sending || !emailReady} onclick={sendTest}>
+			<Send size={14} stroke={1.6} />
+			{sending ? 'Sending…' : 'Send test email'}
+		</button>
+		{#if !emailReady}
+			<p class="field-hint" style="margin:0.5rem 0 0;">Configure and enable the email provider first.</p>
+		{/if}
+	</div>
+	{#if outcome}
+		<div class={['outcome', outcome.ok ? '' : 'bad'].join(' ')} role="status">
+			<strong>{outcome.ok ? 'Sent' : 'Failed'}</strong>
+			<span>{outcome.message}</span>
+			{#if outcome.detail}<span class="detail">{outcome.detail}</span>{/if}
+		</div>
+	{/if}
+</SlideOver>
+
+<SlideOver bind:open={defaultsOpen} title="Business defaults">
+	<p class="drawer-note">
+		What a new business starts with. Each business manages its own under Settings → Notifications
+		and can change it; what it already changed is not touched. SMS and custom wording are
+		controlled by plan on the <a href="/superadmin/plans">Plans</a> page.
+	</p>
+	{#if rulesLoading}
+		<Skeleton height="6rem" />
+	{:else if !rulesError}
+		<EventRuleMatrix {events} rules={businessDefaultRules} busyKey={busyRuleKey} onchange={onRuleChange} />
+	{/if}
+</SlideOver>
+
 <style>
-	.ch-rows {
+	.np {
 		display: flex;
 		flex-direction: column;
+		gap: 0.9rem;
 	}
 
-	.ch-row {
+	.chips {
 		display: flex;
-		align-items: flex-start;
-		gap: 0.75rem;
-		padding: 0.8rem 0;
-		border-top: 1px solid var(--border-subtle);
+		flex-wrap: wrap;
+		overflow: hidden;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-lg);
+		background: var(--card-bg);
 	}
 
-	.ch-row:first-child {
-		border-top: 0;
-		padding-top: 0;
-	}
-
-	.ch-icon {
-		display: inline-flex;
+	.chip {
+		display: flex;
+		flex: 1 1 11rem;
 		align-items: center;
-		justify-content: center;
-		width: 2rem;
-		height: 2rem;
-		border-radius: 10px;
-		flex-shrink: 0;
-		background: var(--surface-3);
+		gap: var(--sp-5);
+		padding: var(--sp-5) var(--sp-7);
+		border: 0;
+		border-left: 1px solid var(--border-subtle);
+		background: none;
 		color: var(--text-3);
 	}
 
-	.ch-icon.managed {
-		background: var(--success-bg);
+	.chip:first-child {
+		border-left: 0;
+	}
+
+	.chip-icon {
+		display: inline-flex;
+		color: var(--text-3);
+		flex-shrink: 0;
+	}
+
+	.chip.ok .chip-text span {
 		color: var(--success);
 	}
 
-	.ch-text {
-		flex: 1;
-		min-width: 0;
+	.chip.warn .chip-text span,
+	.chip.warn .chip-text a {
+		color: var(--warn);
 	}
 
-	.ch-text strong {
-		font-size: var(--fs-body);
-		font-weight: 550;
-	}
-
-	.ch-text p {
-		margin: 0.15rem 0 0;
-		font-size: var(--fs-tab);
-		line-height: 1.5;
-		color: var(--text-3);
-	}
-
-	.ch-end {
+	.chip-text {
 		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		flex-shrink: 0;
+		flex-direction: column;
+		font-size: var(--fs-code);
 	}
 
-	.msg {
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		padding: 0.85rem 0.95rem;
-		background: var(--surface-2);
+	.chip-text strong {
+		color: var(--text-2);
+		font-size: 0.875rem;
 	}
 
-	.msg-head {
+	.toolbar {
 		display: flex;
 		flex-wrap: wrap;
-		align-items: baseline;
-		gap: 0.5rem;
+		gap: 0.6rem;
+		align-items: center;
+		justify-content: space-between;
 	}
 
-	.msg-head strong {
-		font-size: var(--fs-body);
-		font-weight: 600;
-	}
-
-	.msg-head span {
-		font-size: var(--fs-code);
+	.lede {
+		margin: 0;
+		flex: 1 1 18rem;
+		font-size: 0.875rem;
 		color: var(--text-3);
 	}
 
-	.msg-body {
-		margin: 0.35rem 0 0;
-		font-size: var(--fs-tab);
-		line-height: 1.5;
-		color: var(--text-2);
+	.actions {
+		display: flex;
+		gap: 0.4rem;
+		flex-wrap: wrap;
 	}
 
-	.msg-triggers {
-		margin: 0.6rem 0 0;
-		padding-left: 1.05rem;
-		display: grid;
-		gap: 0.2rem;
-	}
-
-	.msg-triggers li {
-		font-size: var(--fs-code);
+	.drawer-note {
+		margin: 0 0 0.9rem;
+		font-size: 0.875rem;
 		color: var(--text-3);
 	}
 

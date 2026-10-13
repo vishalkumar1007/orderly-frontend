@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import MonitorPlay from '@lucide/svelte/icons/monitor-play';
-	import PauseCircle from '@lucide/svelte/icons/pause-circle';
-	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
-	import Settings2 from '@lucide/svelte/icons/settings-2';
+	import MonitorPlay from '@tabler/icons-svelte/icons/device-tv';
+	import PauseCircle from '@tabler/icons-svelte/icons/player-pause';
+	import RefreshCw from '@tabler/icons-svelte/icons/refresh';
+	import Settings2 from '@tabler/icons-svelte/icons/settings-2';
 	import OpsFullscreenToggle from '$lib/components/admin/OpsFullscreenToggle.svelte';
 	import Switch from '$lib/components/admin/Switch.svelte';
 	import { orderBoard } from '$lib/tenant/orders.svelte';
@@ -83,7 +83,7 @@
 <div class={['live-activity', fullscreen ? 'live-activity-fs' : ''].join(' ')}>
 	<header class="live-activity-head">
 		<div class="live-activity-brand">
-			<MonitorPlay size={fullscreen ? 28 : 18} strokeWidth={1.75} />
+			<MonitorPlay size={fullscreen ? 28 : 18} stroke={1.6} />
 			<div>
 				<strong>Live Activity</strong>
 				{#if !fullscreen}
@@ -99,7 +99,7 @@
 					aria-expanded={controlsOpen}
 					onclick={() => (controlsOpen = !controlsOpen)}
 				>
-					<Settings2 size={14} strokeWidth={2} />
+					<Settings2 size={14} stroke={1.6} />
 					Display settings
 				</button>
 				<button
@@ -107,7 +107,7 @@
 					class="btn btn-quiet btn-sm"
 					onclick={() => void orderBoard.refresh()}
 				>
-					<RefreshCw size={13} strokeWidth={2} />
+					<RefreshCw size={13} stroke={1.6} />
 					Refresh
 				</button>
 			{/if}
@@ -203,7 +203,7 @@
 
 	{#if liveDisplay.paused}
 		<div class="live-paused">
-			<PauseCircle size={fullscreen ? 44 : 28} strokeWidth={1.6} />
+			<PauseCircle size={fullscreen ? 44 : 28} stroke={1.6} />
 			<strong>Display paused</strong>
 			<p>Orders are still being taken — this screen is simply not showing them.</p>
 		</div>

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Building2 from '@lucide/svelte/icons/building-2';
-	import Check from '@lucide/svelte/icons/check';
-	import Minus from '@lucide/svelte/icons/minus';
-	import ShieldCheck from '@lucide/svelte/icons/shield-check';
-	import UserPlus from '@lucide/svelte/icons/user-plus';
+	import Building2 from '@tabler/icons-svelte/icons/building';
+	import Check from '@tabler/icons-svelte/icons/check';
+	import Minus from '@tabler/icons-svelte/icons/minus';
+	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
+	import UserPlus from '@tabler/icons-svelte/icons/user-plus';
 	import {
 		fetchConsoleAccess,
 		inviteConsoleUser,
@@ -239,7 +239,7 @@
 {/if}
 
 <section class="panel scope">
-	<span class="scope-icon"><ShieldCheck size={16} strokeWidth={1.9} /></span>
+	<span class="scope-icon"><ShieldCheck size={16} stroke={1.6} /></span>
 	<div>
 		<strong>This list is the platform console, not your businesses</strong>
 		<p>
@@ -249,7 +249,7 @@
 		</p>
 	</div>
 	<a class="btn btn-quiet btn-sm" href="/superadmin/businesses">
-		<Building2 size={14} strokeWidth={2} />
+		<Building2 size={14} stroke={1.6} />
 		Businesses
 	</a>
 </section>
@@ -273,7 +273,7 @@
 				</p>
 			</div>
 			<button type="button" class="btn btn-primary btn-sm" onclick={openInvite}>
-				<UserPlus size={14} strokeWidth={2.2} />
+				<UserPlus size={14} stroke={1.6} />
 				Invite to console
 			</button>
 		</div>
@@ -379,12 +379,12 @@
 									<td class="matrix-cell">
 										{#if roleHas(role.key, permission.key)}
 											<span class="yes">
-												<Check size={13} strokeWidth={2.6} />
+												<Check size={13} stroke={1.6} />
 												<span class="sr-only">{role.label} can</span>
 											</span>
 										{:else}
 											<span class="no">
-												<Minus size={13} strokeWidth={2.6} />
+												<Minus size={13} stroke={1.6} />
 												<span class="sr-only">{role.label} cannot</span>
 											</span>
 										{/if}

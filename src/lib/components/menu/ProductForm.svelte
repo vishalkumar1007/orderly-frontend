@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ChevronDown } from '@lucide/svelte/icons';
+	import ChevronDown from '@tabler/icons-svelte/icons/chevron-down';
 	import FormField from '$lib/components/admin/FormField.svelte';
 	import SelectField from '$lib/components/admin/SelectField.svelte';
 	import Switch from '$lib/components/admin/Switch.svelte';
@@ -196,7 +196,7 @@
 	>
 		More options
 		<span class="more-chevron" class:open={showMore}>
-			<ChevronDown size={15} strokeWidth={2} />
+			<ChevronDown size={15} stroke={1.6} />
 		</span>
 	</button>
 

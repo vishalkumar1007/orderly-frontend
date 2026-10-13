@@ -2,9 +2,9 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import ChefHat from '@lucide/svelte/icons/chef-hat';
-	import ClipboardList from '@lucide/svelte/icons/clipboard-list';
-	import { getAccessToken } from '$lib/api/client';
+	import ChefHat from '@tabler/icons-svelte/icons/chef-hat';
+	import ClipboardList from '@tabler/icons-svelte/icons/clipboard-list';
+	import { ApiClientError, getAccessToken, onPlanBlock } from '$lib/api/client';
 	import { api } from '$lib/api/client';
 	import { termsFor } from '$lib/admin/businessTypes';
 	import { setBusinessType } from '$lib/tenant/businessType.svelte';
@@ -32,6 +32,13 @@
 	import NotificationBell from '$lib/components/admin/NotificationBell.svelte';
 	import BusinessPolicyModal from '$lib/components/tenant/BusinessPolicyModal.svelte';
 	import { policyStore } from '$lib/tenant/policyStore';
+	import PlanNoticeModal from '$lib/components/tenant/PlanNoticeModal.svelte';
+	import LicenseBanner from '$lib/components/tenant/LicenseBanner.svelte';
+	import {
+		loadEntitlements,
+		resetEntitlements,
+		showPlanNotice
+	} from '$lib/tenant/entitlements.svelte';
 
 	let { children, data } = $props();
 
@@ -49,7 +56,7 @@
 	 * otherwise the rail and account menu flash for the wrong person. Mirrors the
 	 * Super Admin layout.
 	 */
-	type Status = 'loading' | 'ready' | 'anon';
+	type Status = 'loading' | 'ready' | 'anon' | 'blocked';
 
 	let status = $state<Status>('loading');
 	let user = $state<User | null>(null);
@@ -58,6 +65,8 @@
 	/** Bumps on each auth attempt so stale me() results cannot flip shell status. */
 	let authGen = 0;
 	let showPolicyModal = $state(false);
+	/** Why the business cannot be used at all (suspended / expired license). */
+	let blockedMessage = $state('');
 
 	$effect(() => {
 		if (status === 'ready' && user && isAdmin && !isPublicRoute) {
@@ -169,8 +178,15 @@
 			// paint generic wording and then correct itself.
 			setBusinessType(resolved.tenant?.business_type);
 			status = 'ready';
-		} catch {
+		} catch (err) {
 			if (gen !== authGen) return;
+			// A suspended or expired license is not a sign-in problem; sending
+			// the owner to the login page would only loop with no explanation.
+			if (err instanceof ApiClientError && err.code === 'license_inactive') {
+				blockedMessage = err.message;
+				status = 'blocked';
+				return;
+			}
 			status = 'anon';
 			goto('/shop/login', { replaceState: true });
 		}
@@ -241,6 +257,15 @@
 		lastPendingCount = count;
 	});
 
+	// Plan and license refusals from any screen become one upgrade prompt.
+	onMount(() => onPlanBlock(showPlanNotice));
+
+	// Plan, usage and license state for the banner.
+	$effect(() => {
+		if (status !== 'ready' || !user || isPublicRoute) return;
+		void loadEntitlements();
+	});
+
 	onMount(() => {
 		// A new build is ready — offer it instead of swapping mid-order.
 		return onUpdateAvailable(() => {
@@ -269,6 +294,7 @@
 		invalidateStorefrontAdmin();
 		invalidateBrandThemeCache();
 		clearBrandTheme();
+		resetEntitlements();
 		// The next person to sign in on this browser is not this person, so the
 		// remembered theme must not outlive the session that chose it.
 		forgetAppearance(data.tenantSlug ?? 'tenant');
@@ -318,6 +344,7 @@
 				{/if}
 			{/snippet}
 
+			<LicenseBanner />
 			{@render children()}
 		</AppShell>
 		{#if user && isAdmin}
@@ -330,8 +357,15 @@
 				mandatory={true}
 			/>
 		{/if}
+		<PlanNoticeModal />
 		<Toaster />
 	{/if}
+{:else if status === 'blocked'}
+	<main class="license-blocked" role="alert">
+		<h1>This business is unavailable</h1>
+		<p>{blockedMessage}</p>
+		<button type="button" class="btn btn-ghost" onclick={signOut}>Sign out</button>
+	</main>
 {:else if status === 'loading'}
 	<!-- Shell-shaped so the frame doesn't jump when identity resolves. -->
 	<AdminShellSkeleton />
@@ -339,3 +373,22 @@
 	<!-- Unauthenticated on a protected route: hold while redirect to login lands. -->
 	<div style="min-height:100dvh;"></div>
 {/if}
+
+<style>
+	.license-blocked {
+		min-height: 100dvh;
+		display: grid;
+		place-content: center;
+		gap: 0.75rem;
+		padding: 1.5rem;
+		text-align: center;
+	}
+	.license-blocked h1 {
+		margin: 0;
+		font-size: 1.25rem;
+	}
+	.license-blocked p {
+		margin: 0;
+		max-width: 28rem;
+	}
+</style>

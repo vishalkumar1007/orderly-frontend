@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import Search from '@lucide/svelte/icons/search';
-	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
-	import User from '@lucide/svelte/icons/user';
-	import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
-	import X from '@lucide/svelte/icons/x';
-	import Moon from '@lucide/svelte/icons/moon';
-	import Sun from '@lucide/svelte/icons/sun';
+	import Search from '@tabler/icons-svelte/icons/search';
+	import ShoppingBag from '@tabler/icons-svelte/icons/shopping-bag';
+	import User from '@tabler/icons-svelte/icons/user';
+	import UtensilsCrossed from '@tabler/icons-svelte/icons/tools-kitchen-2';
+	import X from '@tabler/icons-svelte/icons/x';
+	import Moon from '@tabler/icons-svelte/icons/moon';
+	import Sun from '@tabler/icons-svelte/icons/sun';
 	import { useStorefrontThemeToggle } from '$lib/storefront/themeToggle.svelte';
 	import type { StoreConfig } from '$lib/storefront/api';
 	import { cartCount, type CartLine } from '$lib/storefront/cart.svelte';
@@ -142,7 +142,7 @@
 				<div class="sf-header-search-wrap sf-desktop-search">
 					<form class="sf-search sf-header-search" role="search" onsubmit={submitSearch}>
 						<div class="sf-search-field">
-							<Search size={17} strokeWidth={2.2} class="sf-search-icon" aria-hidden="true" />
+							<Search size={17} stroke={1.6} class="sf-search-icon" aria-hidden="true" />
 							<input
 								type="search"
 								name="q"
@@ -154,7 +154,7 @@
 							/>
 							{#if searchTerm}
 								<button class="sf-search-clear" type="button" onclick={clearSearch} aria-label="Clear search">
-									<X size={15} strokeWidth={2.4} aria-hidden="true" />
+									<X size={15} stroke={1.6} aria-hidden="true" />
 								</button>
 							{/if}
 						</div>
@@ -169,7 +169,7 @@
 					href="/menu"
 					aria-current={pathname.startsWith('/menu') ? 'page' : undefined}
 				>
-					<UtensilsCrossed size={16} strokeWidth={2} aria-hidden="true" />
+					<UtensilsCrossed size={16} stroke={1.6} aria-hidden="true" />
 					<span>Menu</span>
 				</a>
 
@@ -181,9 +181,9 @@
 						onclick={() => themeToggle.toggle()}
 					>
 						{#if themeToggle.mode === 'dark'}
-							<Sun size={18} strokeWidth={2} aria-hidden="true" />
+							<Sun size={18} stroke={1.6} aria-hidden="true" />
 						{:else}
-							<Moon size={18} strokeWidth={2} aria-hidden="true" />
+							<Moon size={18} stroke={1.6} aria-hidden="true" />
 						{/if}
 					</button>
 				{/if}
@@ -196,7 +196,7 @@
 						aria-current={pathname === '/profile' || pathname === '/login' ? 'page' : undefined}
 						title={signedIn ? 'Your account' : 'Sign in'}
 					>
-						<User size={19} strokeWidth={2} />
+						<User size={19} stroke={1.6} />
 					</a>
 				{/if}
 
@@ -208,7 +208,7 @@
 					data-has-items={String(count > 0)}
 				>
 					<div class="sf-cart-icon-wrap">
-						<ShoppingBag size={19} strokeWidth={2.2} />
+						<ShoppingBag size={19} stroke={1.6} />
 						{#if count > 0}
 							<span class="sf-cart-badge">{count > 99 ? '99+' : count}</span>
 						{/if}
@@ -225,7 +225,7 @@
 			<div class="sf-mobile-search">
 				<form class="sf-search" role="search" onsubmit={submitSearch}>
 					<div class="sf-search-field">
-						<Search size={17} strokeWidth={2.2} class="sf-search-icon" aria-hidden="true" />
+						<Search size={17} stroke={1.6} class="sf-search-icon" aria-hidden="true" />
 						<input
 							type="search"
 							name="q"
@@ -237,7 +237,7 @@
 						/>
 						{#if searchTerm}
 							<button class="sf-search-clear" type="button" onclick={clearSearch} aria-label="Clear search">
-								<X size={15} strokeWidth={2.4} aria-hidden="true" />
+								<X size={15} stroke={1.6} aria-hidden="true" />
 							</button>
 						{/if}
 					</div>

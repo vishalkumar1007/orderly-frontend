@@ -4,10 +4,10 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import Rocket from '@lucide/svelte/icons/rocket';
-	import ShieldCheck from '@lucide/svelte/icons/shield-check';
-	import ExternalLink from '@lucide/svelte/icons/external-link';
-	import Lock from '@lucide/svelte/icons/lock';
+	import Rocket from '@tabler/icons-svelte/icons/rocket';
+	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
+	import ExternalLink from '@tabler/icons-svelte/icons/external-link';
+	import Lock from '@tabler/icons-svelte/icons/lock';
 
 	import { api } from '$lib/api/client';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
@@ -263,7 +263,7 @@
 				</span>
 			{:else if !policySigned}
 				<span class="live-status-pill policy-block">
-					<Lock size={13} strokeWidth={2.2} />
+					<Lock size={13} stroke={1.6} />
 					Policy Required
 				</span>
 			{:else}
@@ -277,7 +277,7 @@
 					rel="noreferrer"
 					class="btn btn-ghost btn-sm studio-view-link"
 				>
-					<ExternalLink size={14} strokeWidth={2} />
+					<ExternalLink size={14} stroke={1.6} />
 					View Store
 				</a>
 			{/if}
@@ -291,7 +291,7 @@
 			class:active={activeTab === 'readiness'}
 			onclick={() => setTab('readiness')}
 		>
-			<Rocket size={17} strokeWidth={activeTab === 'readiness' ? 2.2 : 1.75} />
+			<Rocket size={17} stroke={1.6} />
 			<span>Readiness</span>
 			<span class="studio-tab-badge" class:done={canPublish}>{progress}%</span>
 		</button>
@@ -301,7 +301,7 @@
 			class:active={activeTab === 'compliance'}
 			onclick={() => setTab('compliance')}
 		>
-			<ShieldCheck size={17} strokeWidth={activeTab === 'compliance' ? 2.2 : 1.75} />
+			<ShieldCheck size={17} stroke={1.6} />
 			<span>Policy</span>
 			{#if !policySigned}
 				<span class="studio-tab-chip warning">Sign</span>

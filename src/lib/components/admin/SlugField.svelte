@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Check from '@lucide/svelte/icons/check';
-	import CircleAlert from '@lucide/svelte/icons/circle-alert';
-	import Loader from '@lucide/svelte/icons/loader-circle';
+	import Check from '@tabler/icons-svelte/icons/check';
+	import CircleAlert from '@tabler/icons-svelte/icons/alert-circle';
+	import Loader from '@tabler/icons-svelte/icons/loader-2';
 	import { slugify } from '$lib/admin/format';
 	import { isLocalBaseDomain } from '$lib/host';
 
@@ -79,12 +79,12 @@
 
 		{#if status === 'checking'}
 			<span class="slug-flag checking" aria-hidden="true">
-				<Loader size={14} strokeWidth={2.2} class="spin" />
+				<Loader size={14} stroke={1.6} class="spin" />
 			</span>
 		{:else if status === 'available'}
-			<span class="slug-flag available" aria-hidden="true"><Check size={14} strokeWidth={2.6} /></span>
+			<span class="slug-flag available" aria-hidden="true"><Check size={14} stroke={1.6} /></span>
 		{:else if status === 'taken' || status === 'reserved' || status === 'invalid'}
-			<span class="slug-flag bad" aria-hidden="true"><CircleAlert size={14} strokeWidth={2.2} /></span>
+			<span class="slug-flag bad" aria-hidden="true"><CircleAlert size={14} stroke={1.6} /></span>
 		{/if}
 	</div>
 

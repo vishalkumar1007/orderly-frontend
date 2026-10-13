@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+	import ArrowLeft from '@tabler/icons-svelte/icons/arrow-left';
 	import {
 		isCustomizeShellPath,
 		isStorefrontActive,
@@ -124,7 +124,7 @@
 					aria-current={active ? 'page' : undefined}
 				>
 					<span class="sfctl-icon" aria-hidden="true">
-						<item.icon size={17} strokeWidth={1.9} />
+						<item.icon size={17} stroke={1.6} />
 					</span>
 					<span class="sfctl-txt">
 						<span class="sfctl-label">{item.label}</span>
@@ -137,7 +137,7 @@
 		<div class="sfctl-main">
 			<div class="sfctl-bar">
 				<a class="btn btn-ghost btn-sm" href="/shop">
-					<ArrowLeft size={15} strokeWidth={2} /> Back to shop
+					<ArrowLeft size={15} stroke={1.6} /> Back to shop
 				</a>
 				<div class="sfctl-status">
 					{#if config}

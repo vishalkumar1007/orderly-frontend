@@ -2,15 +2,16 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import ArrowRight from '@lucide/svelte/icons/arrow-right';
-	import Bot from '@lucide/svelte/icons/bot';
-	import CreditCard from '@lucide/svelte/icons/credit-card';
-	import HardDrive from '@lucide/svelte/icons/hard-drive';
-	import Mail from '@lucide/svelte/icons/mail';
-	import MessageSquare from '@lucide/svelte/icons/message-square';
-	import ShieldAlert from '@lucide/svelte/icons/shield-alert';
-	import type { Component } from 'svelte';
+	import ArrowRight from '@tabler/icons-svelte/icons/arrow-right';
+	import Bot from '@tabler/icons-svelte/icons/robot';
+	import CreditCard from '@tabler/icons-svelte/icons/credit-card';
+	import HardDrive from '@tabler/icons-svelte/icons/device-floppy';
+	import Mail from '@tabler/icons-svelte/icons/mail';
+	import MessageSquare from '@tabler/icons-svelte/icons/message';
+	import ShieldAlert from '@tabler/icons-svelte/icons/shield-exclamation';
+	import type { IconComponent as Component } from '$lib/icons';
 	import { fetchPlatformConfigs } from '$lib/admin/configApi';
+	import { fetchPlatformPayments, type PlatformPayments } from '$lib/admin/paymentsApi';
 	import {
 		CONFIG_STATUS_LABEL,
 		CONFIG_STATUS_TONE,
@@ -28,16 +29,13 @@
 	 * Providers and integrations.
 	 *
 	 * The platform's own credentials for the services every business can draw
-	 * on. Four are managed here — email, SMS, storage and AI — and each
+	 * on. Five are managed here — email, SMS, storage, AI and payments — and each
 	 * reports the same three things: whether it is configured, whether it is
 	 * switched on, and whether its last test passed. Whether businesses may
 	 * use it at all is set per provider below; which specific businesses do is
 	 * a configuration decision under Settings → Business access, not a
 	 * credential, so it does not live on this page.
 	 *
-	 * One more is listed and deliberately not manageable: payments are chosen
-	 * per business. Saying so is more useful than a card that pretends to
-	 * configure something this build does not have.
 	 */
 
 	type ManagedProvider = {
@@ -75,10 +73,18 @@
 			icon: MessageSquare,
 			purpose:
 				'Sends text notifications — order-ready, booking confirmations — to customers who opt in. Optional; nothing sends by SMS until this is configured and a business enables it.'
+		},
+		{
+			service: 'PAYMENTS',
+			name: 'Payments',
+			icon: CreditCard,
+			purpose:
+				'The payment gateway customers pay through, and the switch between dummy and real payments. Dummy payments need no setup, so building and testing never wait on a gateway.'
 		}
 	];
 
 	let data = $state<PlatformConfigList | null>(null);
+	let payments = $state<PlatformPayments | null>(null);
 	let loading = $state(true);
 	let error = $state('');
 
@@ -87,6 +93,8 @@
 		error = '';
 		try {
 			data = await fetchPlatformConfigs();
+			// The mode badge is a nicety: a failure here must not hide the cards.
+			payments = await fetchPlatformPayments().catch(() => null);
 		} catch (err) {
 			error = errorMessage(err, 'load provider configuration');
 			data = null;
@@ -131,7 +139,7 @@
 
 {#if encryptionOff}
 	<div class="alert alert-danger" style="margin-bottom:0.85rem;align-items:flex-start;">
-		<ShieldAlert size={16} strokeWidth={1.9} />
+		<ShieldAlert size={16} stroke={1.6} />
 		<span>
 			<strong style="color:var(--text);">Secrets cannot be stored</strong>
 			<span style="display:block;margin-top:0.15rem;">
@@ -155,7 +163,7 @@
 			{@const status = view?.status ?? 'UNCONFIGURED'}
 			<a class="prov" href={`/superadmin/providers/${provider.service.toLowerCase()}`}>
 				<div class="prov-head">
-					<span class="prov-icon"><provider.icon size={17} strokeWidth={1.8} /></span>
+					<span class="prov-icon"><provider.icon size={17} stroke={1.6} /></span>
 					<div class="prov-title">
 						<strong>{provider.name}</strong>
 						<span>{summary(view)}</span>
@@ -165,6 +173,12 @@
 						kind={CONFIG_STATUS_TONE[status]}
 					/>
 				</div>
+				{#if provider.service === 'PAYMENTS' && payments}
+					<div class="prov-mode" class:live={payments.mode === 'LIVE'}>
+						<span class="prov-mode-dot" aria-hidden="true"></span>
+						{payments.mode === 'LIVE' ? 'Real payments' : 'Dummy payments — nobody is charged'}
+					</div>
+				{/if}
 
 				<p class="prov-purpose">{provider.purpose}</p>
 
@@ -189,7 +203,7 @@
 
 				<span class="prov-cta">
 					Configure and test
-					<ArrowRight size={13} strokeWidth={2} />
+					<ArrowRight size={13} stroke={1.6} />
 				</span>
 			</a>
 		{/each}
@@ -200,27 +214,6 @@
 		choice, not a credential — see
 		<a href="/superadmin/settings?section=tenant-access">Settings &rarr; Business access</a>.
 	</p>
-
-	<section class="panel" style="margin-top:0.85rem;">
-		<h3 class="panel-h">Not managed at platform level</h3>
-		<p class="panel-note" style="margin:0 0 0.85rem;">
-			These exist in the product but have no platform-wide credentials to hold. They are listed
-			so the absence is deliberate rather than a gap you have to go looking for.
-		</p>
-		<div class="unmanaged">
-			<div class="un-row">
-				<span class="prov-icon small"><CreditCard size={15} strokeWidth={1.8} /></span>
-				<div>
-					<strong>Payments</strong>
-					<p>
-						Each business chooses cash, online payment, or both, and when customers pay — in its
-						own storefront settings. There is no platform gateway holding merchant credentials.
-					</p>
-				</div>
-				<StatusBadge status="Per business" kind="neutral" dot={false} />
-			</div>
-		</div>
-	</section>
 {/if}
 
 <style>
@@ -268,11 +261,6 @@
 		background: var(--surface-3);
 		color: var(--icon-fg);
 		flex-shrink: 0;
-	}
-
-	.prov-icon.small {
-		width: 1.9rem;
-		height: 1.9rem;
 	}
 
 	.prov-title {
@@ -337,6 +325,31 @@
 		word-break: break-word;
 	}
 
+	.prov-mode {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		align-self: flex-start;
+		padding: 0.25rem 0.6rem;
+		border-radius: 999px;
+		background: var(--warn-bg);
+		color: var(--warn);
+		font-size: var(--fs-meta);
+		font-weight: 600;
+	}
+
+	.prov-mode.live {
+		background: color-mix(in srgb, var(--ok) 14%, var(--surface));
+		color: var(--ok);
+	}
+
+	.prov-mode-dot {
+		width: 0.45rem;
+		height: 0.45rem;
+		border-radius: 50%;
+		background: currentColor;
+	}
+
 	.prov-footnote {
 		margin: 0.85rem 0 0;
 		font-size: var(--fs-tab);
@@ -354,45 +367,6 @@
 		margin-top: auto;
 		font-size: var(--fs-tab);
 		font-weight: 600;
-		color: var(--accent-dark);
-	}
-
-	.unmanaged {
-		display: flex;
-		flex-direction: column;
-	}
-
-	.un-row {
-		display: flex;
-		align-items: flex-start;
-		gap: 0.7rem;
-		padding: 0.8rem 0;
-		border-top: 1px solid var(--border-subtle);
-	}
-
-	.un-row:first-child {
-		border-top: 0;
-		padding-top: 0;
-	}
-
-	.un-row > div {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.un-row strong {
-		font-size: var(--fs-body);
-		font-weight: 550;
-	}
-
-	.un-row p {
-		margin: 0.15rem 0 0;
-		font-size: var(--fs-tab);
-		line-height: 1.5;
-		color: var(--text-3);
-	}
-
-	.un-row a {
 		color: var(--accent-dark);
 	}
 </style>

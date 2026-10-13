@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/stores';
-	import CircleCheck from '@lucide/svelte/icons/circle-check';
-	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
-	import Users from '@lucide/svelte/icons/users';
-	import UserRound from '@lucide/svelte/icons/user-round';
+	import CircleCheck from '@tabler/icons-svelte/icons/circle-check';
+	import RotateCcw from '@tabler/icons-svelte/icons/rotate';
+	import Users from '@tabler/icons-svelte/icons/users';
+	import UserRound from '@tabler/icons-svelte/icons/user';
 	import { api } from '$lib/api/client';
 	import { applyBrandTheme, type BrandTheme, type ThemePreset } from '$lib/brandTheme';
 	import {
@@ -343,9 +343,9 @@
 		<div class="ap-head">
 			<span class="ap-head-icon" aria-hidden="true">
 				{#if usingOwn}
-					<UserRound size={17} strokeWidth={1.9} />
+					<UserRound size={17} stroke={1.6} />
 				{:else}
-					<Users size={17} strokeWidth={1.9} />
+					<Users size={17} stroke={1.6} />
 				{/if}
 			</span>
 			<div class="ap-head-text">
@@ -372,7 +372,7 @@
 					: `You are already on ${copy.defaultName}`}
 				onclick={useBusinessDefault}
 			>
-				<RotateCcw size={14} strokeWidth={2} />
+				<RotateCcw size={14} stroke={1.6} />
 				{resetting ? 'Resetting…' : 'Reset'}
 			</button>
 		</div>
@@ -401,7 +401,7 @@
 					{#if saving}
 						Saving…
 					{:else if savedFlash}
-						<CircleCheck size={14} strokeWidth={2.2} /> Saved
+						<CircleCheck size={14} stroke={1.6} /> Saved
 					{:else}
 						Changes save automatically
 					{/if}
@@ -414,7 +414,7 @@
 							disabled={saving || publishing || restoring}
 							onclick={() => (restoreOpen = true)}
 						>
-							<RotateCcw size={15} strokeWidth={1.9} /> Restore factory default
+							<RotateCcw size={15} stroke={1.6} /> Restore factory default
 						</button>
 					{/if}
 					<button
@@ -423,7 +423,7 @@
 						disabled={saving || publishing}
 						onclick={() => (publishOpen = true)}
 					>
-						<Users size={15} strokeWidth={1.9} /> Set as {copy.defaultName}
+						<Users size={15} stroke={1.6} /> Set as {copy.defaultName}
 					</button>
 				{/if}
 			</div>

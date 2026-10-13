@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
-	import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
-	import X from '@lucide/svelte/icons/x';
+	import SlidersHorizontal from '@tabler/icons-svelte/icons/adjustments-horizontal';
+	import UtensilsCrossed from '@tabler/icons-svelte/icons/tools-kitchen-2';
+	import X from '@tabler/icons-svelte/icons/x';
 	import ProductCard from '$lib/storefront/ProductCard.svelte';
 	import { useCart } from '$lib/storefront/cart-state.svelte';
 	import { lineKey } from '$lib/storefront/cart.svelte';
@@ -103,7 +103,7 @@
 	<div class="sf-wrap sf-menu-pad">
 		<div class="sf-empty">
 			<span class="sf-empty-icon" aria-hidden="true">
-				<UtensilsCrossed size={26} strokeWidth={1.7} />
+				<UtensilsCrossed size={26} stroke={1.6} />
 			</span>
 			<h3>Menu unavailable</h3>
 			<p>{data.menuError || 'This store has not published its menu yet.'}</p>
@@ -184,7 +184,7 @@
 						aria-expanded={sheetOpen}
 						onclick={() => (sheetOpen = !sheetOpen)}
 					>
-						<SlidersHorizontal size={15} strokeWidth={2.2} aria-hidden="true" />
+						<SlidersHorizontal size={15} stroke={1.6} aria-hidden="true" />
 						{#if activeFilterCount > 0}
 							<span class="sf-filter-more-badge">{activeFilterCount}</span>
 						{/if}
@@ -196,7 +196,7 @@
 						<div class="sf-filter-sheet-head">
 							<strong>More filters</strong>
 							<button class="sf-icon-btn" type="button" aria-label="Close filters" onclick={() => (sheetOpen = false)}>
-								<X size={18} strokeWidth={2} />
+								<X size={18} stroke={1.6} />
 							</button>
 						</div>
 						<label class="sf-filter-toggle">
@@ -226,7 +226,7 @@
 				{#if filtered.length === 0}
 					<div class="sf-empty">
 						<span class="sf-empty-icon" aria-hidden="true">
-							<UtensilsCrossed size={26} strokeWidth={1.7} />
+							<UtensilsCrossed size={26} stroke={1.6} />
 						</span>
 						<h3>Nothing matched</h3>
 						<p>Try clearing a filter, or browse every category.</p>

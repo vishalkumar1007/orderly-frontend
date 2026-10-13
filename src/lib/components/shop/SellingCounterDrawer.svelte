@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Minus from '@lucide/svelte/icons/minus';
-	import Plus from '@lucide/svelte/icons/plus';
+	import Minus from '@tabler/icons-svelte/icons/minus';
+	import Plus from '@tabler/icons-svelte/icons/plus';
 	import SlideOver from '$lib/components/admin/SlideOver.svelte';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
 	import { toast } from '$lib/components/admin/toast';
@@ -243,7 +243,7 @@
 										<strong>{product.name}</strong>
 										<span class="muted">{currencySymbol}{Math.round(product.price)}</span>
 									</span>
-									<span class="scp-add"><Plus size={14} strokeWidth={2.25} /></span>
+									<span class="scp-add"><Plus size={14} stroke={1.6} /></span>
 								</button>
 							</li>
 						{/each}

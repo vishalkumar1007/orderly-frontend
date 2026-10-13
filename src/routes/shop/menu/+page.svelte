@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import { Eye, Plus, Search } from '@lucide/svelte/icons';
+	import Eye from '@tabler/icons-svelte/icons/eye';
+	import Plus from '@tabler/icons-svelte/icons/plus';
+	import Search from '@tabler/icons-svelte/icons/search';
 	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
 	import Modal from '$lib/components/admin/Modal.svelte';
@@ -417,10 +419,10 @@
 		</div>
 		<div class="menu-header-actions">
 			<a class="btn btn-ghost" href="/shop/storefront/promote">
-				<Eye size={15} strokeWidth={2} /> Preview Store
+				<Eye size={15} stroke={1.6} /> Preview Store
 			</a>
 			<button class="btn btn-ghost" type="button" onclick={openAddCategory}>
-				<Plus size={15} strokeWidth={2.2} /> Add {t.group.toLowerCase()}
+				<Plus size={15} stroke={1.6} /> Add {t.group.toLowerCase()}
 			</button>
 			<button
 				class="btn btn-primary"
@@ -428,7 +430,7 @@
 				onclick={() => openAddProduct()}
 				disabled={categories.length === 0}
 			>
-				<Plus size={15} strokeWidth={2.2} /> Add {t.item.toLowerCase()}
+				<Plus size={15} stroke={1.6} /> Add {t.item.toLowerCase()}
 			</button>
 		</div>
 	</header>
@@ -546,7 +548,7 @@
 
 		<div class="toolbar">
 			<div class="search-wrap">
-				<span class="search-ico"><Search size={15} strokeWidth={1.9} /></span>
+				<span class="search-ico"><Search size={15} stroke={1.6} /></span>
 				<input class="input" type="search" placeholder="Search products…" bind:value={search} />
 			</div>
 			<button

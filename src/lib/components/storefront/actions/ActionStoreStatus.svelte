@@ -1,5 +1,5 @@
 <script lang="ts">
-	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
+	import SlidersHorizontal from '@tabler/icons-svelte/icons/adjustments-horizontal';
 	import { storefrontAdminApi, STORE_STATUS_OPTIONS } from '$lib/storefront/admin';
 	import type { StorefrontContext } from '$lib/storefront/admin-context';
 	import { toast } from '$lib/components/admin/toast';
@@ -33,7 +33,7 @@
 <div class="panel action-panel" id="store-status">
 	<div class="action-intro">
 		<div class="intro-icon-wrap">
-			<SlidersHorizontal size={24} strokeWidth={1.8} />
+			<SlidersHorizontal size={24} stroke={1.6} />
 		</div>
 		<div>
 			<h2 class="intro-h">Store status</h2>

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Download from '@lucide/svelte/icons/download';
-	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+	import Download from '@tabler/icons-svelte/icons/download';
+	import RefreshCw from '@tabler/icons-svelte/icons/refresh';
 	import type { AdminQr, AdminStorefront } from '$lib/storefront/admin';
 	import {
 		downloadDataUrl,
@@ -358,7 +358,7 @@
 						disabled={rendering}
 						onclick={() => renderAsset()}
 					>
-						<RefreshCw size={14} strokeWidth={2} />
+						<RefreshCw size={14} stroke={1.6} />
 						Refresh
 					</button>
 					<button
@@ -367,7 +367,7 @@
 						disabled={!previewUrl || rendering}
 						onclick={downloadPng}
 					>
-						<Download size={14} strokeWidth={2} />
+						<Download size={14} stroke={1.6} />
 						Download PNG
 					</button>
 				</div>

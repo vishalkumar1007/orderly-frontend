@@ -138,6 +138,13 @@
 	 * legible without needing a shadow on every surface.
 	 */
 	--surface-card: #ffffff;
+	/*
+	 * What a card is painted with. Equal to --surface-card in the light themes.
+	 * The dark themes blend it toward the page background so a card is a quiet
+	 * step above the page, not a bright slab on it. One token, so every card
+	 * follows together.
+	 */
+	--card-bg: var(--surface-card);
 	--surface-sunken: #f2f4f8;
 	--surface-hover: rgba(13, 20, 36, 0.042);
 	--border: #e4e7ef;
@@ -220,6 +227,7 @@
 	--surface-2: #151827;
 	--surface-3: #1d2131;
 	--surface-card: #191d2b;
+	--card-bg: color-mix(in srgb, var(--surface-card) 52%, var(--bg));
 	--surface-sunken: #0a0c12;
 	--surface-hover: rgba(255, 255, 255, 0.045);
 	--border: #242939;
@@ -342,6 +350,7 @@
 	--surface-2: #18181b;
 	--surface-3: #222226;
 	--surface-card: #1c1c1f;
+	--card-bg: color-mix(in srgb, var(--surface-card) 52%, var(--bg));
 	--surface-sunken: #0e0e10;
 	--surface-hover: rgba(255, 255, 255, 0.05);
 	--border: #2c2c31;
@@ -457,6 +466,7 @@
 	--surface-2: #1a1a1d;
 	--surface-3: #232326;
 	--surface-card: #1c1c1f;
+	--card-bg: color-mix(in srgb, var(--surface-card) 52%, var(--bg));
 	--surface-sunken: #0a0a0b;
 	--surface-hover: rgba(255, 255, 255, 0.045);
 	--border: #2a2a2e;
@@ -515,6 +525,7 @@
 	--surface-2: #111111;
 	--surface-3: #1a1a1a;
 	--surface-card: #0f0f0f;
+	--card-bg: color-mix(in srgb, var(--surface-card) 52%, var(--bg));
 	--surface-sunken: #000000;
 	--surface-hover: rgba(255, 255, 255, 0.04);
 	--border: #222222;
@@ -573,6 +584,7 @@
 	--surface-2: #152033;
 	--surface-3: #1e293b;
 	--surface-card: #162033;
+	--card-bg: color-mix(in srgb, var(--surface-card) 52%, var(--bg));
 	--surface-sunken: #080e1a;
 	--surface-hover: rgba(255, 255, 255, 0.045);
 	--border: #243044;
@@ -791,7 +803,7 @@ select {
 }
 
 .btn-primary:hover:not(:disabled) {
-	background: var(--accent-dark);
+	opacity: 0.9;
 }
 
 .btn-ghost {
@@ -1593,7 +1605,7 @@ select.input {
    SURFACES
    ============================================================ */
 .panel {
-	background: var(--surface);
+	background: var(--card-bg);
 	border: 1px solid var(--border);
 	border-radius: var(--radius-lg);
 	padding: 1rem 1.1rem;
@@ -1662,10 +1674,10 @@ select.input {
 }
 
 .stat {
-	background: var(--surface);
+	background: var(--card-bg);
 	border: 1px solid var(--border);
 	border-radius: var(--radius-lg);
-	padding: 0.95rem 1.05rem;
+	padding: var(--sp-7) var(--sp-8);
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
@@ -1679,15 +1691,11 @@ select.input {
 }
 
 .stat-icon {
-	width: 1.6rem;
-	height: 1.6rem;
 	flex-shrink: 0;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	border-radius: 6px;
-	background: var(--icon-bg);
-	color: var(--icon-fg);
+	color: var(--text-3);
 }
 
 .stat-label {
@@ -1698,13 +1706,13 @@ select.input {
 }
 
 .stat-value {
-	font-family: var(--font-display);
 	font-size: var(--fs-stat);
-	font-weight: 650;
-	letter-spacing: -0.03em;
+	font-weight: 600;
+	letter-spacing: -0.01em;
 	line-height: 1.15;
 	margin: 0;
 	color: var(--text);
+	font-variant-numeric: tabular-nums;
 }
 
 .stat-hint {
@@ -1718,7 +1726,7 @@ select.input {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
 	gap: 0;
-	background: var(--surface);
+	background: var(--card-bg);
 	border: 1px solid var(--border);
 	border-radius: var(--radius-lg);
 	overflow: hidden;
@@ -1825,13 +1833,13 @@ select.input {
 }
 
 .table th {
-	padding: 0.6rem 1rem;
+	padding: var(--sp-4) var(--sp-8);
 	font-size: var(--fs-label);
-	font-weight: 650;
-	letter-spacing: 0.06em;
+	font-weight: 600;
+	letter-spacing: 0.04em;
 	text-transform: uppercase;
 	color: var(--text-3);
-	background: var(--surface-2);
+	background: var(--card-bg);
 	border-bottom: 1px solid var(--border);
 	white-space: nowrap;
 	position: sticky;
@@ -1840,7 +1848,7 @@ select.input {
 }
 
 .table td {
-	padding: 0.7rem 1rem;
+	padding: var(--sp-5) var(--sp-8);
 	border-bottom: 1px solid var(--border-subtle);
 	vertical-align: middle;
 }
@@ -1854,7 +1862,7 @@ select.input {
 }
 
 .table tbody tr:hover {
-	background: var(--surface-2);
+	background: var(--surface-hover);
 }
 
 .table .num {
@@ -2346,6 +2354,11 @@ select.input {
 	box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent);
 }
 
+.status-dot.warn {
+	background: var(--warn);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 22%, transparent);
+}
+
 .status-dot.bad {
 	background: var(--danger);
 	box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 22%, transparent);
@@ -2549,56 +2562,46 @@ select.input {
    ============================================================ */
 .tabs {
 	display: flex;
-	gap: 0.15rem;
-	border-bottom: 1px solid var(--border);
-	margin-bottom: 1.25rem;
+	gap: var(--sp-1);
+	margin-bottom: var(--sp-8);
+	padding-bottom: var(--sp-5);
+	border-bottom: 1px solid var(--border-subtle);
 	overflow-x: auto;
 	position: relative;
 }
 
+/* Active tab is a soft accent fill, not an underline (ui_rules.md). */
 .tabs button {
 	position: relative;
-	padding: 0.5rem 0.75rem;
+	padding: var(--sp-3) var(--sp-6);
 	border: 0;
+	border-radius: var(--radius-sm);
 	background: transparent;
 	color: var(--text-3);
-	font-size: var(--fs-body);
+	font-size: var(--fs-tab);
 	font-weight: 500;
 	font-family: inherit;
 	white-space: nowrap;
-	cursor: pointer;
-	transition: color var(--tr);
+	cursor: default;
+	transition:
+		background 0.1s,
+		color 0.1s;
 }
 
 .tabs button:hover {
-	color: var(--text-2);
-}
-
-.tabs button:active {
 	color: var(--text);
+	background: var(--surface-hover);
 }
 
 .tabs button[aria-selected='true'] {
-	color: var(--text);
-	font-weight: 550;
+	color: var(--accent);
+	background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
-/*
- * One mark that slides to the active tab, instead of each button drawing its
- * own underline — switching tabs reads as the same mark moving, not a new
- * one appearing in a different place. Hidden until the first measurement
- * lands, so it never flashes at 0 width before JS has a layout to read.
- */
+/* The sliding underline is retired with the underline style; kept inert so the
+   component that still renders it needs no change. */
 .tabs-indicator {
-	position: absolute;
-	left: 0;
-	bottom: -1px;
-	width: 0;
-	height: 2px;
-	border-radius: 2px 2px 0 0;
-	background: var(--accent);
-	opacity: 0;
-	pointer-events: none;
+	display: none;
 }
 
 .tabs-indicator.is-ready {
@@ -2640,48 +2643,41 @@ select.input {
    FILTER BAR
    ============================================================ */
 .filters {
-	display: grid;
-	grid-template-columns: minmax(10rem, 1.6fr) repeat(auto-fill, minmax(6.5rem, 1fr));
-	align-items: end;
-	gap: 0.45rem 0.5rem;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: var(--sp-4);
 }
 
 .filters .field {
+	flex: 0 1 9.5rem;
 	min-width: 0;
 }
 
 .filters .field-grow {
+	flex: 1 1 16rem;
 	min-width: 0;
-	grid-column: 1;
 }
 
 .filters .field-label {
 	font-size: var(--fs-micro);
-	font-weight: 550;
-	letter-spacing: 0.01em;
+	font-weight: 500;
+	letter-spacing: 0.02em;
+	color: var(--text-3);
 	margin: 0;
 }
 
 .filters .input,
 .filters select.input {
-	padding: 0.32rem 0.5rem;
+	height: 30px;
+	padding: 0 var(--sp-5);
 	font-size: var(--fs-tab);
-	border-radius: var(--radius-sm);
+	border-radius: var(--radius-md);
 }
 
-@media (max-width: 720px) {
-	.filters {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
-
-	.filters .field-grow {
-		grid-column: 1 / -1;
-	}
-}
-
-@media (max-width: 420px) {
-	.filters {
-		grid-template-columns: 1fr;
+@media (max-width: 520px) {
+	.filters .field {
+		flex: 1 1 100%;
 	}
 }
 
@@ -3363,7 +3359,7 @@ select.input {
 }
 
 .bento-card {
-	background: var(--surface);
+	background: var(--card-bg);
 	border: 1px solid var(--border);
 	border-radius: var(--radius-lg);
 	padding: 1rem 1.1rem;
@@ -3395,14 +3391,12 @@ select.input {
 }
 
 .bento-pill {
-	font-size: var(--fs-micro);
-	font-weight: 550;
-	letter-spacing: 0.03em;
-	text-transform: uppercase;
-	padding: 0.12rem 0.38rem;
+	font-size: var(--fs-label);
+	font-weight: 500;
+	padding: 1px var(--sp-4);
 	border-radius: var(--radius-sm);
-	background: var(--surface-3);
-	border: 1px solid var(--border);
+	background: transparent;
+	border: 1px solid var(--border-subtle);
 	color: var(--text-3);
 	white-space: nowrap;
 	text-decoration: none;
@@ -4905,27 +4899,27 @@ select.input {
 }
 
 .sfctl-section {
-	background: var(--surface);
+	background: var(--card-bg);
 	border: 1px solid var(--border);
-	border-radius: var(--radius);
-	padding: 1.1rem;
+	border-radius: var(--radius-lg);
+	padding: var(--sp-8);
 }
 
 .sfctl-section + .sfctl-section {
-	margin-top: 0.85rem;
+	margin-top: var(--sp-8);
 }
 
 .sfctl-section > h2 {
-	margin: 0 0 0.15rem;
-	font-size: var(--fs-title);
-	font-weight: 650;
-	letter-spacing: -0.01em;
+	margin: 0 0 var(--sp-2);
+	font-size: var(--fs-body);
+	font-weight: 600;
+	color: var(--text);
 }
 
 .sfctl-section > p.sfctl-note {
-	margin: 0 0 1rem;
-	font-size: var(--fs-body);
-	color: var(--text-2);
+	margin: 0 0 var(--sp-8);
+	font-size: var(--fs-tab);
+	color: var(--text-3);
 	line-height: 1.5;
 }
 
@@ -5441,4 +5435,9 @@ html[data-theme='raw'] .sfshift input {
 		max-width: 260px;
 		height: auto;
 	}
+}
+
+/* One icon family (Tabler outline), one stroke weight (ui_rules.md: ~1.6). */
+.tabler-icon {
+	stroke-width: 1.6;
 }

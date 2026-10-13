@@ -1,8 +1,8 @@
 <script lang="ts">
-	import Building2 from '@lucide/svelte/icons/building-2';
-	import Check from '@lucide/svelte/icons/check';
-	import Globe from '@lucide/svelte/icons/globe';
-	import Lock from '@lucide/svelte/icons/lock';
+	import Building2 from '@tabler/icons-svelte/icons/building';
+	import Check from '@tabler/icons-svelte/icons/check';
+	import Globe from '@tabler/icons-svelte/icons/world';
+	import Lock from '@tabler/icons-svelte/icons/lock';
 	import type { ConfigSource, TenantConfigOptions } from '$lib/admin/configTypes';
 
 	let {
@@ -32,16 +32,16 @@
 			onclick={() => onselect('PLATFORM')}
 		>
 			<span class="opt-top">
-				<Globe size={15} strokeWidth={2} />
+				<Globe size={15} stroke={1.6} />
 				<span class="opt-title">Platform configuration</span>
 				{#if options.source === 'PLATFORM'}
-					<Check size={15} strokeWidth={2.4} class="opt-check opt-check-svg" />
+					<Check size={15} stroke={1.6} class="opt-check opt-check-svg" />
 				{/if}
 			</span>
 			<span class="opt-body">
 				{#if platformBlocked}
 					<span class="opt-line muted">
-						<Lock size={12} strokeWidth={2} /> Unavailable
+						<Lock size={12} stroke={1.6} /> Unavailable
 					</span>
 					<span class="opt-hint">{options.platform_reason}</span>
 				{:else}
@@ -63,10 +63,10 @@
 			onclick={() => onselect('ORGANIZATION')}
 		>
 			<span class="opt-top">
-				<Building2 size={15} strokeWidth={2} />
+				<Building2 size={15} stroke={1.6} />
 				<span class="opt-title">Organization configuration</span>
 				{#if options.source === 'ORGANIZATION'}
-					<Check size={15} strokeWidth={2.4} class="opt-check opt-check-svg" />
+					<Check size={15} stroke={1.6} class="opt-check opt-check-svg" />
 				{/if}
 			</span>
 			<span class="opt-body">

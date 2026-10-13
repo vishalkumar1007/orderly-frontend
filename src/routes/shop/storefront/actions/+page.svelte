@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import Zap from '@lucide/svelte/icons/zap';
+	import Zap from '@tabler/icons-svelte/icons/bolt';
 	import { useStorefront, type StorefrontContext } from '$lib/storefront/admin-context';
 	import OpeningHoursForm from '$lib/components/storefront/OpeningHoursForm.svelte';
 	import LaunchBroadcast from '$lib/components/storefront/launch/LaunchBroadcast.svelte';
@@ -37,7 +37,7 @@
 <header class="action-header">
 	<div class="action-header-main">
 		<div class="action-header-icon" aria-hidden="true">
-			<Zap size={22} strokeWidth={2} />
+			<Zap size={22} stroke={1.6} />
 		</div>
 		<div>
 			<h1 class="action-title">Action</h1>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Plus from '@lucide/svelte/icons/plus';
+	import Plus from '@tabler/icons-svelte/icons/plus';
 	import {
 		cancelAppointment,
 		checkinAppointment,
@@ -123,7 +123,7 @@
 	<header class="appt-head">
 		<p class="muted">Bookings for a service with a barber. Walk-ins join the queue instead.</p>
 		<button type="button" class="btn btn-primary" onclick={openCreate} disabled={services.length === 0}>
-			<Plus size={15} strokeWidth={2.2} />
+			<Plus size={15} stroke={1.6} />
 			Book appointment
 		</button>
 	</header>

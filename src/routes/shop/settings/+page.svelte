@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
+	import SettingsShell from '$lib/components/admin/SettingsShell.svelte';
 	import { me, type User } from '$lib/auth';
 	import type { ConfigService } from '$lib/admin/configTypes';
 	import {
@@ -169,29 +170,14 @@
 	</div>
 {/snippet}
 
-<div class="set-shell">
-	<nav class="set-rail" aria-label="Settings sections">
-		{#each groups as group (group.label)}
-			<p class="set-rail-label">{group.label}</p>
-			{#each group.items as section (section.id)}
-				{@const isActive = active.id === section.id}
-				<button
-					type="button"
-					class="set-rail-link"
-					class:active={isActive}
-					aria-current={isActive ? 'page' : undefined}
-					onclick={() => select(section.id)}
-				>
-					<section.icon size={15} strokeWidth={1.9} />
-					{section.label}
-				</button>
-			{/each}
-		{/each}
-	</nav>
-
-	<div class="set-main">
-		<p class="set-lede">{active.lede}</p>
-
+<SettingsShell
+	{groups}
+	activeId={active.id}
+	title={active.label}
+	lede={active.lede}
+	onselect={select}
+>
+	{#snippet notice()}
 		{#if configError && active.id !== 'appearance' && active.id !== 'integrations'}
 			<div class="alert alert-danger set-alert">
 				<div><strong>API notice:</strong> {configError}</div>
@@ -205,140 +191,41 @@
 				</button>
 			</div>
 		{/if}
+	{/snippet}
 
-		{#if active.id === 'integrations'}
-			<IntegrationsPanel {service} onselect={selectService} />
-		{:else if active.id === 'appearance'}
-			<AppearancePanel {canSetBusinessDefault} />
-		{:else if active.id === 'security'}
-			{#if canEditMfaPolicy}
-				<MfaPolicyPanel />
-			{/if}
-			<MfaSetupPanel />
-		{:else if !configLoaded}
-			{@render formSkeleton()}
-		{:else if active.id === 'business'}
-			<BusinessProfilePanel {config} {save} {refresh} />
-		{:else if active.id === 'workflow'}
-			<WorkflowPanel {config} {save} {refresh} />
-		{:else}
-			<NotificationsPanel {config} {save} {refresh} />
+	{#if active.id === 'integrations'}
+		<IntegrationsPanel {service} onselect={selectService} />
+	{:else if active.id === 'appearance'}
+		<AppearancePanel {canSetBusinessDefault} />
+	{:else if active.id === 'security'}
+		{#if canEditMfaPolicy}
+			<MfaPolicyPanel />
 		{/if}
-	</div>
-</div>
+		<MfaSetupPanel />
+	{:else if !configLoaded}
+		{@render formSkeleton()}
+	{:else if active.id === 'business'}
+		<BusinessProfilePanel {config} {save} {refresh} />
+	{:else if active.id === 'workflow'}
+		<WorkflowPanel {config} {save} {refresh} />
+	{:else}
+		<NotificationsPanel {config} {save} {refresh} />
+	{/if}
+</SettingsShell>
 
 <style>
-	.set-shell {
-		display: grid;
-		gap: 1.5rem;
-		align-items: start;
-	}
-
-	@media (min-width: 1000px) {
-		.set-shell {
-			grid-template-columns: 14rem minmax(0, 1fr);
-		}
-	}
-
-	.set-rail {
-		display: flex;
-		flex-direction: column;
-		gap: 0.1rem;
-	}
-
-	@media (min-width: 1000px) {
-		.set-rail {
-			position: sticky;
-			top: calc(var(--topbar-h) + 1rem);
-		}
-	}
-
-	@media (max-width: 999px) {
-		/* A column of section links above a form reads as part of the form on a
-		   phone, so it becomes a scrolling row instead. */
-		.set-rail {
-			flex-direction: row;
-			overflow-x: auto;
-			padding-bottom: 0.3rem;
-			gap: 0.3rem;
-		}
-
-		.set-rail-label {
-			display: none;
-		}
-	}
-
-	.set-rail-label {
-		margin: 0.85rem 0 0.35rem;
-		padding: 0 0.6rem;
-		font-size: var(--fs-label);
-		font-weight: 700;
-		letter-spacing: 0.07em;
-		text-transform: uppercase;
-		color: var(--text-3);
-	}
-
-	.set-rail-label:first-child {
-		margin-top: 0;
-	}
-
-	.set-rail-link {
-		display: flex;
-		align-items: center;
-		gap: 0.55rem;
-		padding: 0.5rem 0.6rem;
-		border: 0;
-		border-radius: 8px;
-		background: transparent;
-		color: var(--text-2);
-		font-family: inherit;
-		font-size: var(--fs-body);
-		font-weight: 500;
-		text-align: left;
-		text-decoration: none;
-		white-space: nowrap;
-		cursor: pointer;
-		transition:
-			background var(--tr),
-			color var(--tr);
-	}
-
-	.set-rail-link:hover {
-		background: var(--surface-2);
-		color: var(--text);
-	}
-
-	.set-rail-link.active {
-		background: var(--accent-soft);
-		color: var(--accent-dark);
-		font-weight: 600;
-	}
-
-	.set-main {
-		max-width: 58rem;
-	}
-
-	.set-lede {
-		margin: 0 0 1.5rem;
-		font-size: var(--fs-body);
-		line-height: 1.6;
-		color: var(--text-3);
-		max-width: 46rem;
-	}
-
 	.set-skeleton {
-		margin-top: 1rem;
+		margin-top: var(--sp-8);
 		display: grid;
-		gap: 0.7rem;
+		gap: var(--sp-5);
 		grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
 	}
 
 	.set-alert {
-		margin-bottom: 1rem;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 1rem;
+		gap: var(--sp-8);
 		flex-wrap: wrap;
 	}
 </style>

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import CircleCheck from '@lucide/svelte/icons/circle-check';
-	import Plus from '@lucide/svelte/icons/plus';
-	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+	import CircleCheck from '@tabler/icons-svelte/icons/circle-check';
+	import Plus from '@tabler/icons-svelte/icons/plus';
+	import RefreshCw from '@tabler/icons-svelte/icons/refresh';
 	import StoreOrderCard from '$lib/components/shop/StoreOrderCard.svelte';
 	import SellingOrderDetail from '$lib/components/shop/SellingOrderDetail.svelte';
 	import SellingCounterDrawer from '$lib/components/shop/SellingCounterDrawer.svelte';
@@ -78,11 +78,11 @@
 				onclick={() => void orderBoard.refresh()}
 				disabled={orderBoard.loading}
 			>
-				<RefreshCw size={14} strokeWidth={2} />
+				<RefreshCw size={14} stroke={1.6} />
 				Refresh
 			</button>
 			<button class="btn btn-primary btn-sm" type="button" onclick={() => (counterOpen = true)}>
-				<Plus size={14} strokeWidth={2.25} />
+				<Plus size={14} stroke={1.6} />
 				New counter order
 			</button>
 		</div>
@@ -119,7 +119,7 @@
 	{#if totalLive === 0 && !orderBoard.loading}
 		<div class="panel selling-empty">
 			<span class="selling-empty-icon">
-				<CircleCheck size={22} strokeWidth={1.7} />
+				<CircleCheck size={22} stroke={1.6} />
 			</span>
 			<h2>No open orders</h2>
 			<p class="muted">
@@ -127,7 +127,7 @@
 				walk-in sale at the counter.
 			</p>
 			<button class="btn btn-primary" type="button" onclick={() => (counterOpen = true)}>
-				<Plus size={15} strokeWidth={2.25} />
+				<Plus size={15} stroke={1.6} />
 				New counter order
 			</button>
 		</div>

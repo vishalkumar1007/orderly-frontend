@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Plus from '@lucide/svelte/icons/plus';
-	import X from '@lucide/svelte/icons/x';
+	import Plus from '@tabler/icons-svelte/icons/plus';
+	import X from '@tabler/icons-svelte/icons/x';
 	import FormField from '$lib/components/admin/FormField.svelte';
 	import Select from '$lib/components/admin/Select.svelte';
 	import Switch from '$lib/components/admin/Switch.svelte';
@@ -274,7 +274,7 @@
 									aria-label={`Remove shift on ${DAY_LABELS[day]}`}
 									onclick={() => removeShift(day, index)}
 								>
-									<X size={12} strokeWidth={2.2} />
+									<X size={12} stroke={1.6} />
 								</button>
 							</span>
 						{/each}
@@ -286,7 +286,7 @@
 						onclick={() => addShift(day)}
 						aria-label={'Add a shift on ' + DAY_LABELS[day]}
 					>
-						<Plus size={13} strokeWidth={2.2} /> Shift
+						<Plus size={13} stroke={1.6} /> Shift
 					</button>
 				</div>
 			{/each}

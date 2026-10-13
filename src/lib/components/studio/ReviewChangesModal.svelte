@@ -1,10 +1,10 @@
 <script lang="ts">
-	import X from '@lucide/svelte/icons/x';
-	import Rocket from '@lucide/svelte/icons/rocket';
-	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
-	import ArrowRight from '@lucide/svelte/icons/arrow-right';
-	import AlertCircle from '@lucide/svelte/icons/circle-alert';
-	import CheckCircle2 from '@lucide/svelte/icons/check-circle-2';
+	import X from '@tabler/icons-svelte/icons/x';
+	import Rocket from '@tabler/icons-svelte/icons/rocket';
+	import RotateCcw from '@tabler/icons-svelte/icons/rotate';
+	import ArrowRight from '@tabler/icons-svelte/icons/arrow-right';
+	import AlertCircle from '@tabler/icons-svelte/icons/alert-circle';
+	import CheckCircle2 from '@tabler/icons-svelte/icons/circle-check';
 	import type { StudioDraftStore } from '$lib/storefront/studioDraft.svelte';
 	import {
 		STUDIO_GROUP_LABELS,
@@ -67,21 +67,21 @@
 					</p>
 				</div>
 				<button type="button" class="review-close-btn" onclick={() => (open = false)} aria-label="Close">
-					<X size={18} strokeWidth={2} />
+					<X size={18} stroke={1.6} />
 				</button>
 			</div>
 
 			<div class="review-modal-body">
 				{#if store.error}
 					<div class="review-error">
-						<AlertCircle size={16} strokeWidth={2} />
+						<AlertCircle size={16} stroke={1.6} />
 						<span>{store.error}</span>
 					</div>
 				{/if}
 
 				{#if diffs.length === 0}
 					<div class="review-clean-state">
-						<CheckCircle2 size={28} strokeWidth={2} />
+						<CheckCircle2 size={28} stroke={1.6} />
 						<p>Nothing unpublished. What you see in the Studio is what customers see.</p>
 					</div>
 				{:else}
@@ -101,7 +101,7 @@
 									</div>
 									<div class="review-diff-comparison">
 										<span class="review-diff-from">{diff.from}</span>
-										<ArrowRight size={13} strokeWidth={2.4} class="review-diff-arrow" />
+										<ArrowRight size={13} stroke={1.6} class="review-diff-arrow" />
 										<span class="review-diff-to">{diff.to}</span>
 									</div>
 								</div>
@@ -120,7 +120,7 @@
 							onclick={() => ondiscard?.()}
 							disabled={store.isPublishing}
 						>
-							<RotateCcw size={14} strokeWidth={2} />
+							<RotateCcw size={14} stroke={1.6} />
 							<span>Discard All Changes</span>
 						</button>
 					{/if}
@@ -139,7 +139,7 @@
 						disabled={store.isPublishing || diffs.length === 0}
 						onclick={() => onpublish?.()}
 					>
-						<Rocket size={14} strokeWidth={2.4} />
+						<Rocket size={14} stroke={1.6} />
 						<span>{store.isPublishing ? 'Publishing…' : 'Publish Live'}</span>
 					</button>
 				{/if}

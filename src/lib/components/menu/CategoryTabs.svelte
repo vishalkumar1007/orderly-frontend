@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Plus, X } from '@lucide/svelte/icons';
+	import Plus from '@tabler/icons-svelte/icons/plus';
+	import X from '@tabler/icons-svelte/icons/x';
 	import type { MenuCategory } from '$lib/tenant/menu';
 	import { terms } from '$lib/tenant/businessType.svelte';
 
@@ -55,12 +56,12 @@
 					ondelete(c.id, c.name);
 				}}
 			>
-				<X size={12} strokeWidth={2.2} />
+				<X size={12} stroke={1.6} />
 			</span>
 		</button>
 	{/each}
 	<button class="cat-tab cat-tab-add" type="button" onclick={onadd}>
-		<Plus size={14} strokeWidth={2.2} /> Add
+		<Plus size={14} stroke={1.6} /> Add
 	</button>
 </div>
 

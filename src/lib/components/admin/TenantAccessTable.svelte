@@ -8,8 +8,8 @@
 		type PostureResponse,
 		type TenantConfigPosture
 	} from '$lib/admin/configTypes';
-	import Building2 from '@lucide/svelte/icons/building-2';
-	import Globe from '@lucide/svelte/icons/globe';
+	import Building2 from '@tabler/icons-svelte/icons/building';
+	import Globe from '@tabler/icons-svelte/icons/world';
 	import DataTable from '$lib/components/admin/DataTable.svelte';
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
 	import SearchInput from '$lib/components/admin/SearchInput.svelte';
@@ -105,9 +105,9 @@
 					<td>
 						<span class="src" class:platform={effectiveSource(row) === 'PLATFORM'}>
 							{#if effectiveSource(row) === 'PLATFORM'}
-								<Globe size={12} strokeWidth={2} /> Platform
+								<Globe size={12} stroke={1.6} /> Platform
 							{:else}
-								<Building2 size={12} strokeWidth={2} /> Organization
+								<Building2 size={12} stroke={1.6} /> Organization
 							{/if}
 						</span>
 					</td>

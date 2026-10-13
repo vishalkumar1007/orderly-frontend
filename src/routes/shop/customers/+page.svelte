@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Users from '@lucide/svelte/icons/users';
+	import Users from '@tabler/icons-svelte/icons/users';
 	import { formatRelative, initials } from '$lib/admin/format';
 	import DataTable from '$lib/components/admin/DataTable.svelte';
 	import SearchInput from '$lib/components/admin/SearchInput.svelte';

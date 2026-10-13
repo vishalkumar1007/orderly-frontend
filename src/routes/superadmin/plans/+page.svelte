@@ -2,12 +2,13 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import Plus from '@lucide/svelte/icons/plus';
-	import X from '@lucide/svelte/icons/x';
+	import Plus from '@tabler/icons-svelte/icons/plus';
+	import X from '@tabler/icons-svelte/icons/x';
 	import {
 		changeTenantPlan,
 		createPlan,
 		fetchPlans,
+		fetchPlansWithCatalog,
 		fetchSubscriptions,
 		fetchTenantTypes,
 		toPlanOption,
@@ -15,7 +16,13 @@
 	} from '$lib/admin/api';
 	import { errorMessage } from '$lib/admin/errors';
 	import { formatDate } from '$lib/admin/format';
-	import type { Plan, PlanWritePayload, Subscription, TenantType } from '$lib/admin/types';
+	import type {
+		EntitlementFeature,
+		Plan,
+		PlanWritePayload,
+		Subscription,
+		TenantType
+	} from '$lib/admin/types';
 	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
 	import DataTable from '$lib/components/admin/DataTable.svelte';
 	import EmptyState from '$lib/components/admin/EmptyState.svelte';
@@ -61,6 +68,7 @@
 
 	let tab = $state('plans');
 	let plans = $state<Plan[]>([]);
+	let entitlementCatalog = $state<EntitlementFeature[]>([]);
 	let subscriptions = $state<Subscription[]>([]);
 	let types = $state<TenantType[]>([]);
 	let loading = $state(true);
@@ -100,6 +108,8 @@
 			max_products: 100,
 			features: [] as string[],
 			business_types: [] as string[],
+			// What every plan has included so far; a new plan should not lose it by default.
+			entitlements: ['ANALYTICS'] as string[],
 			is_active: true
 		};
 	}
@@ -108,8 +118,13 @@
 		loading = true;
 		error = '';
 		try {
-			const [p, s, t] = await Promise.all([fetchPlans(), fetchSubscriptions(), fetchTenantTypes()]);
-			plans = p;
+			const [p, s, t] = await Promise.all([
+				fetchPlansWithCatalog(),
+				fetchSubscriptions(),
+				fetchTenantTypes()
+			]);
+			plans = p.plans;
+			entitlementCatalog = p.catalog;
 			subscriptions = s;
 			types = t;
 		} catch (err) {
@@ -172,6 +187,7 @@
 			max_products: plan.max_products,
 			features: [...plan.features],
 			business_types: [...plan.business_types],
+			entitlements: [...plan.entitlements],
 			is_active: plan.is_active
 		};
 		featureDraft = '';
@@ -207,6 +223,12 @@
 		form.features = form.features.filter((f) => f !== value);
 	}
 
+	function toggleEntitlement(code: string) {
+		form.entitlements = form.entitlements.includes(code)
+			? form.entitlements.filter((c) => c !== code)
+			: [...form.entitlements, code];
+	}
+
 	function toggleType(code: string) {
 		form.business_types = form.business_types.includes(code)
 			? form.business_types.filter((c) => c !== code)
@@ -226,6 +248,7 @@
 			trial_days: Number(form.trial_days) || 0,
 			features: form.features,
 			business_types: form.business_types,
+			entitlements: form.entitlements,
 			is_active: form.is_active
 		};
 		try {
@@ -318,7 +341,7 @@
 				</p>
 			</div>
 			<button type="button" class="btn btn-primary btn-sm" onclick={openCreate}>
-				<Plus size={15} strokeWidth={2.2} />
+				<Plus size={15} stroke={1.6} />
 				New plan
 			</button>
 		</div>
@@ -606,7 +629,7 @@
 								aria-label={`Remove ${feature}`}
 								onclick={() => removeFeature(feature)}
 							>
-								<X size={11} strokeWidth={2.4} />
+								<X size={11} stroke={1.6} />
 							</button>
 						</span>
 					{/each}
@@ -630,6 +653,26 @@
 						onclick={() => toggleType(type.code)}
 					>
 						{type.label}
+					</button>
+				{/each}
+			</div>
+		</div>
+
+		<div class="field">
+			<span class="field-label">Enforced features</span>
+			<p class="field-hint" style="margin:0 0 0.5rem;">
+				Unlike the list above, these are switched on in the product. A business on this plan gets
+				an upgrade prompt for any feature left off.
+			</p>
+			<div class="chips">
+				{#each entitlementCatalog as feature (feature.code)}
+					<button
+						type="button"
+						class={['chip-toggle', form.entitlements.includes(feature.code) ? 'on' : ''].join(' ')}
+						aria-pressed={form.entitlements.includes(feature.code)}
+						onclick={() => toggleEntitlement(feature.code)}
+					>
+						{feature.label}
 					</button>
 				{/each}
 			</div>

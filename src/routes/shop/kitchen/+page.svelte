@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import ChefHat from '@lucide/svelte/icons/chef-hat';
+	import ChefHat from '@tabler/icons-svelte/icons/chef-hat';
 	import { orderBoard, STAGES } from '$lib/tenant/orders.svelte';
 	import { toast } from '$lib/components/admin/toast';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
@@ -74,7 +74,7 @@
 	{#if fullscreen}
 		<div class="osh-kitchen-fs-bar">
 			<span class="osh-kitchen-count">
-				<ChefHat size={14} strokeWidth={2} />
+				<ChefHat size={14} stroke={1.6} />
 				{totalLive} {totalLive === 1 ? t.order.toLowerCase() : t.orders.toLowerCase()} live
 			</span>
 			<OpsFullscreenToggle label="Fullscreen" />
@@ -104,7 +104,7 @@
 	{#if !fullscreen}
 		<div class="osh-kitchen-top">
 			<span class="osh-kitchen-count">
-				<ChefHat size={13} strokeWidth={2} />
+				<ChefHat size={13} stroke={1.6} />
 				{totalLive} {totalLive === 1 ? t.order.toLowerCase() : t.orders.toLowerCase()} live
 			</span>
 		</div>
@@ -134,7 +134,7 @@
 {:else if tickets.length === 0}
 	<div class="osh-ticket-empty">
 		<span class="osh-ticket-empty-icon">
-			<ChefHat size={26} strokeWidth={1.5} />
+			<ChefHat size={26} stroke={1.6} />
 		</span>
 		<h2>Nothing in {stage.label.toLowerCase()}</h2>
 		<p>

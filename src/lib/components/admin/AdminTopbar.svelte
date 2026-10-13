@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import ChevronRight from '@tabler/icons-svelte/icons/chevron-right';
 	import type { AdminCrumb as Crumb } from '$lib/admin/nav';
 	import ThemeToggle from './ThemeToggle.svelte';
 
@@ -21,7 +21,7 @@
 			<nav class="crumbs" aria-label="Breadcrumb">
 				{#each crumbs as crumb, i (crumb.href ?? `${crumb.label}-${i}`)}
 					{#if i > 0}
-						<ChevronRight size={12} strokeWidth={2} class="crumb-sep" aria-hidden="true" />
+						<ChevronRight size={12} stroke={1.6} class="crumb-sep" aria-hidden="true" />
 					{/if}
 					{#if crumb.href}
 						<a class="crumb-link" href={crumb.href}>{crumb.label}</a>

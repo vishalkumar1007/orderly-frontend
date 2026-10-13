@@ -2,6 +2,9 @@ import { api } from '$lib/api/client';
 
 export type AnalyticsWindow = '7d' | '14d' | '30d' | '90d';
 
+/** How the trend chart groups days. */
+export type Granularity = 'day' | 'week' | 'month';
+
 export type DayPoint = { day: string; order_count: number; revenue: number };
 export type HourPoint = { hour: number; order_count: number };
 export type ProductPoint = { name: string; units: number; revenue: number };
@@ -20,6 +23,8 @@ export type PaymentPoint = {
 export type TenantAnalytics = {
 	window: AnalyticsWindow;
 	days: number;
+	/** Bucket size of `orders_by_period`. */
+	granularity: Granularity;
 
 	orders_today: number;
 	revenue_today: number;
@@ -48,22 +53,35 @@ export type TenantAnalytics = {
 	median_prep_minutes: number;
 	avg_prep_minutes: number;
 	avg_accept_minutes: number;
+	/** Completed ÷ ALL orders, including ones still in the kitchen. Prefer `fulfilment_rate`. */
 	completion_rate: number;
 	cancellation_rate: number;
 	cancelled_today: number;
+	/** Over the window. */
+	completed_orders: number;
+	cancelled_orders: number;
+	/** Completed ÷ (completed + cancelled), as a percentage. Null until an order has finished. */
+	fulfilment_rate: number | null;
 
+	/** Always one point per day. */
 	orders_by_day: DayPoint[];
+	/** The same data grouped by `granularity`; `day` is the first day of each bucket. */
+	orders_by_period: DayPoint[];
 	orders_by_hour: HourPoint[];
 	top_products: ProductPoint[];
+	/** The same sales ranked by revenue instead of volume. */
+	top_products_by_revenue: ProductPoint[];
 	top_categories: CategoryPoint[];
 	payment_mix: PaymentPoint[];
 	status_breakdown: StatusPoint[];
 };
 
 export async function fetchTenantAnalytics(
-	window: AnalyticsWindow = '30d'
+	window: AnalyticsWindow = '30d',
+	granularity: Granularity = 'day'
 ): Promise<TenantAnalytics> {
-	return api<TenantAnalytics>(`/api/v1/tenant/analytics?window=${window}`);
+	// quiet: the dashboard shows its own "not in your plan" panel, not the dialog.
+	return api<TenantAnalytics>(`/api/v1/tenant/analytics?window=${window}&granularity=${granularity}`, { quiet: true });
 }
 
 /** Percentage change from `prev` to `current`, guarding the zero cases. */

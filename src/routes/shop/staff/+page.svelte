@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import UserPlus from '@lucide/svelte/icons/user-plus';
+	import UserPlus from '@tabler/icons-svelte/icons/user-plus';
 	import { formatRelative, initials } from '$lib/admin/format';
 	import type { UserInviteResult } from '$lib/admin/types';
 	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
@@ -216,7 +216,7 @@
 			</div>
 		</div>
 		<button type="button" class="btn btn-primary" onclick={openAdd}>
-			<UserPlus size={15} strokeWidth={2.2} />
+			<UserPlus size={15} stroke={1.6} />
 			Invite teammate
 		</button>
 	</header>

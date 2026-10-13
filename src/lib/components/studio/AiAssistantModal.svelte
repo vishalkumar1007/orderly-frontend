@@ -1,9 +1,9 @@
 <script lang="ts">
-	import Sparkles from '@lucide/svelte/icons/sparkles';
-	import X from '@lucide/svelte/icons/x';
-	import Check from '@lucide/svelte/icons/check';
-	import ArrowRight from '@lucide/svelte/icons/arrow-right';
-	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
+	import Sparkles from '@tabler/icons-svelte/icons/sparkles';
+	import X from '@tabler/icons-svelte/icons/x';
+	import Check from '@tabler/icons-svelte/icons/check';
+	import ArrowRight from '@tabler/icons-svelte/icons/arrow-right';
+	import RotateCcw from '@tabler/icons-svelte/icons/rotate';
 	import {
 		AI_SUGGESTIONS,
 		processAiDesignRequest,
@@ -86,7 +86,7 @@
 			<div class="ai-modal-header">
 				<div class="ai-title-wrap">
 					<span class="ai-sparkle-badge">
-						<Sparkles size={16} strokeWidth={2.4} />
+						<Sparkles size={16} stroke={1.6} />
 					</span>
 					<div>
 						<h2 class="ai-title">AI Design Assistant</h2>
@@ -96,7 +96,7 @@
 					</div>
 				</div>
 				<button type="button" class="ai-close-btn" onclick={close} aria-label="Close">
-					<X size={18} strokeWidth={2} />
+					<X size={18} stroke={1.6} />
 				</button>
 			</div>
 
@@ -116,7 +116,7 @@
 						disabled={!promptText.trim()}
 						onclick={() => generate(promptText)}
 					>
-						<Sparkles size={14} strokeWidth={2.2} />
+						<Sparkles size={14} stroke={1.6} />
 						<span>Generate</span>
 					</button>
 				</div>
@@ -154,7 +154,7 @@
 								<div class="ai-change-row">
 									<span class="ai-change-field">{change.field}:</span>
 									<span class="ai-change-from">{change.from}</span>
-									<ArrowRight size={13} strokeWidth={2.2} class="ai-arrow" />
+									<ArrowRight size={13} stroke={1.6} class="ai-arrow" />
 									<span class="ai-change-to">{change.to}</span>
 								</div>
 							{/each}
@@ -162,11 +162,11 @@
 
 						<div class="ai-proposal-actions">
 							<button type="button" class="btn btn-secondary btn-sm" onclick={undoProposal}>
-								<RotateCcw size={14} strokeWidth={2} />
+								<RotateCcw size={14} stroke={1.6} />
 								<span>Undo</span>
 							</button>
 							<button type="button" class="btn btn-primary btn-sm" onclick={applyProposal}>
-								<Check size={14} strokeWidth={2.5} />
+								<Check size={14} stroke={1.6} />
 								<span>Apply Changes</span>
 							</button>
 						</div>

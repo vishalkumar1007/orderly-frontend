@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Plus from '@lucide/svelte/icons/plus';
+	import Plus from '@tabler/icons-svelte/icons/plus';
 	import {
 		createRoom,
 		createRoomType,
@@ -176,7 +176,7 @@
 		<header class="rooms-section-head">
 			<h2>Room types</h2>
 			<button type="button" class="btn btn-secondary btn-sm" onclick={openCreateType}>
-				<Plus size={14} strokeWidth={2.2} />
+				<Plus size={14} stroke={1.6} />
 				Add room type
 			</button>
 		</header>
@@ -215,7 +215,7 @@
 		<header class="rooms-section-head">
 			<h2>Rooms</h2>
 			<button type="button" class="btn btn-secondary btn-sm" onclick={openCreateRoom} disabled={roomTypes.length === 0}>
-				<Plus size={14} strokeWidth={2.2} />
+				<Plus size={14} stroke={1.6} />
 				Add room
 			</button>
 		</header>

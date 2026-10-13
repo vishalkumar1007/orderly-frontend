@@ -17,6 +17,7 @@
 		resetTenantUserMFA,
 		setTenantStatus,
 		tenantPublicUrl,
+		fetchPlansWithCatalog,
 		updateTenantLocal
 	} from '$lib/admin/api';
 	import { labelForType, templateFor } from '$lib/admin/businessTypes';
@@ -26,6 +27,7 @@
 	import type { NotificationDelivery, NotificationEventDef, NotificationRule } from '$lib/admin/notificationTypes';
 	import type {
 		AuditLog,
+		EntitlementFeature,
 		PlanOption,
 		Tenant,
 		TenantAdmin,
@@ -33,13 +35,13 @@
 		TenantType,
 		UserInviteResult
 	} from '$lib/admin/types';
-	import Copy from '@lucide/svelte/icons/copy';
-	import ExternalLink from '@lucide/svelte/icons/external-link';
-	import Mail from '@lucide/svelte/icons/mail';
-	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
-	import ShieldCheck from '@lucide/svelte/icons/shield-check';
-	import Store from '@lucide/svelte/icons/store';
-	import Users from '@lucide/svelte/icons/users';
+	import Copy from '@tabler/icons-svelte/icons/copy';
+	import ExternalLink from '@tabler/icons-svelte/icons/external-link';
+	import Mail from '@tabler/icons-svelte/icons/mail';
+	import RefreshCw from '@tabler/icons-svelte/icons/refresh';
+	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
+	import Store from '@tabler/icons-svelte/icons/building-store';
+	import Users from '@tabler/icons-svelte/icons/users';
 	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
 	import DataTable from '$lib/components/admin/DataTable.svelte';
 	import EmptyState from '$lib/components/admin/EmptyState.svelte';
@@ -48,6 +50,7 @@
 	import InviteLinkDialog from '$lib/components/admin/InviteLinkDialog.svelte';
 	import Menu from '$lib/components/admin/Menu.svelte';
 	import Modal from '$lib/components/admin/Modal.svelte';
+	import PaymentModePanel from '$lib/components/admin/PaymentModePanel.svelte';
 	import PlanPicker from '$lib/components/admin/PlanPicker.svelte';
 	import Select from '$lib/components/admin/Select.svelte';
 	import SelectField from '$lib/components/admin/SelectField.svelte';
@@ -78,6 +81,8 @@
 	let logs = $state<AuditLog[]>([]);
 	let types = $state<TenantType[]>([]);
 	let plans = $state<PlanOption[]>([]);
+	let entitlementCatalog = $state<EntitlementFeature[]>([]);
+	let planEntitlements = $state<string[]>([]);
 	let users = $state<TenantAdmin[]>([]);
 	let loading = $state(true);
 	let error = $state('');
@@ -125,9 +130,7 @@
 
 	const tabs = [
 		{ id: 'overview', label: 'Overview' },
-		{ id: 'subscription', label: 'Subscription' },
-		{ id: 'configuration', label: 'Configuration' },
-		{ id: 'notifications', label: 'Notifications' },
+		{ id: 'controls', label: 'Plan & controls' },
 		{ id: 'users', label: 'Users' },
 		{ id: 'activity', label: 'Activity' },
 		{ id: 'audit', label: 'Audit' }
@@ -163,6 +166,20 @@
 			loading = false;
 		}
 		void loadNotifications();
+		void loadPlanFeatures();
+	}
+
+	// Which plan features this business has. Advisory display: a failure leaves
+	// the list showing everything as not included rather than blocking the page.
+	async function loadPlanFeatures() {
+		try {
+			const { plans: all, catalog } = await fetchPlansWithCatalog();
+			entitlementCatalog = catalog;
+			const mine = all.find((p) => p.name.toUpperCase() === currentPlan.toUpperCase());
+			planEntitlements = mine?.entitlements ?? [];
+		} catch {
+			/* leave defaults */
+		}
 	}
 
 	// Separate from the main load: a problem here should never block the rest
@@ -184,7 +201,9 @@
 	}
 
 	onMount(() => {
-		const q = $page.url.searchParams.get('tab');
+		const raw = $page.url.searchParams.get('tab');
+		// Subscription, Configuration and Notifications are now one tab.
+		const q = ['subscription', 'configuration', 'notifications'].includes(raw ?? '') ? 'controls' : raw;
 		if (q && tabs.some((t) => t.id === q)) tab = q;
 		void load();
 	});
@@ -443,7 +462,7 @@
 						aria-label="Copy the store URL"
 						onclick={() => copy(storeUrl, 'Store URL')}
 					>
-						<Copy size={11} strokeWidth={2} />
+						<Copy size={11} stroke={1.6} />
 					</button>
 				</div>
 			</div>
@@ -451,7 +470,7 @@
 
 		<div class="id-head-actions">
 			<a class="btn btn-ghost btn-sm" href={storeUrl} target="_blank" rel="noopener">
-				<ExternalLink size={14} strokeWidth={2} />
+				<ExternalLink size={14} stroke={1.6} />
 				Open store
 			</a>
 			<button type="button" class="btn btn-ghost btn-sm" onclick={openEdit}>Edit</button>
@@ -479,7 +498,7 @@
 
 	{#if business.setup_status === 'PENDING'}
 		<div class="alert alert-warn" style="margin-bottom:1.1rem;flex-wrap:wrap;gap:0.75rem;">
-			<Mail size={16} strokeWidth={1.9} />
+			<Mail size={16} stroke={1.6} />
 			<div style="flex:1;min-width:14rem;">
 				<strong style="color:var(--text);">Nobody can sign in yet</strong>
 				<p style="margin:0.15rem 0 0;">
@@ -495,7 +514,7 @@
 							aria-label="Copy the setup link"
 							onclick={() => copy(inviteSetupUrl, 'Setup link')}
 						>
-							<Copy size={13} strokeWidth={2} />
+							<Copy size={13} stroke={1.6} />
 						</button>
 					</div>
 				{/if}
@@ -506,7 +525,7 @@
 				disabled={inviteLoading}
 				onclick={resendInvite}
 			>
-				<RefreshCw size={13} strokeWidth={2} class={inviteLoading ? 'spin' : ''} />
+				<RefreshCw size={13} stroke={1.6} class={inviteLoading ? 'spin' : ''} />
 				{inviteLoading ? 'Generating…' : 'New setup link'}
 			</button>
 		</div>
@@ -519,13 +538,13 @@
 				value={security?.users_total ?? '—'}
 				hint={security ? `${security.users_active} active` : undefined}
 			>
-				{#snippet icon()}<Users size={15} strokeWidth={1.9} />{/snippet}
+				{#snippet icon()}<Users size={15} stroke={1.6} />{/snippet}
 			</StatCard>
 			<StatCard
 				label="Active sessions"
 				value={security?.active_sessions ?? '—'}
 			>
-				{#snippet icon()}<ShieldCheck size={15} strokeWidth={1.9} />{/snippet}
+				{#snippet icon()}<ShieldCheck size={15} stroke={1.6} />{/snippet}
 			</StatCard>
 		</StatGrid>
 
@@ -560,7 +579,7 @@
 			<section class="panel">
 				<h3 class="panel-h">
 					<span style="display:flex;align-items:center;gap:0.45rem;">
-						<ShieldCheck size={15} strokeWidth={1.9} />
+						<ShieldCheck size={15} stroke={1.6} />
 						Access
 					</span>
 				</h3>
@@ -590,7 +609,7 @@
 			<section class="panel">
 				<h3 class="panel-h">
 					<span style="display:flex;align-items:center;gap:0.45rem;">
-						<Store size={15} strokeWidth={1.9} />
+						<Store size={15} stroke={1.6} />
 						The shop itself
 					</span>
 				</h3>
@@ -612,7 +631,13 @@
 				</p>
 			</section>
 		</div>
-	{:else if tab === 'subscription'}
+	{:else if tab === 'controls'}
+		<nav class="jump" aria-label="On this tab">
+			<a href="#ctl-plan">Plan &amp; features</a>
+			<a href="#ctl-config">Business setup</a>
+			<a href="#ctl-notify">Notifications</a>
+		</nav>
+		<h2 class="sec-h" id="ctl-plan">Plan &amp; features</h2>
 		<div class="grid-2" style="margin-bottom:0.85rem;">
 			<section class="panel">
 				<div class="bento-head">
@@ -699,7 +724,25 @@
 				</div>
 			</dl>
 		</section>
-	{:else if tab === 'configuration'}
+		<section class="panel" style="margin-bottom:0.85rem;">
+			<h3 class="panel-h">What this plan allows</h3>
+			<p class="panel-note">
+				Features the business can use on its plan. Change a plan's features on the
+				<a href="/superadmin/plans">Plans</a> page; change which plan this business is on above.
+			</p>
+			<ul class="feat">
+				{#each entitlementCatalog as f (f.code)}
+					{@const on = planEntitlements.includes(f.code)}
+					<li class={on ? 'on' : ''}>
+						<span aria-hidden="true">{on ? '✓' : '–'}</span>
+						{f.label}
+						<span class="muted">{on ? 'Included' : 'Not included'}</span>
+					</li>
+				{/each}
+			</ul>
+		</section>
+
+		<h2 class="sec-h" id="ctl-config">Business setup</h2>
 		<section class="panel" style="margin-bottom:0.85rem;">
 			<h3 class="panel-h">Business type</h3>
 			<p class="panel-note">
@@ -727,6 +770,12 @@
 			<TenantConfigAccessPanel tenantName={business.name} />
 		</div>
 
+		<div style="margin-bottom:0.85rem;">
+			{#key id}
+				<PaymentModePanel tenantId={id} businessName={business.name} />
+			{/key}
+		</div>
+
 		<section class="panel">
 			<h3 class="panel-h">Security</h3>
 			<Switch
@@ -752,7 +801,7 @@
 			{/if}
 		</section>
 
-	{:else if tab === 'notifications'}
+		<h2 class="sec-h" id="ctl-notify">Notifications</h2>
 		<section class="panel" style="margin-bottom:0.85rem;">
 			<h3 class="panel-h">Effective notification rules</h3>
 			<p class="panel-note">
@@ -1109,6 +1158,44 @@
 		justify-content: space-between;
 		gap: 0.5rem;
 		padding: 0.7rem 0;
+	}
+
+	.jump {
+		display: flex;
+		gap: 1rem;
+		margin: 0.85rem 0 0.5rem;
+		font-size: var(--fs-code);
+	}
+
+	.sec-h {
+		margin: 1.25rem 0 0.6rem;
+		font-size: var(--fs-tab);
+		font-weight: 600;
+		scroll-margin-top: 5rem;
+	}
+
+	.feat {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: 0.4rem;
+	}
+
+	.feat li {
+		display: flex;
+		gap: 0.5rem;
+		align-items: baseline;
+		color: var(--text-3);
+	}
+
+	.feat li.on {
+		color: inherit;
+	}
+
+	.feat .muted {
+		margin-left: auto;
+		font-size: var(--fs-code);
 	}
 
 	.plan-features {

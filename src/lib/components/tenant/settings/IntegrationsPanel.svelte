@@ -1,16 +1,17 @@
 <script lang="ts">
-	import HardDrive from '@lucide/svelte/icons/hard-drive';
-	import Mail from '@lucide/svelte/icons/mail';
-	import MessageSquare from '@lucide/svelte/icons/message-square';
-	import Sparkles from '@lucide/svelte/icons/sparkles';
-	import type { Component } from 'svelte';
+	import CreditCard from '@tabler/icons-svelte/icons/credit-card';
+	import HardDrive from '@tabler/icons-svelte/icons/device-floppy';
+	import Mail from '@tabler/icons-svelte/icons/mail';
+	import MessageSquare from '@tabler/icons-svelte/icons/message';
+	import Sparkles from '@tabler/icons-svelte/icons/sparkles';
+	import type { IconComponent as Component } from '$lib/icons';
 	import type { ConfigService } from '$lib/admin/configTypes';
 	import ServiceConfigPanel from './ServiceConfigPanel.svelte';
 
 	/**
 	 * Integrations.
 	 *
-	 * Four services, one screen. They were separate routes reached
+	 * Five services, one screen. They were separate routes reached
 	 * through an index page, which meant four navigations to compare two of
 	 * them; a service switcher is one.
 	 *
@@ -30,7 +31,8 @@
 		{ id: 'SMTP', label: 'Email', hint: 'Order mail and invites', icon: Mail },
 		{ id: 'SMS', label: 'SMS', hint: 'Order and booking texts', icon: MessageSquare },
 		{ id: 'STORAGE', label: 'Storage', hint: 'Menu images and uploads', icon: HardDrive },
-		{ id: 'AI', label: 'AI', hint: 'Assistive generation', icon: Sparkles }
+		{ id: 'AI', label: 'AI', hint: 'Assistive generation', icon: Sparkles },
+		{ id: 'PAYMENTS', label: 'Payments', hint: 'Your payment gateway keys', icon: CreditCard }
 	];
 </script>
 
@@ -46,7 +48,7 @@
 			onclick={() => onselect?.(option.id)}
 		>
 			<span class="int-tab-icon" aria-hidden="true">
-				<option.icon size={16} strokeWidth={1.9} />
+				<option.icon size={16} stroke={1.6} />
 			</span>
 			<span class="int-tab-text">
 				<span class="int-tab-label">{option.label}</span>

@@ -2,12 +2,12 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import ArrowRight from '@lucide/svelte/icons/arrow-right';
-	import Eye from '@lucide/svelte/icons/eye';
-	import EyeOff from '@lucide/svelte/icons/eye-off';
-	import Lock from '@lucide/svelte/icons/lock';
-	import ShieldCheck from '@lucide/svelte/icons/shield-check';
-	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
+	import ArrowRight from '@tabler/icons-svelte/icons/arrow-right';
+	import Eye from '@tabler/icons-svelte/icons/eye';
+	import EyeOff from '@tabler/icons-svelte/icons/eye-off';
+	import Lock from '@tabler/icons-svelte/icons/lock';
+	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
+	import TriangleAlert from '@tabler/icons-svelte/icons/alert-triangle';
 	import {
 		enrollMfaConfirm,
 		enrollMfaEmailConfirm,
@@ -193,7 +193,7 @@
 
 		<div class="setup-heading">
 			<div class="setup-icon" aria-hidden="true">
-				<ShieldCheck size={24} strokeWidth={1.8} />
+				<ShieldCheck size={24} stroke={1.6} />
 			</div>
 			{#if enrollStep}
 				<h1>Set up two-factor authentication</h1>
@@ -235,7 +235,7 @@
 				<div class="setup-field">
 					<label for="enroll-code">6-digit code</label>
 					<div class="setup-input">
-						<ShieldCheck size={16} strokeWidth={1.85} />
+						<ShieldCheck size={16} stroke={1.6} />
 						<input
 							id="enroll-code"
 							type="text"
@@ -250,14 +250,14 @@
 
 				{#if error}
 					<p class="setup-alert" role="alert">
-						<TriangleAlert size={16} strokeWidth={2} />
+						<TriangleAlert size={16} stroke={1.6} />
 						<span>{error}</span>
 					</p>
 				{/if}
 
 				<button class="btn btn-primary setup-submit" type="submit" disabled={loading}>
 					{loading ? 'Confirming…' : 'Confirm and continue'}
-					{#if !loading}<ArrowRight size={16} strokeWidth={2.2} />{/if}
+					{#if !loading}<ArrowRight size={16} stroke={1.6} />{/if}
 				</button>
 			</form>
 		{:else}
@@ -265,7 +265,7 @@
 			<div class="setup-field">
 				<label for="password">New password</label>
 				<div class="setup-input">
-					<Lock size={16} strokeWidth={1.85} />
+					<Lock size={16} stroke={1.6} />
 					<input
 						id="password"
 						type={showPassword ? 'text' : 'password'}
@@ -282,9 +282,9 @@
 						onclick={() => (showPassword = !showPassword)}
 					>
 						{#if showPassword}
-							<EyeOff size={16} strokeWidth={1.85} />
+							<EyeOff size={16} stroke={1.6} />
 						{:else}
-							<Eye size={16} strokeWidth={1.85} />
+							<Eye size={16} stroke={1.6} />
 						{/if}
 					</button>
 				</div>
@@ -303,7 +303,7 @@
 			<div class="setup-field">
 				<label for="confirm">Confirm password</label>
 				<div class="setup-input">
-					<Lock size={16} strokeWidth={1.85} />
+					<Lock size={16} stroke={1.6} />
 					<input
 						id="confirm"
 						type="password"
@@ -318,20 +318,20 @@
 
 			{#if error}
 				<p class="setup-alert" role="alert">
-					<TriangleAlert size={16} strokeWidth={2} />
+					<TriangleAlert size={16} stroke={1.6} />
 					<span>{error}</span>
 				</p>
 			{/if}
 
 			<button class="btn btn-primary setup-submit" type="submit" disabled={loading || !token}>
 				{loading ? 'Creating account…' : 'Continue to dashboard'}
-				{#if !loading}<ArrowRight size={16} strokeWidth={2.2} />{/if}
+				{#if !loading}<ArrowRight size={16} stroke={1.6} />{/if}
 			</button>
 		</form>
 		{/if}
 
 		<p class="setup-footer">
-			<Lock size={12} strokeWidth={1.9} />
+			<Lock size={12} stroke={1.6} />
 			Protected by secure authentication
 		</p>
 	</div>

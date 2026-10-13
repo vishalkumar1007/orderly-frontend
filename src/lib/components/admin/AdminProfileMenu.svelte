@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
-	import LogOut from '@lucide/svelte/icons/log-out';
-	import Palette from '@lucide/svelte/icons/palette';
-	import Settings from '@lucide/svelte/icons/settings';
-	import UserRound from '@lucide/svelte/icons/user-round';
+	import ChevronsUpDown from '@tabler/icons-svelte/icons/selector';
+	import LogOut from '@tabler/icons-svelte/icons/logout';
+	import Palette from '@tabler/icons-svelte/icons/palette';
+	import Settings from '@tabler/icons-svelte/icons/settings';
+	import UserRound from '@tabler/icons-svelte/icons/user';
 
 	let {
 		email = '',
@@ -104,7 +104,7 @@
 				<strong>{displayName || email}</strong>
 				<span>{roleLabel}</span>
 			</span>
-			<ChevronsUpDown size={14} strokeWidth={1.75} class="rail-user-caret" />
+			<ChevronsUpDown size={14} stroke={1.6} class="rail-user-caret" />
 		{/if}
 	</button>
 
@@ -116,18 +116,18 @@
 			</div>
 			{#if profileHref}
 				<a href={profileHref} role="menuitem" onclick={closeFromEvent}>
-					<UserRound size={15} strokeWidth={1.75} />
+					<UserRound size={15} stroke={1.6} />
 					Your profile
 				</a>
 			{/if}
 			{#if appearanceHref}
 				<a href={appearanceHref} role="menuitem" onclick={closeFromEvent}>
-					<Palette size={15} strokeWidth={1.75} />
+					<Palette size={15} stroke={1.6} />
 					Appearance
 				</a>
 			{/if}
 			<a href={settingsHref} role="menuitem" onclick={closeFromEvent}>
-				<Settings size={15} strokeWidth={1.75} />
+				<Settings size={15} stroke={1.6} />
 				Settings
 			</a>
 			<button
@@ -139,7 +139,7 @@
 					onSignOut?.();
 				}}
 			>
-				<LogOut size={15} strokeWidth={1.75} />
+				<LogOut size={15} stroke={1.6} />
 				Sign out
 			</button>
 		</div>

@@ -1,11 +1,11 @@
-import type { Component } from 'svelte';
-import Clock from '@lucide/svelte/icons/clock';
-import CreditCard from '@lucide/svelte/icons/credit-card';
-import Image from '@lucide/svelte/icons/image';
-import LayoutTemplate from '@lucide/svelte/icons/layout-template';
-import Palette from '@lucide/svelte/icons/palette';
-import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
-import Users from '@lucide/svelte/icons/users';
+import type { IconComponent as Component } from '$lib/icons';
+import Clock from '@tabler/icons-svelte/icons/clock';
+import CreditCard from '@tabler/icons-svelte/icons/credit-card';
+import Image from '@tabler/icons-svelte/icons/photo';
+import LayoutTemplate from '@tabler/icons-svelte/icons/layout';
+import Palette from '@tabler/icons-svelte/icons/palette';
+import UtensilsCrossed from '@tabler/icons-svelte/icons/tools-kitchen-2';
+import Users from '@tabler/icons-svelte/icons/users';
 import type { ConfigControl, Terminology } from '$lib/admin/businessTypes';
 
 /**

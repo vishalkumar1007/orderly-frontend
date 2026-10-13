@@ -1,13 +1,11 @@
 <script lang="ts">
-	import {
-		ChevronDown,
-		ChevronUp,
-		Copy,
-		FolderInput,
-		Pencil,
-		Trash2,
-		UtensilsCrossed
-	} from '@lucide/svelte/icons';
+	import ChevronDown from '@tabler/icons-svelte/icons/chevron-down';
+	import ChevronUp from '@tabler/icons-svelte/icons/chevron-up';
+	import Copy from '@tabler/icons-svelte/icons/copy';
+	import FolderInput from '@tabler/icons-svelte/icons/folder-share';
+	import Pencil from '@tabler/icons-svelte/icons/pencil';
+	import Trash2 from '@tabler/icons-svelte/icons/trash';
+	import UtensilsCrossed from '@tabler/icons-svelte/icons/tools-kitchen-2';
 	import Menu from '$lib/components/admin/Menu.svelte';
 	import Switch from '$lib/components/admin/Switch.svelte';
 	import { formatCurrency } from '$lib/admin/format';
@@ -71,7 +69,7 @@
 						{#if p.image_url}
 							<img class="thumb" src={p.image_url} alt="" loading="lazy" />
 						{:else}
-							<span class="thumb placeholder"><UtensilsCrossed size={16} strokeWidth={1.6} /></span>
+							<span class="thumb placeholder"><UtensilsCrossed size={16} stroke={1.6} /></span>
 						{/if}
 					</td>
 					<td>
@@ -111,7 +109,7 @@
 				{#if p.image_url}
 					<img class="thumb" src={p.image_url} alt="" loading="lazy" />
 				{:else}
-					<span class="thumb placeholder"><UtensilsCrossed size={18} strokeWidth={1.6} /></span>
+					<span class="thumb placeholder"><UtensilsCrossed size={18} stroke={1.6} /></span>
 				{/if}
 				<div class="pcard-info">
 					<span class="pname">{p.name}</span>

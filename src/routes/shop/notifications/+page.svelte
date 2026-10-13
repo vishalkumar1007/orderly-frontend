@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
+	import AlertTriangle from '@tabler/icons-svelte/icons/alert-triangle';
 	import { errorMessage } from '$lib/admin/errors';
 	import { formatRelative } from '$lib/admin/format';
 	import { fetchNotificationPage, tenantNotifications, type Notification } from '$lib/notifications.svelte';
@@ -110,7 +110,7 @@
 				{#if n.priority === 'CRITICAL' || n.priority === 'HIGH'}
 					<AlertTriangle
 						size={14}
-						strokeWidth={2}
+						stroke={1.6}
 						class="hist-icon {n.priority === 'CRITICAL' ? 'critical' : 'high'}"
 					/>
 				{:else}

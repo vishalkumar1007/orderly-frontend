@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { ChevronDown, ChevronUp, Plus, Trash2 } from '@lucide/svelte/icons';
+	import ChevronDown from '@tabler/icons-svelte/icons/chevron-down';
+	import ChevronUp from '@tabler/icons-svelte/icons/chevron-up';
+	import Plus from '@tabler/icons-svelte/icons/plus';
+	import Trash2 from '@tabler/icons-svelte/icons/trash';
 	import Switch from '$lib/components/admin/Switch.svelte';
 	import type { OptionGroup } from '$lib/tenant/menu';
 	import { newOptionGroup } from '$lib/tenant/menu';
@@ -96,7 +99,7 @@
 			<p class="og-hint">Add sizes, toppings, or extras customers can choose.</p>
 			{#if !disabled}
 				<button type="button" class="btn btn-ghost btn-sm" onclick={addGroup}>
-					<Plus size={14} strokeWidth={2.2} /> Add option group
+					<Plus size={14} stroke={1.6} /> Add option group
 				</button>
 			{/if}
 		</div>
@@ -239,7 +242,7 @@
 					{/each}
 					{#if !disabled}
 						<button type="button" class="btn btn-ghost btn-sm" onclick={() => addOption(gi)}>
-							<Plus size={13} strokeWidth={2.2} /> Add option
+							<Plus size={13} stroke={1.6} /> Add option
 						</button>
 					{/if}
 				</div>
@@ -247,7 +250,7 @@
 		{/each}
 		{#if !disabled}
 			<button type="button" class="btn btn-ghost btn-sm" onclick={addGroup}>
-				<Plus size={14} strokeWidth={2.2} /> Add option group
+				<Plus size={14} stroke={1.6} /> Add option group
 			</button>
 		{/if}
 	{/if}

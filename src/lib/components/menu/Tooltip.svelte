@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Info } from '@lucide/svelte/icons';
+	import Info from '@tabler/icons-svelte/icons/info-circle';
 
 	let {
 		text,
@@ -11,7 +11,7 @@
 </script>
 
 <span class="tooltip-wrap" tabindex="0" role="tooltip" aria-label={text}>
-	<Info size={14} strokeWidth={2} />
+	<Info size={14} stroke={1.6} />
 	<span class="tooltip-bubble" class:top={position === 'top'} class:bottom={position === 'bottom'} class:left={position === 'left'} class:right={position === 'right'}>
 		{text}
 	</span>

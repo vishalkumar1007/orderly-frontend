@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
-	import Minus from '@lucide/svelte/icons/minus';
-	import Plus from '@lucide/svelte/icons/plus';
-	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
+	import ChevronLeft from '@tabler/icons-svelte/icons/chevron-left';
+	import Minus from '@tabler/icons-svelte/icons/minus';
+	import Plus from '@tabler/icons-svelte/icons/plus';
+	import ShoppingBag from '@tabler/icons-svelte/icons/shopping-bag';
 	import { useCart } from '$lib/storefront/cart-state.svelte';
 	import { normaliseAddons, unitTotal } from '$lib/storefront/cart.svelte';
 	import { money } from '$lib/storefront/format';
@@ -112,7 +112,7 @@
 		href="/menu"
 		style="display:inline-flex;align-items:center;gap:4px;margin-left:var(--sf-gutter);padding:10px 0;font-size:var(--fs-body);font-weight:600;color:var(--sf-text-2);text-decoration:none;"
 	>
-		<ChevronLeft size={16} strokeWidth={2.2} aria-hidden="true" />
+		<ChevronLeft size={16} stroke={1.6} aria-hidden="true" />
 		Menu
 	</a>
 </div>
@@ -223,7 +223,7 @@
 											aria-label={'Fewer ' + opt.name}
 											onclick={() => stepAddon(opt.id, -1, maxQty)}
 										>
-											<Minus size={13} strokeWidth={2.6} aria-hidden="true" />
+											<Minus size={13} stroke={1.6} aria-hidden="true" />
 										</button>
 										<output style="min-width:22px;font-size:var(--fs-body);">{qty}</output>
 										<button
@@ -233,7 +233,7 @@
 											disabled={qty >= maxQty}
 											onclick={() => stepAddon(opt.id, 1, maxQty)}
 										>
-											<Plus size={13} strokeWidth={2.6} aria-hidden="true" />
+											<Plus size={13} stroke={1.6} aria-hidden="true" />
 										</button>
 									</span>
 								{/if}
@@ -252,7 +252,7 @@
 				disabled={quantity <= 1}
 				onclick={() => (quantity = Math.max(1, quantity - 1))}
 			>
-				<Minus size={16} strokeWidth={2.4} />
+				<Minus size={16} stroke={1.6} />
 			</button>
 			<output aria-live="polite">{quantity}</output>
 			<button
@@ -261,7 +261,7 @@
 				disabled={quantity >= 20}
 				onclick={() => (quantity = Math.min(20, quantity + 1))}
 			>
-				<Plus size={16} strokeWidth={2.4} />
+				<Plus size={16} stroke={1.6} />
 			</button>
 		</div>
 
@@ -301,7 +301,7 @@
 			{:else if hasOptions && !requiredSatisfied}
 				Choose options
 			{:else}
-				<ShoppingBag size={18} strokeWidth={2.1} aria-hidden="true" />
+				<ShoppingBag size={18} stroke={1.6} aria-hidden="true" />
 				Add to cart
 			{/if}
 		</button>

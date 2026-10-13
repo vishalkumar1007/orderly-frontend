@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
-	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
-	import Minus from '@lucide/svelte/icons/minus';
-	import Plus from '@lucide/svelte/icons/plus';
-	import Receipt from '@lucide/svelte/icons/receipt';
-	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
-	import Trash2 from '@lucide/svelte/icons/trash-2';
-	import User from '@lucide/svelte/icons/user';
-	import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
+	import ArrowLeft from '@tabler/icons-svelte/icons/arrow-left';
+	import Minus from '@tabler/icons-svelte/icons/minus';
+	import Plus from '@tabler/icons-svelte/icons/plus';
+	import Receipt from '@tabler/icons-svelte/icons/receipt';
+	import ShoppingBag from '@tabler/icons-svelte/icons/shopping-bag';
+	import Trash2 from '@tabler/icons-svelte/icons/trash';
+	import User from '@tabler/icons-svelte/icons/user';
+	import UtensilsCrossed from '@tabler/icons-svelte/icons/tools-kitchen-2';
 	import '$lib/storefront/storefront-app.css';
 	import {
 		adminToStoreConfig,
@@ -318,7 +318,7 @@
 						{#if searchMatches.length === 0}
 							<div class="sf-empty">
 								<span class="sf-empty-icon" aria-hidden="true">
-									<UtensilsCrossed size={26} strokeWidth={1.7} />
+									<UtensilsCrossed size={26} stroke={1.6} />
 								</span>
 								<h3>Nothing matched</h3>
 								<p>Try a different word, or browse the full menu.</p>
@@ -373,7 +373,7 @@
 						{#if menuProducts.length === 0}
 							<div class="sf-empty">
 								<span class="sf-empty-icon" aria-hidden="true">
-									<UtensilsCrossed size={26} strokeWidth={1.7} />
+									<UtensilsCrossed size={26} stroke={1.6} />
 								</span>
 								<h3>No items here</h3>
 								<p>Try another category, or add products in Menu.</p>
@@ -398,7 +398,7 @@
 				{:else if view === 'product'}
 					<div class="sf-wrap" style="padding-top:8px;">
 						<button type="button" class="preview-back" onclick={() => go('menu')}>
-							<ArrowLeft size={16} strokeWidth={2.2} />
+							<ArrowLeft size={16} stroke={1.6} />
 							Menu
 						</button>
 						{#if product}
@@ -462,7 +462,7 @@
 						{#if cart.lines.length === 0}
 							<div class="sf-empty">
 								<span class="sf-empty-icon" aria-hidden="true">
-									<ShoppingBag size={26} strokeWidth={1.7} />
+									<ShoppingBag size={26} stroke={1.6} />
 								</span>
 								<h3>Your cart is empty</h3>
 								<p>Add something from the menu and it will show up here.</p>
@@ -496,7 +496,7 @@
 														aria-label={'One fewer ' + line.name}
 														onclick={() => cart.step(line.key, -1)}
 													>
-														<Minus size={15} strokeWidth={2.4} aria-hidden="true" />
+														<Minus size={15} stroke={1.6} aria-hidden="true" />
 													</button>
 													<output aria-live="polite">{line.quantity}</output>
 													<button
@@ -505,7 +505,7 @@
 														disabled={line.quantity >= 20}
 														onclick={() => cart.step(line.key, 1)}
 													>
-														<Plus size={15} strokeWidth={2.4} aria-hidden="true" />
+														<Plus size={15} stroke={1.6} aria-hidden="true" />
 													</button>
 												</div>
 												<button
@@ -513,7 +513,7 @@
 													type="button"
 													onclick={() => cart.remove(line.key)}
 												>
-													<Trash2 size={15} strokeWidth={1.9} aria-hidden="true" /> Remove
+													<Trash2 size={15} stroke={1.6} aria-hidden="true" /> Remove
 												</button>
 											</div>
 										</div>
@@ -549,7 +549,7 @@
 					<div class="sf-wrap" style="padding-top:28px;">
 						<div class="sf-empty">
 							<span class="sf-empty-icon" aria-hidden="true">
-								<Receipt size={26} strokeWidth={1.7} />
+								<Receipt size={26} stroke={1.6} />
 							</span>
 							<h3>Orders</h3>
 							<p>Order history uses the live store after publish. Browse and cart work here in preview.</p>
@@ -560,7 +560,7 @@
 					<div class="sf-wrap" style="padding-top:28px;">
 						<div class="sf-empty">
 							<span class="sf-empty-icon" aria-hidden="true">
-								<User size={26} strokeWidth={1.7} />
+								<User size={26} stroke={1.6} />
 							</span>
 							<h3>Sign in</h3>
 							<p>Customer login is available on the published storefront. Preview focuses on browse &amp; cart.</p>

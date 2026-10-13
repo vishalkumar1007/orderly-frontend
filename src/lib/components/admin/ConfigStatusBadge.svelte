@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Info, TriangleAlert } from '@lucide/svelte';
+	import Info from '@tabler/icons-svelte/icons/info-circle';
+	import TriangleAlert from '@tabler/icons-svelte/icons/alert-triangle';
 	import {
 		CONFIG_STATUS_LABEL,
 		CONFIG_STATUS_TONE,
@@ -25,11 +26,11 @@
 <span class="cfg-status" class:compact>
 	<StatusBadge status={shown} kind={CONFIG_STATUS_TONE[shown]} />
 	{#if !compact && status === 'ENABLED'}
-		<span class="cfg-note ok"><Info size={12} strokeWidth={2} /> Active</span>
+		<span class="cfg-note ok"><Info size={12} stroke={1.6} /> Active</span>
 	{:else if !compact && status === 'CONFIGURED'}
 		<span class="cfg-note">Saved, not enabled</span>
 	{:else if !compact && status === 'CONNECTION_FAILED'}
-		<span class="cfg-note bad"><TriangleAlert size={12} strokeWidth={2} /> Check settings</span>
+		<span class="cfg-note bad"><TriangleAlert size={12} stroke={1.6} /> Check settings</span>
 	{:else if !compact && status === 'DISABLED'}
 		<span class="cfg-note">Switched off</span>
 	{:else if !compact && status === 'UNCONFIGURED'}

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
-	import Minus from '@lucide/svelte/icons/minus';
-	import Plus from '@lucide/svelte/icons/plus';
-	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
-	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import ArrowLeft from '@tabler/icons-svelte/icons/arrow-left';
+	import Minus from '@tabler/icons-svelte/icons/minus';
+	import Plus from '@tabler/icons-svelte/icons/plus';
+	import ShoppingBag from '@tabler/icons-svelte/icons/shopping-bag';
+	import Trash2 from '@tabler/icons-svelte/icons/trash';
 	import { useCart } from '$lib/storefront/cart-state.svelte';
 	import { lineTotal, quoteRequest, unitTotal } from '$lib/storefront/cart.svelte';
 	import { friendlyError, storefrontApi } from '$lib/storefront/api';
@@ -86,7 +86,7 @@
 	{#if cart.lines.length === 0}
 		<div class="sf-empty">
 			<span class="sf-empty-icon" aria-hidden="true">
-				<ShoppingBag size={26} strokeWidth={1.7} />
+				<ShoppingBag size={26} stroke={1.6} />
 			</span>
 			<h3>Your cart is empty</h3>
 			<p>Add something from the menu and it will show up here.</p>
@@ -126,7 +126,7 @@
 										refreshQuote();
 									}}
 								>
-									<Minus size={15} strokeWidth={2.4} aria-hidden="true" />
+									<Minus size={15} stroke={1.6} aria-hidden="true" />
 								</button>
 								<output aria-live="polite">{line.quantity}</output>
 								<button
@@ -138,14 +138,14 @@
 										refreshQuote();
 									}}
 								>
-									<Plus size={15} strokeWidth={2.4} aria-hidden="true" />
+									<Plus size={15} stroke={1.6} aria-hidden="true" />
 								</button>
 							</div>
 							<button class="sf-line-remove" type="button" onclick={() => {
 								cart.remove(line.key);
 								refreshQuote();
 							}}>
-								<Trash2 size={15} strokeWidth={1.9} aria-hidden="true" /> Remove
+								<Trash2 size={15} stroke={1.6} aria-hidden="true" /> Remove
 							</button>
 						</div>
 					</div>
@@ -196,7 +196,7 @@
 				Checkout · {money(totals.total, currency)}
 			</a>
 			<a class="sf-btn sf-btn-secondary sf-btn-block" href="/menu">
-				<ArrowLeft size={17} strokeWidth={2} aria-hidden="true" />
+				<ArrowLeft size={17} stroke={1.6} aria-hidden="true" />
 				Continue shopping
 			</a>
 		</div>

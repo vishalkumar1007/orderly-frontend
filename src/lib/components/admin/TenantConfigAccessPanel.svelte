@@ -10,9 +10,9 @@
 		type AdminTenantConfigOverview,
 		type AdminTenantService
 	} from '$lib/admin/configTypes';
-	import Building2 from '@lucide/svelte/icons/building-2';
-	import Globe from '@lucide/svelte/icons/globe';
-	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
+	import Building2 from '@tabler/icons-svelte/icons/building';
+	import Globe from '@tabler/icons-svelte/icons/world';
+	import TriangleAlert from '@tabler/icons-svelte/icons/alert-triangle';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
 	import StatusBadge from '$lib/components/admin/StatusBadge.svelte';
 	import Switch from '$lib/components/admin/Switch.svelte';
@@ -89,7 +89,7 @@
 	{:else if overview}
 		{#if overview.warning}
 			<div class="warn-strip">
-				<TriangleAlert size={15} strokeWidth={1.9} />
+				<TriangleAlert size={15} stroke={1.6} />
 				<span>{overview.warning}</span>
 			</div>
 		{/if}
@@ -101,9 +101,9 @@
 						<StatusBadge status={entry.organization_status} kind={statusTone(entry.organization_status)} />
 						<span class="src" class:platform={entry.source === 'PLATFORM'}>
 							{#if entry.source === 'PLATFORM'}
-								<Globe size={12} strokeWidth={2} /> Platform
+								<Globe size={12} stroke={1.6} /> Platform
 							{:else}
-								<Building2 size={12} strokeWidth={2} /> Organization
+								<Building2 size={12} stroke={1.6} /> Organization
 							{/if}
 						</span>
 					</div>

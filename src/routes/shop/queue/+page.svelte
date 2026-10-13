@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import UserPlus from '@lucide/svelte/icons/user-plus';
+	import UserPlus from '@tabler/icons-svelte/icons/user-plus';
 	import {
 		callQueueEntry,
 		cancelQueueEntry,
@@ -78,7 +78,7 @@
 	<header class="queue-head">
 		<p class="muted">Today's walk-in line, called in order.</p>
 		<button type="button" class="btn btn-primary" onclick={addWalkIn} disabled={joining}>
-			<UserPlus size={15} strokeWidth={2.2} />
+			<UserPlus size={15} stroke={1.6} />
 			Add walk-in
 		</button>
 	</header>

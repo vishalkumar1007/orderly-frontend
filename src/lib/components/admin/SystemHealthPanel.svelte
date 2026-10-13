@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+	import RefreshCw from '@tabler/icons-svelte/icons/refresh';
 	import { fetchSystemHealth } from '$lib/admin/api';
 	import { errorLines } from '$lib/admin/errors';
 	import { healthCheckMessage, healthSummary } from '$lib/admin/health';
@@ -132,7 +132,7 @@
 		<div class="status-item status-strip-end">
 			<a class="btn btn-quiet btn-sm" href="/superadmin/health">Details</a>
 			<button type="button" class="btn btn-quiet btn-sm" onclick={refresh}>
-				<RefreshCw size={13} strokeWidth={2} class={busy ? 'spin' : ''} />
+				<RefreshCw size={13} stroke={1.6} class={busy ? 'spin' : ''} />
 				Refresh
 			</button>
 		</div>
@@ -152,7 +152,7 @@
 						<h3>{group.label}</h3>
 					</div>
 					<ul class="hp-rows">
-						{#each group.rows as row (row.id)}
+						{#each group.rows as row, i (`${row.id}-${i}`)}
 							<li class="hp-row">
 								<span class={['status-dot', dotClass(String(row.status))].join(' ')}></span>
 								<span class="hp-main">

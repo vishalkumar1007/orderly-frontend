@@ -1,6 +1,6 @@
 /** Configurable integrations. Mirrors the backend's configsvc package. */
 
-export type ConfigService = 'SMTP' | 'STORAGE' | 'AI' | 'SMS';
+export type ConfigService = 'SMTP' | 'STORAGE' | 'AI' | 'SMS' | 'PAYMENTS';
 export type ConfigSource = 'PLATFORM' | 'ORGANIZATION';
 export type ConfigStatus =
 	| 'UNCONFIGURED'
@@ -33,6 +33,8 @@ export type ConfigView = {
 	config: Record<string, unknown>;
 	has_secret: boolean;
 	has_any_secret: boolean;
+	/** Per secret field: is a value stored? Presence only, never the value. */
+	secrets_stored?: Record<string, boolean>;
 	status: ConfigStatus;
 	enabled: boolean;
 	allow_tenants: boolean;
@@ -148,7 +150,8 @@ export const CONFIG_SERVICE_LABEL: Record<ConfigService, string> = {
 	SMTP: 'Email / SMTP',
 	STORAGE: 'Storage',
 	AI: 'AI',
-	SMS: 'SMS'
+	SMS: 'SMS',
+	PAYMENTS: 'Payments'
 };
 
 export const CONFIG_STATUS_LABEL: Record<ConfigStatus, string> = {
@@ -220,6 +223,21 @@ export const CONFIG_FIELDS: Record<
 		{ key: 'account_sid', label: 'Account SID' },
 		{ key: 'auth_token', label: 'Auth token', type: 'password', secret: true },
 		{ key: 'from_number', label: 'From number', hint: 'E.164 format, e.g. +14155551234' }
+	],
+	PAYMENTS: [
+		{
+			key: 'key_id',
+			label: 'Key ID',
+			hint: 'Starts with rzp_test_ (gateway test keys) or rzp_live_ (real keys)'
+		},
+		{ key: 'key_secret', label: 'Key secret', type: 'password', secret: true },
+		{
+			key: 'webhook_secret',
+			label: 'Webhook secret',
+			type: 'password',
+			secret: true,
+			hint: 'The signing secret set on the webhook in the gateway dashboard'
+		}
 	]
 };
 

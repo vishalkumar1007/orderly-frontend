@@ -1,7 +1,7 @@
 /** The notification rules engine. Mirrors the backend's internal/notify + the
  * notification_events/rules/templates/deliveries/preferences tables. */
 
-export type NotificationCategory = 'ORDERS' | 'PAYMENTS' | 'BOOKINGS' | 'STAFF' | 'SECURITY' | 'PLATFORM';
+export type NotificationCategory = 'ORDERS' | 'PAYMENTS' | 'BOOKINGS' | 'STAFF' | 'SECURITY' | 'PLATFORM' | 'INVENTORY';
 export type NotificationChannel = 'IN_APP' | 'EMAIL' | 'SMS';
 export type NotificationPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
 export type DeliveryStatus = 'PENDING' | 'SENT' | 'FAILED' | 'RETRYING' | 'DEAD';
@@ -87,7 +87,8 @@ export const CATEGORY_LABEL: Record<NotificationCategory, string> = {
 	BOOKINGS: 'Bookings',
 	STAFF: 'Staff',
 	SECURITY: 'Security',
-	PLATFORM: 'Platform'
+	PLATFORM: 'Platform',
+	INVENTORY: 'Inventory'
 };
 
 export const CHANNEL_LABEL: Record<NotificationChannel, string> = {

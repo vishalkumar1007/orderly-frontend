@@ -1,7 +1,7 @@
 <script lang="ts">
-	import PanelLeft from '@lucide/svelte/icons/panel-left';
-	import PanelLeftClose from '@lucide/svelte/icons/panel-left-close';
-	import X from '@lucide/svelte/icons/x';
+	import PanelLeft from '@tabler/icons-svelte/icons/layout-sidebar';
+	import PanelLeftClose from '@tabler/icons-svelte/icons/layout-sidebar-left-collapse';
+	import X from '@tabler/icons-svelte/icons/x';
 
 	let {
 		brandName = '',
@@ -34,9 +34,9 @@
 			aria-expanded={!collapsed}
 		>
 			{#if collapsed}
-				<PanelLeft size={18} strokeWidth={1.7} />
+				<PanelLeft size={18} stroke={1.6} />
 			{:else}
-				<PanelLeftClose size={18} strokeWidth={1.7} />
+				<PanelLeftClose size={18} stroke={1.6} />
 			{/if}
 		</button>
 	{:else}
@@ -47,7 +47,7 @@
 			aria-label="Close menu"
 			title="Close menu"
 		>
-			<X size={18} strokeWidth={1.8} />
+			<X size={18} stroke={1.6} />
 		</button>
 	{/if}
 </div>

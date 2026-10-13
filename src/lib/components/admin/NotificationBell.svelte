@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
-	import Bell from '@lucide/svelte/icons/bell';
-	import CircleCheck from '@lucide/svelte/icons/circle-check';
-	import Dot from '@lucide/svelte/icons/dot';
+	import AlertTriangle from '@tabler/icons-svelte/icons/alert-triangle';
+	import Bell from '@tabler/icons-svelte/icons/bell';
+	import CircleCheck from '@tabler/icons-svelte/icons/circle-check';
+	import Dot from '@tabler/icons-svelte/icons/point';
 	import { formatRelative } from '$lib/admin/format';
 	import { platformNotifications, tenantNotifications, type Notification } from '$lib/notifications.svelte';
 
@@ -68,7 +68,7 @@
 		title="Notifications"
 		onclick={toggle}
 	>
-		<Bell size={17} strokeWidth={2} />
+		<Bell size={17} stroke={1.6} />
 		{#if board.unreadCount > 0}
 			<span class="notif-dot" aria-hidden="true">{board.unreadCount > 9 ? '9+' : board.unreadCount}</span>
 		{/if}
@@ -110,7 +110,7 @@
 				<p class="notif-empty muted">Loading…</p>
 			{:else if visible.length === 0}
 				<div class="notif-empty">
-					<CircleCheck size={18} strokeWidth={1.7} />
+					<CircleCheck size={18} stroke={1.6} />
 					<p class="muted">{filter === 'unread' ? 'Nothing unread' : "You're all caught up"}</p>
 				</div>
 			{:else}
@@ -121,13 +121,13 @@
 								{#if n.priority === 'CRITICAL' || n.priority === 'HIGH'}
 									<AlertTriangle
 										size={13}
-										strokeWidth={2}
+										stroke={1.6}
 										class="notif-item-icon {n.priority === 'CRITICAL' ? 'critical' : 'high'}"
 									/>
 								{:else}
 									<Dot
 									size={13}
-									strokeWidth={2}
+									stroke={1.6}
 									class={['notif-item-icon', !n.read ? 'visible' : ''].join(' ')}
 								/>
 								{/if}

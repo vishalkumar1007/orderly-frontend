@@ -1,9 +1,9 @@
 <script lang="ts">
-	import Megaphone from '@lucide/svelte/icons/megaphone';
-	import Sparkles from '@lucide/svelte/icons/sparkles';
-	import AlertCircle from '@lucide/svelte/icons/circle-alert';
-	import Info from '@lucide/svelte/icons/info';
-	import Store from '@lucide/svelte/icons/store';
+	import Megaphone from '@tabler/icons-svelte/icons/speakerphone';
+	import Sparkles from '@tabler/icons-svelte/icons/sparkles';
+	import AlertCircle from '@tabler/icons-svelte/icons/alert-circle';
+	import Info from '@tabler/icons-svelte/icons/info-circle';
+	import Store from '@tabler/icons-svelte/icons/building-store';
 	import { storefrontAdminApi } from '$lib/storefront/admin';
 	import type { StorefrontContext } from '$lib/storefront/admin-context';
 	import { toast } from '$lib/components/admin/toast';
@@ -73,7 +73,7 @@
 <div class="studio-content-grid">
 	<div class="panel studio-section-intro">
 		<div class="intro-icon-wrap">
-			<Megaphone size={24} strokeWidth={1.8} />
+			<Megaphone size={24} stroke={1.6} />
 		</div>
 		<div>
 			<h2 class="intro-h">Customer Banner</h2>
@@ -92,7 +92,7 @@
 				class:active={broadcastType === 'offer'}
 				onclick={() => (broadcastType = 'offer')}
 			>
-				<Sparkles size={16} strokeWidth={2} /> Offer
+				<Sparkles size={16} stroke={1.6} /> Offer
 			</button>
 			<button
 				type="button"
@@ -100,7 +100,7 @@
 				class:active={broadcastType === 'alert'}
 				onclick={() => (broadcastType = 'alert')}
 			>
-				<AlertCircle size={16} strokeWidth={2} /> Alert
+				<AlertCircle size={16} stroke={1.6} /> Alert
 			</button>
 			<button
 				type="button"
@@ -108,7 +108,7 @@
 				class:active={broadcastType === 'msg'}
 				onclick={() => (broadcastType = 'msg')}
 			>
-				<Info size={16} strokeWidth={2} /> Message
+				<Info size={16} stroke={1.6} /> Message
 			</button>
 			<button
 				type="button"
@@ -116,7 +116,7 @@
 				class:active={broadcastType === 'others'}
 				onclick={() => (broadcastType = 'others')}
 			>
-				<Store size={16} strokeWidth={2} /> Other
+				<Store size={16} stroke={1.6} /> Other
 			</button>
 		</div>
 

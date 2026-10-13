@@ -1,15 +1,15 @@
 <script lang="ts">
-	import Check from '@lucide/svelte/icons/check';
-	import CircleCheck from '@lucide/svelte/icons/circle-check';
-	import MapPin from '@lucide/svelte/icons/map-pin';
-	import Phone from '@lucide/svelte/icons/phone';
-	import Utensils from '@lucide/svelte/icons/utensils';
-	import Clock from '@lucide/svelte/icons/clock';
-	import Star from '@lucide/svelte/icons/star';
-	import Sparkles from '@lucide/svelte/icons/sparkles';
-	import Flame from '@lucide/svelte/icons/flame';
-	import ShieldCheck from '@lucide/svelte/icons/shield-check';
-	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import Check from '@tabler/icons-svelte/icons/check';
+	import CircleCheck from '@tabler/icons-svelte/icons/circle-check';
+	import MapPin from '@tabler/icons-svelte/icons/map-pin';
+	import Phone from '@tabler/icons-svelte/icons/phone';
+	import Utensils from '@tabler/icons-svelte/icons/tools-kitchen-2';
+	import Clock from '@tabler/icons-svelte/icons/clock';
+	import Star from '@tabler/icons-svelte/icons/star';
+	import Sparkles from '@tabler/icons-svelte/icons/sparkles';
+	import Flame from '@tabler/icons-svelte/icons/flame';
+	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
+	import ChevronRight from '@tabler/icons-svelte/icons/chevron-right';
 	import type { StoreConfig, StoreMenu, StoreProduct } from '$lib/storefront/api';
 	import { hoursRows } from '$lib/storefront/hours';
 	import { formatPhone, money } from '$lib/storefront/format';
@@ -163,7 +163,7 @@
 <!-- Announcement Banner -->
 {#if !liveBannerMessage && announcement && read(announcement, 'text')}
 	<div class="sf-announcement" data-tone={announceTone}>
-		<Sparkles size={16} strokeWidth={2.2} aria-hidden="true" />
+		<Sparkles size={16} stroke={1.6} aria-hidden="true" />
 		<span>{read(announcement, 'text')}</span>
 	</div>
 {/if}
@@ -212,7 +212,7 @@
 						<div class="sf-restaurant-title-row">
 							<h1 class="sf-restaurant-title">{read(hero, 'title', store.name)}</h1>
 							<span class="sf-verified-badge" title={verifiedBadgeLabel}>
-								<ShieldCheck size={18} strokeWidth={2.4} aria-hidden="true" />
+								<ShieldCheck size={18} stroke={1.6} aria-hidden="true" />
 							</span>
 						</div>
 
@@ -228,7 +228,7 @@
 				<div class="sf-restaurant-pills">
 					<!-- Rating Badge -->
 					<div class="sf-pill sf-pill-rating">
-						<Star size={14} strokeWidth={2.6} class="sf-star-icon" aria-hidden="true" />
+						<Star size={14} stroke={1.6} class="sf-star-icon" aria-hidden="true" />
 						<span class="sf-pill-bold">4.8</span>
 						<span class="sf-pill-sub">(200+)</span>
 					</div>
@@ -242,7 +242,7 @@
 					<!-- Prep Time Badge -->
 					{#if prepTime}
 						<div class="sf-pill sf-pill-prep">
-							<Clock size={14} strokeWidth={2.2} aria-hidden="true" />
+							<Clock size={14} stroke={1.6} aria-hidden="true" />
 							<span class="sf-pill-text">~{prepTime} mins</span>
 						</div>
 					{/if}
@@ -255,7 +255,7 @@
 					<!-- Address Pill -->
 					{#if store.address}
 						<div class="sf-pill sf-pill-location sf-desktop-only" title={store.address}>
-							<MapPin size={13} strokeWidth={2.2} aria-hidden="true" />
+							<MapPin size={13} stroke={1.6} aria-hidden="true" />
 							<span class="sf-pill-text sf-truncate-text">{store.address}</span>
 						</div>
 					{/if}
@@ -299,7 +299,7 @@
 				aria-pressed={popularOnly}
 				title="Show popular bestsellers"
 			>
-				<Flame size={14} strokeWidth={2.5} class="sf-flame-icon" aria-hidden="true" />
+				<Flame size={14} stroke={1.6} class="sf-flame-icon" aria-hidden="true" />
 				<span class="sf-diet-toggle-label">Bestsellers</span>
 			</button>
 		</div>
@@ -336,7 +336,7 @@
 					</div>
 					<a href="/menu" class="sf-section-link">
 						<span>See full menu</span>
-						<ChevronRight size={16} strokeWidth={2.2} aria-hidden="true" />
+						<ChevronRight size={16} stroke={1.6} aria-hidden="true" />
 					</a>
 				</div>
 				<div class="sf-categories-grid">
@@ -347,7 +347,7 @@
 							onclick={() => scrollToCategory(category.id)}
 						>
 							<div class="sf-category-icon-box" aria-hidden="true">
-								<Utensils size={22} strokeWidth={2} />
+								<Utensils size={22} stroke={1.6} />
 							</div>
 							<div class="sf-category-info">
 								<span class="sf-category-title">{category.name}</span>
@@ -367,9 +367,9 @@
 						<div class="sf-section-title-wrap">
 							<div class="sf-section-badge-title">
 								{#if section.type === 'POPULAR_PRODUCTS'}
-									<Flame size={18} strokeWidth={2.5} class="sf-icon-flame" aria-hidden="true" />
+									<Flame size={18} stroke={1.6} class="sf-icon-flame" aria-hidden="true" />
 								{:else}
-									<Sparkles size={18} strokeWidth={2.4} class="sf-icon-sparkle" aria-hidden="true" />
+									<Sparkles size={18} stroke={1.6} class="sf-icon-sparkle" aria-hidden="true" />
 								{/if}
 								<h2 class="sf-section-title">
 									{read(
@@ -389,7 +389,7 @@
 						</div>
 						<a href="/menu" class="sf-section-link">
 							<span>See all</span>
-							<ChevronRight size={16} strokeWidth={2.2} aria-hidden="true" />
+							<ChevronRight size={16} stroke={1.6} aria-hidden="true" />
 						</a>
 					</div>
 					<div class="sf-rail">
@@ -423,7 +423,7 @@
 					</div>
 					<a href="/menu" class="sf-section-link">
 						<span>Filter & Search</span>
-						<ChevronRight size={16} strokeWidth={2.2} aria-hidden="true" />
+						<ChevronRight size={16} stroke={1.6} aria-hidden="true" />
 					</a>
 				</div>
 
@@ -470,7 +470,7 @@
 						{#if store.address}
 							<div class="sf-business-item">
 								<div class="sf-business-icon" aria-hidden="true">
-									<MapPin size={20} strokeWidth={2} />
+									<MapPin size={20} stroke={1.6} />
 								</div>
 								<div class="sf-business-details">
 									<span class="sf-business-label">Address</span>
@@ -481,7 +481,7 @@
 						{#if store.phone}
 							<div class="sf-business-item">
 								<div class="sf-business-icon" aria-hidden="true">
-									<Phone size={20} strokeWidth={2} />
+									<Phone size={20} stroke={1.6} />
 								</div>
 								<div class="sf-business-details">
 									<span class="sf-business-label">Phone</span>
@@ -496,7 +496,7 @@
 						{/if}
 						<div class="sf-business-item">
 							<div class="sf-business-icon" aria-hidden="true">
-								<CircleCheck size={20} strokeWidth={2} />
+								<CircleCheck size={20} stroke={1.6} />
 							</div>
 							<div class="sf-business-details">
 								<span class="sf-business-label">Current Status</span>
