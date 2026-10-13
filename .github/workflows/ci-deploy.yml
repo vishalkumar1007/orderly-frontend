@@ -84,8 +84,11 @@ jobs:
           push: false
           tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           outputs: type=docker,dest=/tmp/${{ env.IMAGE_NAME }}-${{ github.sha }}.tar
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Production UI must match this commit. GHA cache has served stale
+          # COPY/. + npm run build layers after force-pushes; never cache the image.
+          no-cache: true
+          build-args: |
+            GIT_SHA=${{ github.sha }}
 
       - name: Gzip archive
         run: gzip -f "/tmp/${{ env.IMAGE_NAME }}-${{ github.sha }}.tar"

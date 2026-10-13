@@ -1,13 +1,17 @@
 # Build stage
 FROM node:22-alpine AS builder
 
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
+
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+# Record the commit in the image so a wrong cache hit is obvious in logs.
+RUN printf '%s\n' "$GIT_SHA" > /app/.build-sha && npm run build
 RUN npm prune --omit=dev
 
 # Production runtime
