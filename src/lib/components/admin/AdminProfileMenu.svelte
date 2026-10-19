@@ -21,7 +21,7 @@
 		displayName?: string;
 		role?: string;
 		collapsed?: boolean;
-		/** Destination for the Settings menu item — portal-specific. */
+		/** Destination for the Settings menu item: portal-specific. */
 		settingsHref?: string;
 		/**
 		 * The signed-in person's own account screen. It lives here rather than
@@ -33,7 +33,7 @@
 		 * How this person changes their own console theme.
 		 *
 		 * It sits in the account menu, not the rail, because it is a preference
-		 * about their screen rather than a thing the business governs — and
+		 * about their screen rather than a thing the business governs: and
 		 * because it must stay reachable for someone whose role never opens
 		 * Settings at all.
 		 */

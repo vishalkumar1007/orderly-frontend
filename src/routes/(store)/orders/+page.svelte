@@ -12,7 +12,7 @@
 	 *
 	 * A signed-in customer sees their own orders with no extra step. A guest is
 	 * asked for the phone number they ordered with, which is the same proof the
-	 * tracking screen requires — a number on its own reveals nothing.
+	 * tracking screen requires: a number on its own reveals nothing.
 	 */
 	let { data } = $props();
 

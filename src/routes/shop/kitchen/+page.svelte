@@ -10,7 +10,7 @@
 	import { terms } from '$lib/tenant/businessType.svelte';
 
 	/**
-	 * Prep board — same live data as /shop/orders, tuned for the counter:
+	 * Prep board: same live data as /shop/orders, tuned for the counter:
 	 * no money, no customer names up front, and one big tap target per ticket.
 	 *
 	 * The stage names come from the business type. The workflow underneath is
@@ -82,7 +82,7 @@
 	{:else}
 		<div class="osh-kitchen-toolbar">
 			<p class="osh-kitchen-lead">
-				{t.ticket} board for the {t.station.toLowerCase()} — the same {t.orders.toLowerCase()} as
+				{t.ticket} board for the {t.station.toLowerCase()}: the same {t.orders.toLowerCase()} as
 				<a href="/shop/orders">Selling</a>, without money or customer details up front.
 			</p>
 			<OpsFullscreenToggle label="Fullscreen" />
@@ -90,7 +90,7 @@
 	{/if}
 
 	{#if !isOnline()}
-		<div class="osh-banner offline">You're offline — the board may be out of date.</div>
+		<div class="osh-banner offline">You're offline: the board may be out of date.</div>
 	{/if}
 
 	{#if orderBoard.error}

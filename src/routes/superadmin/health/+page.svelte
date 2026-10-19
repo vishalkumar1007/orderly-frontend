@@ -15,7 +15,7 @@
 	 * Live component status, polled while the screen is open. It reports what
 	 * the platform can actually observe: the API and database are probed on
 	 * each request; providers report the state their last save or test
-	 * recorded. Nothing dials a provider on a timer — a health check that sent
+	 * recorded. Nothing dials a provider on a timer: a health check that sent
 	 * mail every thirty seconds would be its own outage.
 	 */
 

@@ -35,8 +35,8 @@
 	 *
 	 * Three columns, which is the whole idea: what you can change, what you are
 	 * changing, and what it will look like. The sections used to be a row of
-	 * tabs inside the control panel inside the page — three levels of navigation
-	 * for one screen — and the header carried six equally-weighted buttons, so
+	 * tabs inside the control panel inside the page: three levels of navigation
+	 * for one screen: and the header carried six equally-weighted buttons, so
 	 * nothing read as the thing you came to do.
 	 *
 	 * The section rail names itself after the business type. A hotel does not

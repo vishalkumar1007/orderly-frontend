@@ -5,7 +5,7 @@ import { api } from '$lib/api/client';
  *
  * Leaving Dashboard for Orders/Menu and coming back remounts `+page.svelte`.
  * Without a cache that remount always starts with loading=true and a full-pane
- * skeleton — which reads as "UI stuck loading" even when the Go APIs are fast.
+ * skeleton: which reads as "UI stuck loading" even when the Go APIs are fast.
  * Serve the last payload immediately and refresh in the background.
  */
 
@@ -37,7 +37,7 @@ export type DashboardStoreLink = {
 /**
  * The launch checklist, as the API reports it.
  *
- * Every step is derived from real state on the server — there are no
+ * Every step is derived from real state on the server: there are no
  * optimistic defaults here. `required` lists the steps the product treats as
  * the minimum to launch, so the console can disable Publish rather than let an
  * owner put an empty shop in front of a customer.

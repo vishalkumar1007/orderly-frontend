@@ -1,16 +1,16 @@
 /** Shared formatting helpers for Super Admin UI. */
 
 export function formatDate(iso?: string | null, opts?: Intl.DateTimeFormatOptions): string {
-	if (!iso) return '—';
+	if (!iso) return '-';
 	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return '—';
+	if (Number.isNaN(d.getTime())) return '-';
 	return d.toLocaleDateString('en-IN', opts ?? { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export function formatDateTime(iso?: string | null): string {
-	if (!iso) return '—';
+	if (!iso) return '-';
 	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return '—';
+	if (Number.isNaN(d.getTime())) return '-';
 	return d.toLocaleString('en-IN', {
 		day: 'numeric',
 		month: 'short',
@@ -21,9 +21,9 @@ export function formatDateTime(iso?: string | null): string {
 }
 
 export function formatRelative(iso?: string | null): string {
-	if (!iso) return '—';
+	if (!iso) return '-';
 	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return '—';
+	if (Number.isNaN(d.getTime())) return '-';
 	const diff = Date.now() - d.getTime();
 	const mins = Math.round(diff / 60000);
 	if (mins < 1) return 'Just now';
@@ -99,6 +99,6 @@ export function rupees(raw: string | number | null | undefined): string {
 
 /** Human label for a business type code. */
 export function businessTypeLabel(code?: string | null): string {
-	if (!code) return '—';
+	if (!code) return '-';
 	return code.replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase());
 }

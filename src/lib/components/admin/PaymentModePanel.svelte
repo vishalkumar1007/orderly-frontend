@@ -2,13 +2,14 @@
 	/**
 	 * Dummy vs real payments.
 	 *
-	 * One panel for both levels: the platform default, and — when `tenantId` is
-	 * given — a single business, which can follow the default or override it.
+	 * One panel for both levels: the platform default, and: when `tenantId` is
+	 * given: a single business, which can follow the default or override it.
 	 * Going real is deliberately a second step: it is disabled until the
 	 * go-live checklist passes, and then asks for confirmation, because real
 	 * customers get charged real money.
 	 */
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
+	import { getConfig, isConfigCached } from '$lib/admin/configCache.svelte';
 	import BadgeCheck from '@tabler/icons-svelte/icons/rosette-discount-check';
 	import CircleCheck from '@tabler/icons-svelte/icons/circle-check';
 	import CircleDashed from '@tabler/icons-svelte/icons/circle-dashed';
@@ -69,8 +70,9 @@
 	const canGoLive = $derived(Boolean(readiness?.ready));
 	const subject = $derived(scoped ? (businessName || 'this business') : 'the platform');
 
-	async function load() {
-		loading = true;
+	/** `quiet` re-checks in place, without the skeleton, for background refreshes. */
+	async function load(quiet = false) {
+		if (!quiet) loading = true;
 		error = '';
 		try {
 			if (scoped) {
@@ -90,6 +92,18 @@
 	}
 
 	onMount(() => void load());
+
+	// Save, Test connection and sharing changes on the provider panel all write
+	// the shared config cache. Re-check readiness whenever that entry changes, so
+	// the checklist and the "Real payments" lock follow without a page reload.
+	// The first cached value is only recorded: it is the load we already did.
+	let seenConfig: unknown;
+	$effect(() => {
+		if (!isConfigCached('PAYMENTS')) return;
+		const view = getConfig('PAYMENTS');
+		if (seenConfig !== undefined && view !== seenConfig) untrack(() => void load(true));
+		seenConfig = view;
+	});
 
 	function choose(choice: Choice) {
 		if (saving || choice === selected) return;
@@ -147,7 +161,7 @@
 	<div class="panel-head">
 		<div class="head-row">
 			<h3 class="panel-h" id="pay-mode-h">
-				{scoped ? 'Payment mode' : 'Payment mode — platform default'}
+				{scoped ? 'Payment mode' : 'Payment mode: platform default'}
 			</h3>
 			{#if !loading && !error}
 				<StatusBadge
@@ -161,7 +175,7 @@
 				Choose whether {subject} takes real payments. Follow the platform default, or set this
 				business on its own.
 			{:else}
-				The default for every business. Keep it on dummy while you build and test — nobody is
+				The default for every business. Keep it on dummy while you build and test: nobody is
 				charged, and the whole order-to-kitchen flow still works. A business can be moved to real
 				payments on its own from its page.
 			{/if}
@@ -286,7 +300,7 @@
 				{#if readiness.key_kind === 'test'}
 					<p class="note">
 						These are the gateway’s <strong>test</strong> keys. Real payments in this state run
-						against the gateway’s test environment — the right way to prove the integration
+						against the gateway’s test environment: the right way to prove the integration
 						before real keys go in.
 					</p>
 				{/if}
@@ -296,7 +310,7 @@
 				<div class="alert alert-info" role="status">
 					<span>
 						Live checkout is not connected in this build yet. Businesses on real payments are
-						offered pay-at-pickup only — a payment is never faked.
+						offered pay-at-pickup only: a payment is never faked.
 					</span>
 				</div>
 			{/if}

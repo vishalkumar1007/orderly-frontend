@@ -28,7 +28,7 @@ export type ShopNavItem = {
 	href: string;
 	/**
 	 * The default label. `labelFor` overrides it when the business type has
-	 * its own word — a grocer's board is Packing, a cafe's is the Bar.
+	 * its own word: a grocer's board is Packing, a cafe's is the Bar.
 	 */
 	label: string;
 	icon: Component;
@@ -40,7 +40,7 @@ export type ShopNavItem = {
 	badge?: 'active' | 'new';
 	/**
 	 * The capability this destination needs. The signed-in user's permission
-	 * list comes from the API, so the rail shows exactly what the API allows —
+	 * list comes from the API, so the rail shows exactly what the API allows:
 	 * a manager sees the menu but not the storefront, and neither the rail nor
 	 * the server has to know about the other's rules.
 	 */
@@ -73,7 +73,7 @@ export type ShopPermission =
 
 export type ShopNavGroup = {
 	label?: string;
-	/** Visual weight — RUNNING is the daily-ops cluster. */
+	/** Visual weight: RUNNING is the daily-ops cluster. */
 	emphasis?: 'running';
 	items: ShopNavItem[];
 };
@@ -108,7 +108,7 @@ export const SHOP_NAV: ShopNavGroup[] = [
 
 /**
  * The five destinations that fit a phone's bottom bar. "More" opens the drawer
- * for everything else — a tab bar with more than five items stops being
+ * for everything else: a tab bar with more than five items stops being
  * thumb-friendly.
  */
 export const SHOP_TABS: ShopNavItem[] = [
@@ -157,7 +157,7 @@ export function inModules(item: ShopNavItem, businessType: string | null | undef
  * Can this user open this destination?
  *
  * Permissions win when the API supplied them. The role list is the fallback for
- * a session that predates permissions — the rail degrades to what it used to
+ * a session that predates permissions: the rail degrades to what it used to
  * do rather than emptying itself.
  */
 export function canOpen(
@@ -203,7 +203,7 @@ export function isActive(pathname: string, item: ShopNavItem): boolean {
 
 /**
  * App-bar titles, derived from the route. The shell renders above every page,
- * so pages cannot hand it a title as a prop — the route is the single source
+ * so pages cannot hand it a title as a prop: the route is the single source
  * of truth, which also keeps the browser tab and the app bar in agreement.
  */
 const TITLES: Array<[string, string]> = [
@@ -386,8 +386,8 @@ export const TENANT_NAV: ShopNavGroup[] = [
 		/*
 		 * Three destinations, not eight.
 		 *
-		 * Everything else that used to sit here — business profile, order
-		 * workflow, notifications, integrations, console appearance — is
+		 * Everything else that used to sit here: business profile, order
+		 * workflow, notifications, integrations, console appearance: is
 		 * configuration you open to change one thing and leave, so it lives as
 		 * a section inside Settings rather than as a permanent entry in the
 		 * rail. Payments and IAM stay out because they are the two an owner
@@ -482,11 +482,11 @@ export type TenantCrumb = { label: string; href: string | null };
  * Both call sites resolve against the same array on purpose: an earlier version
  * let `tenantTitle` pass the whole path and `tenantCrumbs` pass the shop-stripped
  * one, and the storefront check below silently stopped matching for the caller
- * that used the other convention — which showed up as "Opening hours" rendering
+ * that used the other convention: which showed up as "Opening hours" rendering
  * as "Hours" in the page title while the breadcrumb was right.
  *
  * Inside `/shop/storefront/*` the storefront navigation owns the wording, because
- * those segment names repeat with a different meaning elsewhere — `login` is a
+ * those segment names repeat with a different meaning elsewhere: `login` is a
  * customer setting under `/shop/storefront` and the staff sign-in page on its own.
  */
 /**
@@ -494,7 +494,7 @@ export type TenantCrumb = { label: string; href: string | null };
  *
  * A grocer's `kitchen` is the packing bench and a hotel's is the service desk;
  * `menu` is a menu in a cafe and a catalogue in a shop. The route keeps its
- * stable path — only the word on screen moves — so links, bookmarks and the
+ * stable path, only the word on screen moves, so links, bookmarks and the
  * navigation checks all stay valid.
  */
 const TERM_SEGMENTS: Record<string, (t: Terminology) => string> = {

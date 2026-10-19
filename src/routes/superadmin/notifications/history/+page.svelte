@@ -14,7 +14,7 @@
 
 	/**
 	 * The bell's dropdown only ever shows the most recent window. This is the
-	 * rest of it — every console notification this account has ever had.
+	 * rest of it: every console notification this account has ever had.
 	 */
 
 	let items = $state<Notification[]>([]);

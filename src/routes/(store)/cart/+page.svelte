@@ -15,7 +15,7 @@
 	 *
 	 * Totals are asked for from the server rather than computed here. Tax and
 	 * packaging come from the tenant's configuration, and the only number that
-	 * matters is the one that will be charged — so the cart shows what the server
+	 * matters is the one that will be charged: so the cart shows what the server
 	 * said, and a failure falls back to the item subtotal with an explanation
 	 * rather than a silently wrong total.
 	 */

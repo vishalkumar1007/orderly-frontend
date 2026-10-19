@@ -34,7 +34,7 @@
 	/**
 	 * Console access.
 	 *
-	 * Who can reach *this* console — nothing else. A business's own staff are
+	 * Who can reach *this* console: nothing else. A business's own staff are
 	 * invited and managed inside that business by someone who works there, and
 	 * no screen here can create or change one. That boundary is the product's,
 	 * not this page's: the API has no route for it either.
@@ -197,7 +197,7 @@
 
 	function actionsFor(user: ConsoleUser): RowAction[] {
 		// The owner is the account that cannot be locked out, and nobody edits
-		// their own access — both would end with a console nobody can reach.
+		// their own access: both would end with a console nobody can reach.
 		if (user.is_owner) {
 			return [{ label: 'The owner account cannot be changed', disabled: true }];
 		}
@@ -243,7 +243,7 @@
 	<div>
 		<strong>This list is the platform console, not your businesses</strong>
 		<p>
-			Everyone here can sign in to this console. Nobody here has any access inside a business —
+			Everyone here can sign in to this console. Nobody here has any access inside a business:
 			a business's own staff are invited by its owner, on its own address, and cannot be created
 			from the platform side.
 		</p>
@@ -303,7 +303,7 @@
 							</span>
 							<span class="cell-id-txt">
 								<strong>
-									{user.name || '—'}
+									{user.name || '-'}
 									{#if user.is_self}<span class="you">you</span>{/if}
 								</strong>
 								<span style="font-family:var(--font);">{user.email}</span>
@@ -398,7 +398,7 @@
 
 			<p class="matrix-note">
 				Roles are fixed for now. If someone needs a mix these do not cover, give them the
-				narrower role rather than sharing an account — every action here is recorded against
+				narrower role rather than sharing an account: every action here is recorded against
 				the person who took it.
 			</p>
 		{/if}

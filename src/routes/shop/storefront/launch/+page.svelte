@@ -51,7 +51,7 @@
 	let policySignature = $state<PolicySignature | null>(null);
 	let policySigned = $state(false);
 
-	/** Sync from localStorage once / on store notify — never inside $effect (JSON.parse
+	/** Sync from localStorage once / on store notify: never inside $effect (JSON.parse
 	 *  returns a new object each call; reading it after write infinite-loops Svelte 5). */
 	function syncPolicyFromStore() {
 		const slug = tenantSlug;
@@ -229,7 +229,7 @@
 			toast.success('Link copied');
 			setTimeout(() => (copiedLink = false), 2000);
 		} catch {
-			toast.error('Could not copy — select the link manually');
+			toast.error('Could not copy: select the link manually');
 		}
 	}
 
@@ -247,7 +247,7 @@
 	}
 </script>
 
-<!-- Shell paints immediately — never wait on setup APIs or heavy tab modules. -->
+<!-- Shell paints immediately: never wait on setup APIs or heavy tab modules. -->
 <header class="studio-header">
 	<div class="studio-header-main">
 		<div class="studio-header-titles">

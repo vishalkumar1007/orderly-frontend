@@ -21,7 +21,8 @@
 	import { invalidateDashboardSnapshot, resolveStorefrontUrl } from '$lib/tenant/dashboardCache.svelte';
 	import { invalidateMenuSnapshot } from '$lib/tenant/menuCache.svelte';
 	import { invalidateStorefrontAdmin, loadStorefrontAdmin } from '$lib/storefront/adminCache.svelte';
-	import { playSound } from '$lib/sound';
+	import VolumeOff from '@tabler/icons-svelte/icons/volume-off';
+	import { playSound, soundState, unlockSound } from '$lib/sound.svelte';
 	import { clearBrandTheme, invalidateBrandThemeCache } from '$lib/brandTheme';
 	import { forgetAppearance } from '$lib/appearance.svelte';
 	import { activateUpdate, onUpdateAvailable } from '$lib/pwa.svelte';
@@ -52,7 +53,7 @@
 	};
 
 	/**
-	 * Tri-state so the shell is never rendered for a user we haven't identified —
+	 * Tri-state so the shell is never rendered for a user we haven't identified:
 	 * otherwise the rail and account menu flash for the wrong person. Mirrors the
 	 * Super Admin layout.
 	 */
@@ -78,7 +79,7 @@
 	});
 
 	/**
-	 * `/shop/login` is a child of this layout. It must always render its own UI —
+	 * `/shop/login` is a child of this layout. It must always render its own UI:
 	 * never the shell skeleton and never the empty "anon" frame. Super Admin does
 	 * the same for `/superadmin/login`; an earlier shop-only "decide once" gate
 	 * left `status === 'anon'` painting a blank 100dvh div forever (black page
@@ -144,7 +145,7 @@
 	/** Resolve identity for the side of the login wall we are currently on. */
 	async function resolve(side: 'public' | 'protected') {
 		if (side === 'public') {
-			// Login renders its own screen — no shell, no identity fetch.
+			// Login renders its own screen: no shell, no identity fetch.
 			status = 'ready';
 			return;
 		}
@@ -225,7 +226,7 @@
 	/** Orders needing attention, surfaced in the topbar. */
 	const needsAttention = $derived(orderBoard.activeCount);
 
-	// Slow badge poll only — ops pages acquire('ops') for the fast cadence.
+	// Slow badge poll only: ops pages acquire('ops') for the fast cadence.
 	$effect(() => {
 		if (status !== 'ready' || !user || isPublicRoute) return;
 		orderBoard.acquire('badge');
@@ -236,12 +237,16 @@
 	 * New-order sound, shop-portal-wide.
 	 *
 	 * Lives in the layout rather than the Selling page so it plays no matter
-	 * which screen a staff member has open — the badge subscriber above is
+	 * which screen a staff member has open: the badge subscriber above is
 	 * already polling everywhere `/shop` is mounted.
 	 */
 	let newOrderSound = $state('CHIME');
-	let lastPendingCount = 0;
 	let soundPrefLoaded = false;
+	// Pending order ids already heard. A new id is what chimes, not a higher
+	// count: one accepted and one arriving between polls kept the count equal
+	// and stayed silent. Seeded from the first successful load so orders that
+	// were already waiting when the page opened do not chime.
+	let heardPending: Set<string> | null = null;
 
 	$effect(() => {
 		if (status !== 'ready' || !user || isPublicRoute || soundPrefLoaded) return;
@@ -252,10 +257,19 @@
 	});
 
 	$effect(() => {
-		const count = orderBoard.newCount;
-		if (count > lastPendingCount) playSound(newOrderSound);
-		lastPendingCount = count;
+		if (orderBoard.lastSync === null) return;
+		const ids = orderBoard.orders.filter((o) => o.status === 'PENDING').map((o) => o.id);
+		if (heardPending === null) {
+			heardPending = new Set(ids);
+			return;
+		}
+		const fresh = ids.filter((id) => !heardPending!.has(id));
+		for (const id of fresh) heardPending.add(id);
+		if (fresh.length) playSound(newOrderSound);
 	});
+
+	// Browsers block sound until someone interacts with the page. Offer one tap.
+	const offerSound = $derived(soundState.locked && soundState.supported && newOrderSound !== 'NONE');
 
 	// Plan and license refusals from any screen become one upgrade prompt.
 	onMount(() => onPlanBlock(showPlanNotice));
@@ -267,7 +281,7 @@
 	});
 
 	onMount(() => {
-		// A new build is ready — offer it instead of swapping mid-order.
+		// A new build is ready: offer it instead of swapping mid-order.
 		return onUpdateAvailable(() => {
 			toast.show({
 				message: 'A new version of Orderly is ready',
@@ -310,6 +324,11 @@
 {:else if status === 'ready' && user}
 	{#if isFullscreen}
 		{@render children()}
+		{#if offerSound}
+			<button type="button" class="btn btn-primary btn-sm sound-float" onclick={unlockSound}>
+				<VolumeOff size={14} stroke={1.6} /> Turn on sound for new orders
+			</button>
+		{/if}
 		<Toaster />
 	{:else}
 		<AppShell
@@ -331,6 +350,11 @@
 			onSignOut={signOut}
 		>
 			{#snippet actions()}
+				{#if offerSound}
+					<button type="button" class="btn btn-ghost btn-sm" onclick={unlockSound} title="Browsers keep sound off until you click once">
+						<VolumeOff size={14} stroke={1.6} /> Turn on sound
+					</button>
+				{/if}
 				<NotificationBell scope="tenant" />
 				{#if needsAttention > 0}
 					<a class="btn btn-ghost btn-sm" href="/shop/orders">
@@ -375,6 +399,14 @@
 {/if}
 
 <style>
+	.sound-float {
+		position: fixed;
+		left: 16px;
+		bottom: 16px;
+		z-index: 60;
+		box-shadow: var(--shadow-md);
+	}
+
 	.license-blocked {
 		min-height: 100dvh;
 		display: grid;

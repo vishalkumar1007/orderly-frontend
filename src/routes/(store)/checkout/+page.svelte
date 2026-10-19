@@ -14,7 +14,7 @@
 	 * Checkout.
 	 *
 	 * Three things and a button: who you are, how you collect, how you pay. A
-	 * guest is never pushed to sign in — the phone shortcut is offered once, as a
+	 * guest is never pushed to sign in: the phone shortcut is offered once, as a
 	 * plain secondary link, and can be ignored.
 	 *
 	 * The order is priced by the server on submit. This screen shows a quote for

@@ -53,7 +53,7 @@ type FieldSpec = {
  * Every field the Studio can change, in the order the review screen lists them.
  *
  * Adding a control means adding a line here. Leaving it out is what made the
- * old screen lie, so this list — not the publish call — is the definition of
+ * old screen lie, so this list, not the publish call, is the definition of
  * what counts as an unpublished change.
  */
 const FIELDS: FieldSpec[] = [
@@ -90,7 +90,7 @@ const FIELDS: FieldSpec[] = [
 	{ category: 'Menu layout', label: 'Filter style', path: 'theme.filter_style' },
 	{ category: 'Menu layout', label: 'Header style', path: 'theme.header' },
 
-	// Ordering — store_status / status_message / hours are live ops (Action +
+	// Ordering: store_status / status_message / hours are live ops (Action +
 	// Customize share the same APIs); they are never draft diffs.
 	{ category: 'Ordering', label: 'Accepting orders', path: 'behaviour.ordering_enabled', format: asOnOff },
 	{ category: 'Ordering', label: 'Closed message', path: 'behaviour.closed_message' },
@@ -234,7 +234,7 @@ export class StudioDraftStore {
 	 * Adopt the live config and pick up any draft stored for this shop.
 	 *
 	 * Called whenever the shell's config arrives or changes. A draft found on
-	 * the server wins over the live values — that is the point of it — but the
+	 * the server wins over the live values, that is the point of it, but the
 	 * baseline it is compared against is always the live shop.
 	 */
 	async load(live: AdminStorefront): Promise<void> {
@@ -432,7 +432,7 @@ export class StudioDraftStore {
 	 * Publish. One call, one transaction: it all lands or none of it does.
 	 *
 	 * `force` is the answer to a conflict the owner has been shown, never a
-	 * default — the point of refusing a stale draft is that somebody gets to
+	 * default: the point of refusing a stale draft is that somebody gets to
 	 * decide.
 	 */
 	async publish(force = false): Promise<'published' | 'conflict' | 'failed'> {
@@ -535,8 +535,8 @@ export class StudioDraftStore {
 /**
  * Lay a stored draft over the live config.
  *
- * The draft carries only what the Studio can change, so everything else — the
- * catalogues the pickers render from, opening hours, the resolved public URL —
+ * The draft carries only what the Studio can change, so everything else: the
+ * catalogues the pickers render from, opening hours, the resolved public URL:
  * must come from the live document or the screen would render against holes.
  *
  * Store status, customer banner and opening hours are live ops shared with

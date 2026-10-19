@@ -48,7 +48,7 @@
 	<div class="sfctl-section">
 		<h2>Customer sign-in</h2>
 		<p class="sfctl-note">
-			Phone OTP sign-in — no password, no email. Choose whether it is hidden, available, or
+			Phone OTP sign-in: no password, no email. Choose whether it is hidden, available, or
 			required before checkout.
 		</p>
 
@@ -76,7 +76,7 @@
 		<ul style="margin:0;padding-left:1.1rem;display:grid;gap:0.35rem;color:var(--text-2);font-size:var(--fs-body);">
 			<li>Their name and phone are filled in next time, so checkout is one tap shorter.</li>
 			<li>Every order they have placed, with live tracking from the profile screen.</li>
-			<li>Later: offers, coupons and loyalty — the plumbing is per-customer already.</li>
+			<li>Later: offers, coupons and loyalty: the plumbing is per-customer already.</li>
 		</ul>
 	</div>
 

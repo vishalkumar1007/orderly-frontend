@@ -67,7 +67,7 @@
 	});
 
 	/**
-	 * A parent that supplies the data owns the confirmation too — it knows
+	 * A parent that supplies the data owns the confirmation too: it knows
 	 * whether its own load was a poll or a button press. Only the panel's
 	 * self-managed path confirms for itself.
 	 */

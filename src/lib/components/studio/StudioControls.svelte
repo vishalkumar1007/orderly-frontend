@@ -550,7 +550,7 @@
 				<div class="studio-section-header">
 					<h3>Customer banner</h3>
 					<p>
-						Top-of-store notice for offers and alerts. Saves immediately — same as Storefront → Action.
+						Top-of-store notice for offers and alerts. Saves immediately: same as Storefront → Action.
 					</p>
 				</div>
 
@@ -751,7 +751,7 @@
 			<div class="studio-section">
 				<div class="studio-section-header">
 					<h3>Store status</h3>
-					<p>Shown on the customer storefront. Saves immediately — same as Storefront → Action.</p>
+					<p>Shown on the customer storefront. Saves immediately: same as Storefront → Action.</p>
 				</div>
 				<div class="studio-pill-group">
 					{#each STORE_STATUS_OPTIONS as opt (opt.value)}
@@ -856,7 +856,7 @@
 			<div class="studio-section">
 				<div class="studio-section-header">
 					<h3>Opening hours</h3>
-					<p>When the store accepts orders by the clock. Saves immediately — same as Action.</p>
+					<p>When the store accepts orders by the clock. Saves immediately: same as Action.</p>
 				</div>
 				<OpeningHoursForm
 					studio={{
@@ -873,7 +873,7 @@
 			<div class="studio-section">
 				<div class="studio-section-header">
 					<h3>Phone sign-in (OTP)</h3>
-					<p>Phone OTP only today — email login is not available yet.</p>
+					<p>Phone OTP only today: email login is not available yet.</p>
 				</div>
 
 				<div class="studio-options-list">

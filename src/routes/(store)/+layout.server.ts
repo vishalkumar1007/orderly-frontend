@@ -9,18 +9,18 @@ import type { LayoutServerLoad } from './$types';
  *
  * The tenant is resolved from the hostname, never from a parameter: a storefront
  * URL is the tenant's own subdomain. The slug is forwarded to the API so the
- * server-rendered request carries the tenant in its Host header — without it the
+ * server-rendered request carries the tenant in its Host header: without it the
  * API would see the platform host and return nothing.
  *
  * The store config is fetched here rather than in each page so the theme is
- * present in the server-rendered HTML — the first frame is already the tenant's
- * colours, with no flash of a default — and so moving between storefront pages
+ * present in the server-rendered HTML: the first frame is already the tenant's
+ * colours, with no flash of a default: and so moving between storefront pages
  * does not re-fetch it.
  *
  * A failure here is not fatal. Browsing degrades to the default theme and an
  * error banner rather than a dead page, because a menu in the wrong accent
  * colour is much better than a shop that will not open. Unpublished shops
- * (404 not_found) stay on the unpublished screen — that is intentional.
+ * (404 not_found) stay on the unpublished screen: that is intentional.
  */
 export const load: LayoutServerLoad = async ({ locals }) => {
 	if (locals.hostKind !== 'tenant' || !locals.tenantSlug) {

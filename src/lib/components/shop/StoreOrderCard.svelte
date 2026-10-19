@@ -35,7 +35,7 @@
 	});
 
 	const totalLabel = $derived(
-		Number.isFinite(order.total) ? `₹${Math.round(order.total)}` : '—'
+		Number.isFinite(order.total) ? `₹${Math.round(order.total)}` : '-'
 	);
 
 	async function advance(e: MouseEvent) {

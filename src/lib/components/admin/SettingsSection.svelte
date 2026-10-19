@@ -8,7 +8,7 @@
 	 *
 	 * Stacked (not side-by-side) so the form owns the content width and the
 	 * explanation stays readable without stealing a fixed left column. Each
-	 * section still saves its own scope — the footer sits with the fields it
+	 * section still saves its own scope: the footer sits with the fields it
 	 * writes and can say whether there is anything to write.
 	 */
 	let {

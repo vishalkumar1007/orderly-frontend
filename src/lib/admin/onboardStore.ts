@@ -4,7 +4,7 @@ import type { BusinessTypeTemplate } from './businessTypes';
  * The onboarding draft.
  *
  * Onboarding is eight steps long and asks for things an operator often has to
- * go and look up — the owner's email, the exact business name. Losing that to
+ * go and look up: the owner's email, the exact business name. Losing that to
  * an accidental refresh is the kind of small cruelty that makes people dread a
  * tool, so the draft is mirrored into sessionStorage on every change and
  * restored on the way back in. It is cleared the moment the business exists.
@@ -74,7 +74,7 @@ export type OnboardDraft = {
 	config: OnboardConfig;
 	/**
 	 * Per-capability choices for a capability-driven type (Barber, Hotel,
-	 * General — see BusinessTypeTemplate.capabilityDriven). Keyed by
+	 * General: see BusinessTypeTemplate.capabilityDriven). Keyed by
 	 * capability code, sent as-is as `capability_overrides`; the server only
 	 * applies an entry when business_type_capabilities marks that capability
 	 * configurable for the chosen type, so this can be sent unconditionally
@@ -220,7 +220,7 @@ export function saveOnboardDraft(draft: OnboardDraft) {
 	try {
 		sessionStorage.setItem(KEY, JSON.stringify(draft));
 	} catch {
-		/* private mode — the draft simply will not survive a refresh */
+		/* private mode: the draft simply will not survive a refresh */
 	}
 }
 

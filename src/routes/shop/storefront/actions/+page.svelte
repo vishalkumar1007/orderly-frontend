@@ -42,7 +42,7 @@
 		<div>
 			<h1 class="action-title">Action</h1>
 			<p class="action-subtitle">
-				Update store status, customer banner, and opening hours — saved live for customers right away.
+				Update store status, customer banner, and opening hours: saved live for customers right away.
 			</p>
 		</div>
 	</div>

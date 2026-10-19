@@ -13,7 +13,7 @@
 	};
 
 	/**
-	 * The headline numbers as one strip, divided by hairlines — the way a billing
+	 * The headline numbers as one strip, divided by hairlines: the way a billing
 	 * or analytics console shows them. No icons, no tiles: a number needs a label
 	 * and a comparison, and colour is reserved for the change and the data.
 	 */

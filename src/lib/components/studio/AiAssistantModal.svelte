@@ -59,7 +59,7 @@
 		if (beforeDraft) {
 			store.draft = cloneConfig(beforeDraft);
 			// The draft lives on the server now, so undoing a proposal has to
-			// reach it — dropping it locally would leave the autosave to put
+			// reach it: dropping it locally would leave the autosave to put
 			// the rejected suggestion back.
 			store.scheduleSave();
 		}

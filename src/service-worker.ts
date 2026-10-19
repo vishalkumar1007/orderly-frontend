@@ -31,7 +31,7 @@ function isImmutable(url: URL): boolean {
 	return url.pathname.startsWith('/_app/immutable/') || url.pathname.startsWith('/icons/');
 }
 
-/** Never store anything under these — they are per-user or transactional. */
+/** Never store anything under these: they are per-user or transactional. */
 function isPrivate(url: URL): boolean {
 	return (
 		url.pathname.startsWith('/api/') ||
@@ -45,7 +45,7 @@ sw.addEventListener('install', (event) => {
 	event.waitUntil(
 		(async () => {
 			const cache = await caches.open(SHELL_CACHE);
-			// addAll is atomic — one 404 and nothing is cached — so add
+			// addAll is atomic, one 404 and nothing is cached, so add
 			// individually and tolerate misses on optional assets.
 			await Promise.all(
 				PRECACHE.map(async (asset) => {

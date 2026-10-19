@@ -17,7 +17,7 @@
 		</div>
 		<div>
 			<h2 class="intro-h">Opening hours</h2>
-			<p class="intro-p">Weekly schedule lives in Customize Studio — publish when you are ready.</p>
+			<p class="intro-p">Weekly schedule lives in Customize Studio: publish when you are ready.</p>
 		</div>
 	</div>
 

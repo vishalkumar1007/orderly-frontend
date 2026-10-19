@@ -161,7 +161,7 @@ export function clearCart(slug: string): void {
  *
  * It is intentionally an estimate: the cart screen shows it immediately, and the
  * server's own figure replaces it as soon as a quote comes back. Tax and
- * packaging are not guessed here — they arrive from `/public/quote` — so the
+ * packaging are not guessed here, they arrive from `/public/quote`, so the
  * numbers a customer sees always trace back to something the server said.
  */
 export function estimateTotals(
@@ -227,7 +227,7 @@ export function addLine(
 		return { lines, result: { ok: false, reason: `Up to ${MAX_QTY_PER_LINE} per item` } };
 	}
 	if (cartCount(lines) + quantity > MAX_TOTAL_QTY) {
-		return { lines, result: { ok: false, reason: 'That is a lot of food — please split the order' } };
+		return { lines, result: { ok: false, reason: 'That is a lot of food: please split the order' } };
 	}
 
 	const line: CartLine = {

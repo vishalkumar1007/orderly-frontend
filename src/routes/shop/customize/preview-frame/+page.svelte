@@ -33,7 +33,7 @@
 	 *
 	 * Same-origin frame that receives the working draft via postMessage, then
 	 * lets staff tap through home / menu / product / cart like a real phone.
-	 * Checkout and account APIs stay disabled here — Publish is still required
+	 * Checkout and account APIs stay disabled here: Publish is still required
 	 * for customers.
 	 */
 	const MSG_READY = 'orderly-studio-preview-ready';
@@ -170,7 +170,7 @@
 			if (path.startsWith('/checkout') || path.startsWith('/payment')) {
 				void go('cart');
 				checkoutHint = true;
-				cart.setNotice('Checkout is preview-only — publish to take real orders');
+				cart.setNotice('Checkout is preview-only: publish to take real orders');
 				return;
 			}
 			void go('cart');
@@ -538,7 +538,7 @@
 								style="width:100%;margin-top:14px;"
 								onclick={() => {
 									checkoutHint = true;
-									cart.setNotice('Checkout is preview-only — publish to take real orders');
+									cart.setNotice('Checkout is preview-only: publish to take real orders');
 								}}
 							>
 								Checkout (preview)

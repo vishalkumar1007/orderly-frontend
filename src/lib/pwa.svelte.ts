@@ -68,7 +68,7 @@ export function registerServiceWorker() {
 				});
 			})
 			.catch(() => {
-				/* no worker — the app still works, just without offline support */
+				/* no worker: the app still works, just without offline support */
 			});
 	};
 
@@ -154,7 +154,7 @@ const onlineListeners = new Set<(online: boolean) => void>();
 /** Rune-backed so `isOnline()` is reactive when read inside a template. */
 let online = $state(true);
 
-/** Current connectivity. Safe to read directly in a template — it tracks. */
+/** Current connectivity. Safe to read directly in a template: it tracks. */
 export function isOnline(): boolean {
 	return online;
 }

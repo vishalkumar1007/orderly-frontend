@@ -140,7 +140,7 @@
 
 	<div class="sfctl-foot">
 		<span class="sfctl-foot-note">
-			Customers will see: {offered.length ? offered.join(' and ').replace('ONLINE', 'online').replace('CASH', 'cash') : 'nothing — fix the switches above'}
+			Customers will see: {offered.length ? offered.join(' and ').replace('ONLINE', 'online').replace('CASH', 'cash') : 'nothing: fix the switches above'}
 		</span>
 		<button class="btn btn-primary" type="submit" disabled={saving}>
 			{saving ? 'Saving…' : 'Save payment settings'}

@@ -11,7 +11,7 @@
 	import { friendlyError, storefrontApi, type OrderDetail } from '$lib/storefront/api';
 	import { customerToken } from '$lib/storefront/session.svelte';
 	import { money, minutesUntil, orderCode, timeOfDay } from '$lib/storefront/format';
-	import { playSound } from '$lib/sound';
+	import { playSound, soundState, unlockSound, vibrate } from '$lib/sound.svelte';
 
 	/**
 	 * Order confirmation and tracking.
@@ -38,7 +38,7 @@
 	let phoneInput = $state('');
 	let phoneError = $state('');
 	let pollTimer: ReturnType<typeof setInterval> | null = null;
-	/** Only a transition into READY during this visit plays a sound — never on first load. */
+	/** Only a transition into READY during this visit plays a sound: never on first load. */
 	let previousStatus: string | null = null;
 
 	function checkoutPhone(): string {
@@ -64,6 +64,7 @@
 				config?.ordering?.ready_notification
 			) {
 				playSound(config.ordering.order_ready_sound);
+				vibrate();
 			}
 			previousStatus = result.status;
 			order = result;
@@ -93,11 +94,9 @@
 	function schedulePoll() {
 		if (pollTimer) clearInterval(pollTimer);
 		if (!order?.is_active) return;
-		pollTimer = setInterval(() => {
-			// Skip a poll while the tab is hidden; there is nobody watching.
-			if (typeof document !== 'undefined' && document.hidden) return;
-			void load();
-		}, 12000);
+		// Keeps polling while the tab is hidden: a customer who switched apps
+		// still needs the "ready" sound. Browsers slow hidden timers anyway.
+		pollTimer = setInterval(() => void load(), 12000);
 	}
 
 	function submitPhone(event: SubmitEvent) {
@@ -192,7 +191,7 @@
 				{isCancelled
 					? 'Order cancelled'
 					: isCompleted
-						? 'Collected — thank you'
+						? 'Collected. Thank you!'
 						: isReady
 							? 'Ready for pickup'
 							: 'Order placed'}
@@ -213,6 +212,15 @@
 			<span class="sf-order-code">
 				<strong>{orderCode(order.reference, order.order_number)}</strong>
 			</span>
+			{#if order.is_active && !isReady && config?.ordering?.ready_notification && config.ordering.order_ready_sound !== 'NONE' && soundState.supported}
+				{#if soundState.locked}
+					<button type="button" class="sf-btn sf-btn-secondary sf-sound-btn" onclick={unlockSound}>
+						Play a sound when it's ready
+					</button>
+				{:else}
+					<p class="sf-sound-note">We'll play a sound when it's ready. Keep this page open.</p>
+				{/if}
+			{/if}
 		</div>
 
 		{#if order.payment_required}

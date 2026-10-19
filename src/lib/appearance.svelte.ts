@@ -1,5 +1,5 @@
 /**
- * Console appearance — one module, both consoles.
+ * Console appearance: one module, both consoles.
  *
  * Two layers, and the distinction is the reason this exists:
  *
@@ -14,7 +14,7 @@
  *
  * It also owns light/dark. That used to be a second, unrelated system writing
  * `data-theme` straight from `localStorage`, which meant the toggle and the
- * saved colour mode disagreed the moment either changed — the toggle won until
+ * saved colour mode disagreed the moment either changed: the toggle won until
  * a reload, then the account won. There is one writer now, and the toggle is
  * simply a shortcut for setting your own `color_mode`.
  */
@@ -37,7 +37,7 @@ export type ResolvedThemeMode = Exclude<ColorMode, 'system'>;
 
 /**
  * Dashboard looks inspired by common admin/SaaS themes (Linear charcoal, OLED
- * raw black, midnight slate, paper soft, cool mist) — some with a coloured
+ * raw black, midnight slate, paper soft, cool mist): some with a coloured
  * wash, some flat.
  */
 export const COLOR_MODES: Array<{
@@ -86,7 +86,7 @@ export type PersonalTheme = {
 };
 
 export type ConsoleAppearance = {
-	/** The theme to paint with — the personal layer if there is one. */
+	/** The theme to paint with: the personal layer if there is one. */
 	theme: BrandTheme;
 	/** The default, whether or not it is in force. */
 	business: BrandTheme;
@@ -149,8 +149,13 @@ export function apiColorMode(mode: ColorMode): 'light' | 'dark' | 'system' {
 	return isDarkFamily(mode) ? 'dark' : 'light';
 }
 
-/** Prefer an explicit dashboard look over a mapped light/dark from the API. */
+/**
+ * The look to paint. The account is the record: when it holds a specific look
+ * (Raw, Graphite...) that wins. Only a plain light/dark, which is how older
+ * saves stored those looks, is refined by this browser's remembered choice.
+ */
 export function restoreSurfaceMode(scope: string, apiMode: ColorMode): ColorMode {
+	if (apiMode !== 'light' && apiMode !== 'dark') return apiMode;
 	const stored = readStoredSurface(scope);
 	if (!stored) return apiMode;
 	if (stored === apiMode) return stored;
@@ -258,7 +263,7 @@ export function adoptAppearance(
  * Reflect an unsaved preview in the shared state.
  *
  * The Appearance screen paints edits as they are made, and the topbar's
- * light/dark toggle reads the same state — without this it would keep showing
+ * light/dark toggle reads the same state: without this it would keep showing
  * the saved mode while the page beside it was already painted in the new one.
  * Deliberately does not touch storage: nothing is saved yet.
  */
@@ -276,7 +281,7 @@ export function forgetAppearance(scope: string): void {
  * Resolve this person's appearance.
  *
  * Falls back to the shared default when the endpoint is missing, so a console
- * served by an older API renders instead of erroring — the personal layer is an
+ * served by an older API renders instead of erroring: the personal layer is an
  * enhancement, not a prerequisite for signing in.
  */
 export async function loadAppearance(kind: ConsoleKind): Promise<ConsoleAppearance> {
@@ -332,7 +337,7 @@ export async function saveAppearance(
 			? { ...saved, theme: { ...saved.theme, color_mode: preferred } }
 			: saved;
 	} catch (err) {
-		// Older APIs reject extended looks — persist the closest classic mode and
+		// Older APIs reject extended looks: persist the closest classic mode and
 		// keep the richer surface choice in the browser so the console still paints.
 		if (preferred && preferred !== 'light' && preferred !== 'dark' && preferred !== 'system') {
 			const saved = await api<ConsoleAppearance>(endpoint(kind), {

@@ -36,7 +36,7 @@ export type ThemePreset = {
  * The colour to write *on* a themed surface.
  *
  * White on the accent is only safe when the accent is dark. Six of the twelve
- * presets — emerald, cyan, orange, lime, amber, teal — put white text below
+ * presets, emerald, cyan, orange, lime, amber, teal, put white text below
  * 4.5:1 against their own accent, so every primary button, active tab, badge
  * and avatar in the console was legible for half the catalogue and washed out
  * for the other half. Nothing in CSS can decide this (`color-contrast()` is not
@@ -56,7 +56,7 @@ function onColor(hex: string): string {
 	const l = 0.2126 * channel(rgb[0]) + 0.7152 * channel(rgb[1]) + 0.0722 * channel(rgb[2]);
 	const onWhite = 1.05 / (l + 0.05);
 	// INK_LUMINANCE is #0d1424's own relative luminance, measured rather than
-	// guessed — an eyeballed constant here picks the wrong colour for accents
+	// guessed: an eyeballed constant here picks the wrong colour for accents
 	// near the crossover and nothing downstream would catch it.
 	const onInk = (l + 0.05) / (INK_LUMINANCE + 0.05);
 	return onWhite >= onInk ? '#ffffff' : ON_ACCENT_INK;
@@ -96,8 +96,8 @@ const BRAND_VARS = [
  *
  * One function, two consumers: `applyBrandTheme` writes these onto `<html>` in
  * the browser, and `brandVars` renders the same list as an inline style during
- * SSR. A signed-out sign-in page can only use the second — it has no token to
- * fetch with — so if the two were written separately the page would quietly end
+ * SSR. A signed-out sign-in page can only use the second: it has no token to
+ * fetch with: so if the two were written separately the page would quietly end
  * up with a subset of the console's brand, which is the bug this avoids.
  */
 function brandPairs(theme: BrandTheme): Array<[string, string]> {

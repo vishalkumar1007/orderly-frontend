@@ -16,7 +16,7 @@
 	let railEl = $state<HTMLDivElement | null>(null);
 	/**
 	 * One indicator that slides to the active tab, rather than each button
-	 * drawing its own underline — a tab change reads as the same mark moving,
+	 * drawing its own underline: a tab change reads as the same mark moving,
 	 * not a new one appearing, which is what makes switching feel continuous
 	 * instead of a hard cut.
 	 */

@@ -21,7 +21,7 @@
 	};
 	export type ShellNavGroup = {
 		label?: string;
-		/** Visual weight — RUNNING is the daily-ops cluster. */
+		/** Visual weight: RUNNING is the daily-ops cluster. */
 		emphasis?: 'running';
 		items: ShellNavItem[];
 	};
@@ -55,11 +55,11 @@
 		storageKey = 'orderly-sidebar',
 		/** Render content edge-to-edge, for wide forms. */
 		wideContent = false,
-		/** Zero padding/max-width — workspaces like Storefront Studio. */
+		/** Zero padding/max-width: workspaces like Storefront Studio. */
 		flushContent = false,
 		/** Hide the account menu, for embedded or kiosk surfaces. */
 		showProfile = true,
-		/** Settings link in the account menu — portal-specific. */
+		/** Settings link in the account menu: portal-specific. */
 		settingsHref = '/superadmin/settings',
 		/** The signed-in person's own account screen, shown in that same menu. */
 		profileHref = '',
@@ -97,7 +97,7 @@
 	let mobileOpen = $state(false);
 	let collapsed = $state(false);
 	let isDrawer = $state(false);
-	/** The drawer always shows labels — there is no room to collapse it. */
+	/** The drawer always shows labels: there is no room to collapse it. */
 	const railCompact = $derived(collapsed && !isDrawer);
 
 	$effect(() => {
@@ -141,7 +141,7 @@
 		try {
 			localStorage.setItem(storageKey, collapsed ? 'collapsed' : 'expanded');
 		} catch {
-			/* private mode — the choice just won't persist */
+			/* private mode: the choice just won't persist */
 		}
 	}
 

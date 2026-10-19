@@ -222,7 +222,7 @@
 {:else}
 	<AuthLayout
 		title="Run every shop from one console"
-		subtitle="Onboard tenants, assign plans, and watch platform-wide orders and revenue — with every shop's data strictly separated."
+		subtitle="Onboard tenants, assign plans, and watch platform-wide orders and revenue: with every shop's data strictly separated."
 	>
 		<span class="auth-eyebrow"><ShieldCheck size={13} stroke={1.6} /> Super Admin access</span>
 

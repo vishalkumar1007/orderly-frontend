@@ -26,12 +26,12 @@
 	 */
 
 	const CURRENCIES = [
-		{ value: 'INR', label: 'INR — Indian Rupee' },
-		{ value: 'USD', label: 'USD — US Dollar' },
-		{ value: 'AED', label: 'AED — UAE Dirham' },
-		{ value: 'GBP', label: 'GBP — Pound Sterling' },
-		{ value: 'EUR', label: 'EUR — Euro' },
-		{ value: 'SGD', label: 'SGD — Singapore Dollar' }
+		{ value: 'INR', label: 'INR: Indian Rupee' },
+		{ value: 'USD', label: 'USD: US Dollar' },
+		{ value: 'AED', label: 'AED: UAE Dirham' },
+		{ value: 'GBP', label: 'GBP: Pound Sterling' },
+		{ value: 'EUR', label: 'EUR: Euro' },
+		{ value: 'SGD', label: 'SGD: Singapore Dollar' }
 	];
 
 	const TIMEZONES = [
@@ -269,7 +269,7 @@
 
 	<SettingsSection
 		title="Platform behaviour"
-		description="Runtime switches. Maintenance mode is the one with teeth — it takes every storefront offline at once."
+		description="Runtime switches. Maintenance mode is the one with teeth: it takes every storefront offline at once."
 		icon={SlidersHorizontal}
 		dirty={behaviourDirty}
 		saving={behaviourSaving}
@@ -312,10 +312,10 @@
 			<div><dt>Base domain</dt><dd class="mono">{settings.platform.base_domain}</dd></div>
 			<div>
 				<dt>Frontend port</dt>
-				<dd class="mono">{settings.platform.frontend_port ?? '—'}</dd>
+				<dd class="mono">{settings.platform.frontend_port ?? '-'}</dd>
 			</div>
-			<div><dt>Environment</dt><dd>{settings.app_env || '—'}</dd></div>
-			<div><dt>Default plan</dt><dd>{settings.platform.default_plan || '—'}</dd></div>
+			<div><dt>Environment</dt><dd>{settings.app_env || '-'}</dd></div>
+			<div><dt>Default plan</dt><dd>{settings.platform.default_plan || '-'}</dd></div>
 		</dl>
 	</SettingsSection>
 {/if}

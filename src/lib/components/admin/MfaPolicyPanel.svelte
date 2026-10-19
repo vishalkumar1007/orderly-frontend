@@ -19,7 +19,7 @@
 	import { toast } from '$lib/components/admin/toast';
 
 	/**
-	 * This business's own MFA policy — mode, methods, who it's enforced for,
+	 * This business's own MFA policy: mode, methods, who it's enforced for,
 	 * and the enrollment grace period. Owned by the Tenant Admin, within
 	 * whatever the Super Admin's business-profile permission allows (the
 	 * `allowed` flag below); Super Admin only seeds the initial policy at
@@ -27,9 +27,9 @@
 	 */
 
 	const MODE_OPTIONS = [
-		{ value: 'DISABLED', label: 'Disabled — nobody can use it' },
-		{ value: 'OPTIONAL', label: 'Optional — anyone may turn it on for themselves' },
-		{ value: 'REQUIRED', label: 'Required — enforced for the roles below' }
+		{ value: 'DISABLED', label: 'Disabled: nobody can use it' },
+		{ value: 'OPTIONAL', label: 'Optional: anyone may turn it on for themselves' },
+		{ value: 'REQUIRED', label: 'Required: enforced for the roles below' }
 	];
 	const SCOPE_OPTIONS = [
 		{ value: 'ALL_ADMINS', label: 'All administrators' },
@@ -122,7 +122,7 @@
 
 <SettingsSection
 	title="Two-factor authentication policy"
-	description="Whether staff can — or must — use a second factor at sign-in, and which methods are allowed."
+	description="Whether staff can, or must, use a second factor at sign-in, and which methods are allowed."
 	icon={ShieldCheck}
 	{dirty}
 	{saving}
@@ -135,7 +135,7 @@
 	{:else if !allowed}
 		<p class="muted">
 			Your platform administrator hasn't turned on two-factor authentication for this business
-			yet — ask them to allow it from your business profile before you can configure a policy.
+			yet: ask them to allow it from your business profile before you can configure a policy.
 		</p>
 	{:else}
 		<Select

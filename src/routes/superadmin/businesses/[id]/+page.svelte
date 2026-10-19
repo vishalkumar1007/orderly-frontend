@@ -73,7 +73,7 @@
 	 * Six tabs, each answering one question an operator arrives with: how is it
 	 * doing, who can sign in, what is it paying for, what is configured, what
 	 * has it been doing, and who changed something. Secrets appear on none of
-	 * them — the Configuration tab reports posture and never a credential.
+	 * them: the Configuration tab reports posture and never a credential.
 	 */
 
 	let business = $state<Tenant | null>(null);
@@ -231,7 +231,7 @@
 	 * Security-relevant events only.
 	 *
 	 * The Activity tab is the full record; Audit is the subset a reviewer cares
-	 * about — who got access, what changed hands, and what was refused.
+	 * about: who got access, what changed hands, and what was refused.
 	 */
 	const auditLogs = $derived.by(() => {
 		const sensitive =
@@ -326,7 +326,7 @@
 		try {
 			const res = await resetTenantUserAccess(business.id, userTarget.id);
 			userConfirmOpen = false;
-			toast.success('Access reset — all sessions revoked');
+			toast.success('Access reset: all sessions revoked');
 			showUserInvite(res, 'Access reset');
 			users = await fetchTenantUsers(business.id);
 		} catch (err) {
@@ -535,14 +535,14 @@
 		<StatGrid>
 			<StatCard
 				label="Users"
-				value={security?.users_total ?? '—'}
+				value={security?.users_total ?? '-'}
 				hint={security ? `${security.users_active} active` : undefined}
 			>
 				{#snippet icon()}<Users size={15} stroke={1.6} />{/snippet}
 			</StatCard>
 			<StatCard
 				label="Active sessions"
-				value={security?.active_sessions ?? '—'}
+				value={security?.active_sessions ?? '-'}
 			>
 				{#snippet icon()}<ShieldCheck size={15} stroke={1.6} />{/snippet}
 			</StatCard>
@@ -558,10 +558,10 @@
 					<div><dt>Name</dt><dd>{business.name}</dd></div>
 					<div><dt>Business type</dt><dd>{typeLabel}</dd></div>
 					<div><dt>Subdomain</dt><dd class="mono">{business.slug}</dd></div>
-					<div><dt>Owner</dt><dd>{business.owner_name || '—'}</dd></div>
-					<div><dt>Email</dt><dd>{business.email || '—'}</dd></div>
-					<div><dt>Phone</dt><dd>{business.phone || '—'}</dd></div>
-					<div><dt>Address</dt><dd>{business.address || '—'}</dd></div>
+					<div><dt>Owner</dt><dd>{business.owner_name || '-'}</dd></div>
+					<div><dt>Email</dt><dd>{business.email || '-'}</dd></div>
+					<div><dt>Phone</dt><dd>{business.phone || '-'}</dd></div>
+					<div><dt>Address</dt><dd>{business.address || '-'}</dd></div>
 					<div><dt>Onboarded</dt><dd>{formatDate(business.created_at)}</dd></div>
 				</dl>
 			</section>
@@ -570,7 +570,7 @@
 				<h3 class="panel-h">Account status</h3>
 				<dl class="dl">
 					<div><dt>Storefront</dt><dd>{business.is_published ? 'Published' : 'Not published'}</dd></div>
-					<div><dt>Plan</dt><dd>{currentPlan || '—'}</dd></div>
+					<div><dt>Plan</dt><dd>{currentPlan || '-'}</dd></div>
 				</dl>
 			</section>
 		</div>
@@ -585,11 +585,11 @@
 				</h3>
 				<p class="panel-note" style="margin:0 0 0.85rem;">
 					Who can sign in to this business. The people themselves are invited and managed by
-					the business, on its own address — the console can only restore the owner's way in.
+					the business, on its own address: the console can only restore the owner's way in.
 				</p>
 				<dl class="dl">
-					<div><dt>Users with access</dt><dd>{security?.users_total ?? '—'}</dd></div>
-					<div><dt>Active</dt><dd>{security?.users_active ?? '—'}</dd></div>
+					<div><dt>Users with access</dt><dd>{security?.users_total ?? '-'}</dd></div>
+					<div><dt>Active</dt><dd>{security?.users_active ?? '-'}</dd></div>
 					<div>
 						<dt>Awaiting password setup</dt>
 						<dd>
@@ -602,7 +602,7 @@
 							{/if}
 						</dd>
 					</div>
-					<div><dt>Active sessions</dt><dd>{security?.active_sessions ?? '—'}</dd></div>
+					<div><dt>Active sessions</dt><dd>{security?.active_sessions ?? '-'}</dd></div>
 				</dl>
 			</section>
 
@@ -647,7 +647,7 @@
 				<dl class="dl">
 					<div>
 						<dt>Plan</dt>
-						<dd>{planOption?.label ?? currentPlan ?? '—'}</dd>
+						<dd>{planOption?.label ?? currentPlan ?? '-'}</dd>
 					</div>
 					<div>
 						<dt>Price</dt>
@@ -656,22 +656,22 @@
 								? planOption.price === 0
 									? 'Free'
 									: `₹${planOption.price.toLocaleString('en-IN')}`
-								: '—'}
+								: '-'}
 						</dd>
 					</div>
 					<div>
 						<dt>Billing period</dt>
 						<dd style="text-transform:capitalize;">
-							{(planOption?.billingPeriod ?? '—').toString().replace('_', ' ')}
+							{(planOption?.billingPeriod ?? '-').toString().replace('_', ' ')}
 						</dd>
 					</div>
 					<div>
 						<dt>Staff limit</dt>
-						<dd>{planOption?.maxStaff ?? '—'}</dd>
+						<dd>{planOption?.maxStaff ?? '-'}</dd>
 					</div>
 					<div>
 						<dt>{terms.items} limit</dt>
-						<dd>{planOption?.maxProducts ?? '—'}</dd>
+						<dd>{planOption?.maxProducts ?? '-'}</dd>
 					</div>
 				</dl>
 				{#if planOption && planOption.features.length > 0}
@@ -747,7 +747,7 @@
 			<h3 class="panel-h">Business type</h3>
 			<p class="panel-note">
 				This business was set up as a <strong>{typeLabel}</strong>. The values below are what that
-				template applied at onboarding — the owner can change any of them in their own storefront
+				template applied at onboarding: the owner can change any of them in their own storefront
 				control, so treat these as the starting point rather than the live settings.
 			</p>
 			<dl class="dl" style="max-width:38rem;">
@@ -783,20 +783,20 @@
 				onchange={toggleMfaAllowed}
 				disabled={mfaSaving}
 				label="Allow this business to use two-factor authentication"
-				hint="Once on, this business's own Tenant Admin configures the policy (optional or required, which methods, who it's enforced for) from their own Settings → Security. Off by default — this only unlocks the option, it never forces it."
+				hint="Once on, this business's own Tenant Admin configures the policy (optional or required, which methods, who it's enforced for) from their own Settings → Security. Off by default: this only unlocks the option, it never forces it."
 			/>
 
 			{#if mfaAllowed && mfaPolicy}
 				<dl class="dl" style="max-width:34rem;margin-top:0.85rem;">
 					<div><dt>Policy mode</dt><dd style="text-transform:capitalize;">{mfaPolicy.mode.toLowerCase()}</dd></div>
-					<div><dt>Allowed methods</dt><dd>{mfaPolicy.allowed_methods.join(', ') || '—'}</dd></div>
+					<div><dt>Allowed methods</dt><dd>{mfaPolicy.allowed_methods.join(', ') || '-'}</dd></div>
 					{#if mfaPolicy.mode === 'REQUIRED'}
 						<div><dt>Enforced for</dt><dd>{mfaPolicy.enforce_scope === 'ALL_ADMINS' ? 'All administrators' : (mfaPolicy.enforce_roles ?? []).join(', ') || 'Selected roles'}</dd></div>
 						<div><dt>Grace period</dt><dd>{mfaPolicy.grace_period_days} days</dd></div>
 					{/if}
 				</dl>
 				<p class="field-hint" style="margin:0.5rem 0 0;">
-					Read-only — this business's own Tenant Admin edits it from their Settings → Security.
+					Read-only: this business's own Tenant Admin edits it from their Settings → Security.
 				</p>
 			{/if}
 		</section>
@@ -805,7 +805,7 @@
 		<section class="panel" style="margin-bottom:0.85rem;">
 			<h3 class="panel-h">Effective notification rules</h3>
 			<p class="panel-note">
-				What this business actually has enabled right now — its own overrides where it has written
+				What this business actually has enabled right now: its own overrides where it has written
 				one ("Custom"), the platform default everywhere else. Edited from here only for mandatory
 				rules; everything else is this business's own call, from its Settings → Notifications.
 			</p>
@@ -822,7 +822,7 @@
 						<div>
 							<dt>{ev?.label ?? r.event_code}</dt>
 							<dd>
-								{r.channel} · {r.recipient_policy} —
+								{r.channel} · {r.recipient_policy}:
 								<StatusBadge
 									status={r.locked ? 'Required' : r.enabled ? 'Enabled' : 'Disabled'}
 									kind={r.locked ? 'accent' : r.enabled ? 'ok' : 'neutral'}
@@ -848,7 +848,7 @@
 						<div>
 							<dt>{d.event_code} · {d.channel}</dt>
 							<dd>
-								{d.recipient} —
+								{d.recipient}:
 								<StatusBadge
 									status={d.status}
 									kind={d.status === 'SENT'
@@ -869,7 +869,7 @@
 	{:else if tab === 'users'}
 		<section class="panel" style="margin-bottom:0.85rem;">
 			<p class="panel-note" style="margin:0;">
-				Who has access to this business's console. This is support's read and recover path —
+				Who has access to this business's console. This is support's read and recover path:
 				resetting access or resending a setup link unblocks someone locked out. Day-to-day team
 				management (names, roles) happens inside the business, by someone who works there.
 			</p>
@@ -891,7 +891,7 @@
 				{#each users as u (u.id)}
 					<tr>
 						<td>
-							<strong style="font-weight:550;">{u.name || '—'}</strong>
+							<strong style="font-weight:550;">{u.name || '-'}</strong>
 							<span class="muted" style="display:block;font-size:var(--fs-code);">{u.email}</span>
 						</td>
 						<td class="muted">{u.role}</td>
@@ -930,7 +930,7 @@
 			<div class="panel">
 				<EmptyState
 					title="No recorded activity"
-					description="Events for this business — onboarding, status and plan changes, user lifecycle — appear here as they happen."
+					description="Events for this business, onboarding, status and plan changes, user lifecycle, appear here as they happen."
 				/>
 			</div>
 		{:else}
@@ -1144,7 +1144,7 @@
 	}
 
 	.boundary li::before {
-		content: '—';
+		content: '-';
 		position: absolute;
 		left: 0.2rem;
 		color: var(--text-3);

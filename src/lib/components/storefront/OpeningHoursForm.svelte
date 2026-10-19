@@ -303,7 +303,7 @@
 	{#if !studio || studio.onSave}
 		<div class="sfctl-foot">
 			<span class="sfctl-foot-note">
-				{alwaysOpen ? 'Always open — no schedule is stored.' : `${totalShifts} shift${totalShifts === 1 ? '' : 's'} set this week.`}
+				{alwaysOpen ? 'Always open: no schedule is stored.' : `${totalShifts} shift${totalShifts === 1 ? '' : 's'} set this week.`}
 			</span>
 			<button class="btn btn-primary" type="submit" disabled={saving}>
 				{saving ? 'Saving…' : 'Save opening hours'}
@@ -311,7 +311,7 @@
 		</div>
 	{:else}
 		<p class="sfctl-note" style="margin:1rem 0 0;">
-			Hours are saved with your Studio draft — use Review &amp; Publish when you are ready.
+			Hours are saved with your Studio draft: use Review &amp; Publish when you are ready.
 		</p>
 	{/if}
 </form>

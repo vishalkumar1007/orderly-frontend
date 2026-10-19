@@ -25,7 +25,7 @@
 		<div class="pm pm-test" role="status">
 			<span class="pm-ico"><FlaskConical size={17} stroke={1.6} /></span>
 			<div>
-				<strong>Test mode — nobody is charged</strong>
+				<strong>Test mode: nobody is charged</strong>
 				<p>
 					Customers who choose online payment get a dummy checkout. Those orders are marked TEST
 					and left out of revenue. Cash at pickup works as normal.
@@ -36,7 +36,7 @@
 		<div class="pm pm-live" role="status">
 			<span class="pm-ico"><BadgeCheck size={17} stroke={1.6} /></span>
 			<div>
-				<strong>Live — real payments</strong>
+				<strong>Live: real payments</strong>
 				<p>Customers who pay online are charged through your payment gateway.</p>
 			</div>
 		</div>

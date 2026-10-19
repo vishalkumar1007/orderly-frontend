@@ -5,7 +5,7 @@ import type { LayoutServerLoad } from './$types';
  * The business console only exists on a business's own host.
  *
  * Reaching it on the platform host means somebody typed the wrong address, so
- * they are sent to the sign-in page — with one exception that is load-bearing:
+ * they are sent to the sign-in page: with one exception that is load-bearing:
  * the sign-in page is itself under `/shop`, so redirecting it here would make
  * this layout run again, redirect again, and loop until the browser gave up
  * with ERR_TOO_MANY_REDIRECTS and no explanation of what was wrong.

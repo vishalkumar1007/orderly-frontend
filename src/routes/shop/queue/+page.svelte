@@ -35,7 +35,7 @@
 		joining = true;
 		try {
 			const entry = await joinQueue();
-			toast.success(`Added — number ${entry.queue_number}`);
+			toast.success(`Added: number ${entry.queue_number}`);
 			await load();
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Could not add to queue');

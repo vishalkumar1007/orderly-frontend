@@ -1,4 +1,5 @@
 <script lang="ts">
+	import EmailTemplateStudio from '$lib/components/admin/email/EmailTemplateStudio.svelte';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
@@ -31,7 +32,7 @@
 	 * Settings.
 	 *
 	 * One destination with a section rail inside it, rather than six entries in
-	 * the main navigation — the same shape the platform console uses, for the
+	 * the main navigation: the same shape the platform console uses, for the
 	 * same reason. Settings is somewhere you go to change one thing and leave;
 	 * spreading it across the rail made the console's top-level navigation
 	 * mostly about configuration, which is not what a shopkeeper's day is.
@@ -54,7 +55,7 @@
 	 * Whether the shop's own storefront document has arrived.
 	 *
 	 * The sections that edit it seed their fields once, on mount, which is the
-	 * behaviour an editable form wants — a refresh must never overwrite what
+	 * behaviour an editable form wants: a refresh must never overwrite what
 	 * somebody has typed. That is only correct if they mount *after* the real
 	 * document, so until it lands they get a skeleton rather than a form full
 	 * of defaults that silently becomes wrong.
@@ -136,7 +137,7 @@
 		(user?.permissions ?? []).includes('storefront') || user?.role === 'TENANT_ADMIN'
 	);
 
-	/** The org-wide MFA policy, not one person's own enrollment — owner-only. */
+	/** The org-wide MFA policy, not one person's own enrollment: owner-only. */
 	const canEditMfaPolicy = $derived(
 		(user?.permissions ?? []).includes('organization') || user?.role === 'TENANT_ADMIN'
 	);
@@ -193,7 +194,9 @@
 		{/if}
 	{/snippet}
 
-	{#if active.id === 'integrations'}
+	{#if active.id === 'email-templates'}
+		<EmailTemplateStudio scope="tenant" initialEvent={$page.url.searchParams.get('event') ?? ''} />
+	{:else if active.id === 'integrations'}
 		<IntegrationsPanel {service} onselect={selectService} />
 	{:else if active.id === 'appearance'}
 		<AppearancePanel {canSetBusinessDefault} />

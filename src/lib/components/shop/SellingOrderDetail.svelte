@@ -60,7 +60,7 @@
 	);
 
 	const totalLabel = $derived(
-		order && Number.isFinite(order.total) ? `₹${Math.round(order.total)}` : '—'
+		order && Number.isFinite(order.total) ? `₹${Math.round(order.total)}` : '-'
 	);
 
 	async function advance() {
@@ -111,7 +111,7 @@
 			<section class="sod-block">
 				<h4>Customer</h4>
 				<p>
-					<strong>{order.customer_name || '—'}</strong>
+					<strong>{order.customer_name || '-'}</strong>
 					{#if order.customer_phone}
 						<br /><span class="muted">{order.customer_phone}</span>
 					{/if}
@@ -160,7 +160,7 @@
 					</p>
 					{#if order.payment.is_test}
 						<p class="sod-note">
-							Dummy payment — nobody was charged, and it is left out of your revenue.
+							Dummy payment: nobody was charged, and it is left out of your revenue.
 						</p>
 					{/if}
 					{#if order.payment.refund_status === 'COMPLETED'}

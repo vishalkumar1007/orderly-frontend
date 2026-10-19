@@ -387,7 +387,7 @@
 
 			<ul class="mkt-tips">
 				<li>Uses your live logo, colours and store link from Customize branding.</li>
-				<li>Download PNG, then print or share — these files are not stored on the server.</li>
+				<li>Download PNG, then print or share: these files are not stored on the server.</li>
 				{#if asset !== 'thumbnail'}
 					<li>Includes your QR when available so customers can scan to order.</li>
 				{/if}

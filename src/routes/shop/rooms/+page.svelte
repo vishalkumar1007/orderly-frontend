@@ -51,7 +51,7 @@
 	let roomErrors = $state<Record<string, string>>({});
 	let roomSaving = $state(false);
 
-	const typeName = (id: string) => roomTypes.find((t) => t.id === id)?.name ?? '—';
+	const typeName = (id: string) => roomTypes.find((t) => t.id === id)?.name ?? '-';
 
 	async function load() {
 		loading = true;

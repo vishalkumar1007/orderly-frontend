@@ -12,7 +12,7 @@
 	}: {
 		brandName?: string;
 		collapsed?: boolean;
-		/** False in drawer mode, where collapsing is meaningless — we close instead. */
+		/** False in drawer mode, where collapsing is meaningless: we close instead. */
 		collapsible?: boolean;
 		onToggle?: () => void;
 		onClose?: () => void;

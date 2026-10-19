@@ -16,15 +16,15 @@
 	import TextInput from '$lib/components/admin/TextInput.svelte';
 	import { toast } from '$lib/components/admin/toast';
 
-	/** The console's own small, fixed role set — mirrors pkg/identity.PlatformRoles(), excluding the sole owner. */
+	/** The console's own small, fixed role set: mirrors pkg/identity.PlatformRoles(), excluding the sole owner. */
 	const PLATFORM_ROLES = [
 		{ key: 'PLATFORM_ADMIN', label: 'Platform admin' },
 		{ key: 'SUPPORT', label: 'Support' }
 	];
 	const MFA_MODE_OPTIONS = [
-		{ value: 'DISABLED', label: 'Disabled — nobody can use it' },
-		{ value: 'OPTIONAL', label: 'Optional — anyone may turn it on for themselves' },
-		{ value: 'REQUIRED', label: 'Required — enforced for the roles below' }
+		{ value: 'DISABLED', label: 'Disabled: nobody can use it' },
+		{ value: 'OPTIONAL', label: 'Optional: anyone may turn it on for themselves' },
+		{ value: 'REQUIRED', label: 'Required: enforced for the roles below' }
 	];
 	const MFA_SCOPE_OPTIONS = [
 		{ value: 'ALL_ADMINS', label: 'All console accounts' },
@@ -36,7 +36,7 @@
 	 *
 	 * Split by what each setting governs rather than by which API field it
 	 * writes: passwords, invites and sessions fail in different ways and are
-	 * tuned for different reasons. The last section is not editable at all — it
+	 * tuned for different reasons. The last section is not editable at all: it
 	 * states what the platform already enforces, because the most common
 	 * security question is "what do I get without configuring anything".
 	 */

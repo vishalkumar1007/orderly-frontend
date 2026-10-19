@@ -38,7 +38,7 @@
 		<div>
 			<h2 class="intro-h">Store status</h2>
 			<p class="intro-p">
-				Customers see this on your storefront header. Changes apply immediately — no publish step.
+				Customers see this on your storefront header. Changes apply immediately: no publish step.
 			</p>
 		</div>
 	</div>

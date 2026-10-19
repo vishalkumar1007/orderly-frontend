@@ -1,7 +1,7 @@
 import { api } from '$lib/api/client';
 
 /**
- * Two-factor auth for the signed-in person's own account — works identically
+ * Two-factor auth for the signed-in person's own account: works identically
  * for a tenant staff member or a platform console account, since both are the
  * same `users` row on the backend. See $lib/auth.ts for the login-time
  * challenge/verify and forced-enrollment steps this enrollment unlocks.
@@ -57,7 +57,7 @@ export async function regenerateRecoveryCodes(password: string): Promise<string[
 }
 
 /* ------------------------------------------------------------------ *
- * Tenant MFA policy — a Tenant Admin's own mode/methods/enforcement/grace
+ * Tenant MFA policy: a Tenant Admin's own mode/methods/enforcement/grace
  * settings, within whatever the Super Admin's business-profile permission
  * allows. See the Configuration tab on the Super Admin side for the
  * read-only view of the same policy.

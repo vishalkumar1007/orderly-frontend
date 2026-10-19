@@ -36,11 +36,11 @@
 	const cart = provideCart(createCart(slug, loadInitialCart(slug)));
 
 	const isTenant = $derived(data.hostKind === 'tenant');
-	/** API said the shop is unpublished / not found — intentional empty state. */
+	/** API said the shop is unpublished / not found: intentional empty state. */
 	const isUnpublished = $derived(isTenant && !config && data.configErrorCode === 'not_found');
 	/**
 	 * Config failed for a transient reason (network, 5xx, timeout). Show a
-	 * degraded shell with FALLBACK_THEME — never confuse this with unpublished.
+	 * degraded shell with FALLBACK_THEME: never confuse this with unpublished.
 	 */
 	const isConfigError = $derived(
 		isTenant && !config && Boolean(data.configError) && data.configErrorCode !== 'not_found'

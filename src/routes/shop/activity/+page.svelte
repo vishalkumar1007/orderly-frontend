@@ -24,11 +24,11 @@
 	/**
 	 * Two different questions, deliberately kept apart.
 	 *
-	 * The audit log answers "who changed something" — prices, settings, access,
+	 * The audit log answers "who changed something": prices, settings, access,
 	 * who was invited or disabled. It is the record you bring to a dispute, and
 	 * nothing in this console can edit it.
 	 *
-	 * Activity answers "what has the shop been doing" — orders moving through
+	 * Activity answers "what has the shop been doing": orders moving through
 	 * the workflow, and who moved them. It is operational history, and it is
 	 * noisy by nature, which is exactly why it does not belong in the same list
 	 * as a permission change.
@@ -252,7 +252,7 @@
 			<div>
 				<h2>Order activity</h2>
 				<p>
-					Every order movement, newest first — placed, accepted, prepared, ready, collected.
+					Every order movement, newest first: placed, accepted, prepared, ready, collected.
 					For searching the full record instead of reading it, use
 					<a href="/shop/order-history">order history</a>.
 				</p>
@@ -356,7 +356,7 @@
 
 		<p class="field-hint" style="margin-top:1rem;">
 			Audit entries are written by the platform and cannot be edited or removed from this
-			console. Credentials are never recorded — a configuration change stores which service
+			console. Credentials are never recorded: a configuration change stores which service
 			changed, never its password or key.
 		</p>
 	{/if}

@@ -110,7 +110,7 @@ const REQUIRED_VARS = [
  * `themeVars` renders the token map as a `style` attribute value.
  *
  * The storefront layout writes this onto its root element during server-side
- * rendering, so the very first painted frame is already the tenant's colours —
+ * rendering, so the very first painted frame is already the tenant's colours:
  * there is no flash of a default theme while the config request resolves.
  */
 export function themeVars(theme: StoreTheme | null | undefined): string {

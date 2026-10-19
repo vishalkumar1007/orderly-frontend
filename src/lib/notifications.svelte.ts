@@ -1,5 +1,5 @@
 import { api, ApiClientError, getAccessToken, getRefreshToken } from '$lib/api/client';
-import { playSound } from '$lib/sound';
+import { playSound } from '$lib/sound.svelte';
 import { toast } from '$lib/components/admin/toast';
 
 export type Notification = {
@@ -43,8 +43,8 @@ export function setSoundEnabled(on: boolean): void {
 
 /**
  * One polling feed, shared by every mounted bell for a given scope (tenant or
- * platform). Modeled on `$lib/tenant/orders.svelte.ts`'s `OrderBoard` —
- * acquire/release reference counting, visibility pause, error backoff — but
+ * platform). Modeled on `$lib/tenant/orders.svelte.ts`'s `OrderBoard`:
+ * acquire/release reference counting, visibility pause, error backoff: but
  * single-mode: the bell has no fast/slow split, it is always "background."
  */
 function createNotificationBoard(basePath: '/api/v1/tenant' | '/api/v1/admin') {
@@ -59,15 +59,16 @@ function createNotificationBoard(basePath: '/api/v1/tenant' | '/api/v1/admin') {
 	let backoffMs = 0;
 	let authStopped = false;
 	// Every id ever sounded/toasted for this board, so a new poll that still
-	// includes an item never re-announces it — only a genuinely new id does.
+	// includes an item never re-announces it: only a genuinely new id does.
 	const announced = new Set<string>();
 	let firstLoad = true;
 
 	function schedule() {
 		stopTimer();
 		if (subscribers === 0 || authStopped) return;
-		if (typeof document !== 'undefined' && document.hidden) return;
-		timer = setTimeout(() => void refresh(), backoffMs > 0 ? backoffMs : POLL_MS);
+		// A hidden tab keeps polling, slower, so an alert can still sound.
+		const hidden = typeof document !== 'undefined' && document.hidden;
+		timer = setTimeout(() => void refresh(), backoffMs > 0 ? backoffMs : hidden ? Math.max(POLL_MS, 30000) : POLL_MS);
 	}
 
 	function stopTimer() {
@@ -110,7 +111,7 @@ function createNotificationBoard(basePath: '/api/v1/tenant' | '/api/v1/admin') {
 	}
 
 	// Sounds and toasts only for a HIGH/CRITICAL item that is both unread and
-	// new since the last poll — never for the initial load (that would sound
+	// new since the last poll: never for the initial load (that would sound
 	// off for a backlog from before this tab was open) and never twice for
 	// the same id.
 	function announceNewArrivals(next: Notification[]) {
@@ -137,7 +138,6 @@ function createNotificationBoard(basePath: '/api/v1/tenant' | '/api/v1/admin') {
 			if (typeof document !== 'undefined') {
 				onVisibility = () => {
 					if (!document.hidden) void refresh();
-					else stopTimer();
 				};
 				document.addEventListener('visibilitychange', onVisibility);
 			}
@@ -216,7 +216,7 @@ function createNotificationBoard(basePath: '/api/v1/tenant' | '/api/v1/admin') {
 export const tenantNotifications = createNotificationBoard('/api/v1/tenant');
 export const platformNotifications = createNotificationBoard('/api/v1/admin');
 
-/** One page of older history, for the bell's "view all" screen — independent
+/** One page of older history, for the bell's "view all" screen: independent
  * of the live board above, which only ever holds the most recent window. */
 export async function fetchNotificationPage(
 	basePath: '/api/v1/tenant' | '/api/v1/admin',

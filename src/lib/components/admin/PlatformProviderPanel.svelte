@@ -84,7 +84,9 @@
 
 	function applyView(v: ConfigView) {
 		provider = v.provider;
-		enabled = v.enabled;
+		// Nothing saved yet: a first save should switch the service on, not
+		// store working credentials that silently go unused.
+		enabled = v.status === 'UNCONFIGURED' ? true : v.enabled;
 		allowTenants = v.allow_tenants;
 		testTo = String(v.config?.from_email ?? '');
 	}

@@ -12,7 +12,7 @@
 	 * Events down the side, channels across the top: one switch answers "does
 	 * this event reach this channel". A rule is really keyed by (event, channel,
 	 * audience); `rules` is already filtered to one audience by the caller, so a
-	 * cell holds one rule — or none, shown as a dash, when the event never uses
+	 * cell holds one rule: or none, shown as a dash, when the event never uses
 	 * that channel.
 	 *
 	 * `locked` maps a channel to the reason it is unavailable (the plan name), so

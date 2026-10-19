@@ -18,7 +18,7 @@
 	 * Your own account.
 	 *
 	 * Reached from the account menu rather than from the settings rail, because
-	 * it is not a platform setting — it is one person's credentials. The roles
+	 * it is not a platform setting: it is one person's credentials. The roles
 	 * table below is here rather than on a screen of its own: it is reference
 	 * material you want while thinking about access, not something to configure.
 	 */
@@ -105,8 +105,8 @@
 		{/snippet}
 
 		<dl class="dl">
-			<div><dt>Name</dt><dd>{profile?.name ?? '—'}</dd></div>
-			<div><dt>Email</dt><dd class="mono">{profile?.email ?? '—'}</dd></div>
+			<div><dt>Name</dt><dd>{profile?.name ?? '-'}</dd></div>
+			<div><dt>Email</dt><dd class="mono">{profile?.email ?? '-'}</dd></div>
 			<div><dt>Role</dt><dd>Platform owner</dd></div>
 			<div><dt>Scope</dt><dd>This console only</dd></div>
 		</dl>
@@ -181,7 +181,7 @@
 			</div>
 			<div>
 				<dt>Manager</dt>
-				<dd>One business, day to day: orders, kitchen, menu, customers and staff — not its configuration.</dd>
+				<dd>One business, day to day: orders, kitchen, menu, customers and staff: not its configuration.</dd>
 			</div>
 			<div>
 				<dt>Staff</dt>

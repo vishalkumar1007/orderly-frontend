@@ -360,7 +360,7 @@
 	}
 }
 
-/* Individual Card — clean flat borders, NO blurry over-shadow */
+/* Individual Card: clean flat borders, NO blurry over-shadow */
 .onb-choice-card {
 	position: relative;
 	display: flex;
@@ -395,7 +395,7 @@
 	box-shadow: 0 0 0 2px var(--portal-accent-soft);
 }
 
-/* Selected Active State — crisp portal accent border, subtle background, NO OVER SHADOW */
+/* Selected Active State: crisp portal accent border, subtle background, NO OVER SHADOW */
 .onb-choice-card.is-selected,
 .onb-choice-card[aria-checked='true'] {
 	border-color: var(--portal-accent);
@@ -985,7 +985,7 @@
 
 /* ============================================================
    RIGHT PANE: LIVE INTERACTIVE PREVIEW & SHOWCASE
-   Clean matte SaaS workbench — zero overspray lighting
+   Clean matte SaaS workbench: zero overspray lighting
    ============================================================ */
 
 .onb-showcase-pane {
@@ -1268,7 +1268,7 @@
 
 /* ============================================================
    REVIEW STEP: CLEAN UNIFIED SPECIFICATION SUMMARY
-   Clean, professional enterprise SaaS layout — zero visual clutter
+   Clean, professional enterprise SaaS layout: zero visual clutter
    ============================================================ */
 
 .onb-review-spec {
@@ -1400,6 +1400,45 @@
 }
 
 /* Terms Row */
+.onb-security-card {
+	display: grid;
+	grid-template-columns: 130px 1fr;
+	gap: 1.25rem;
+	align-items: start;
+	padding: 1rem 1.25rem;
+	margin-bottom: 1.25rem;
+	background: var(--onb-surface-card);
+	border: 1px solid var(--onb-border);
+	border-radius: 12px;
+}
+
+.onb-security-card > .onb-spec-label {
+	padding-top: 0.15rem;
+}
+
+.onb-security-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	min-width: 0;
+}
+
+.onb-security-options {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	padding: 0.85rem 1rem;
+	border-radius: 10px;
+	background: rgba(127, 127, 127, 0.06);
+}
+
+@media (max-width: 640px) {
+	.onb-security-card {
+		grid-template-columns: 1fr;
+		gap: 0.6rem;
+	}
+}
+
 .onb-terms-row {
 	display: flex;
 	align-items: flex-start;
@@ -1439,7 +1478,7 @@
 
 /* ============================================================
    ONBOARDING SUCCESS & COMPLETION PAGE (PAGE-LEVEL LAYOUT)
-   Integrated directly into the page — clean, professional SaaS
+   Integrated directly into the page: clean, professional SaaS
    ============================================================ */
 
 .onb-success-page {
@@ -1947,7 +1986,7 @@
 	text-decoration: none;
 }
 
-/* Alert Component Styles — type colours, not brand/theme surface. */
+/* Alert Component Styles: type colours, not brand/theme surface. */
 .onb-alert {
 	display: flex;
 	gap: 0.75rem;

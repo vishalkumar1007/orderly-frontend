@@ -85,7 +85,7 @@
 			label: 'Appearance',
 			icon: Palette,
 			group: 'Your account',
-			lede: 'How this console looks to you. Your choice follows your account and changes nothing for anyone else who signs in here — and, if you may change platform settings, what everyone starts from.'
+			lede: 'How this console looks to you. Your choice follows your account and changes nothing for anyone else who signs in here: and, if you may change platform settings, what everyone starts from.'
 		}
 	];
 

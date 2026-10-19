@@ -7,7 +7,7 @@
 	 * The wizard's pickers were `<button>`s inside a `role="radiogroup"` with no
 	 * `role="radio"` and no `aria-checked` anywhere, so the group announced a
 	 * position ("2 of 7") while every member announced itself as an ordinary
-	 * push button with no selected state — and Tab then walked through all seven
+	 * push button with no selected state: and Tab then walked through all seven
 	 * individually. A radio group is one stop in the tab order with the arrow keys
 	 * moving within it, which is what `role="radiogroup"` promises.
 	 *
@@ -30,7 +30,7 @@
 		onselect?: (value: string) => void;
 		orientation?: 'vertical' | 'horizontal';
 		/**
-		 * A grid modifier from the onboarding stylesheet — `onb-choices-2`,
+		 * A grid modifier from the onboarding stylesheet: `onb-choices-2`,
 		 * `onb-choices-3`. The card layout is identical across the three pickers;
 		 * only how many sit per row changes, and seven types, three plans and
 		 * seventeen presets each want a different answer. Left to the caller
@@ -58,7 +58,7 @@
 	 * Seeded from the selection, or from the first card when nothing is selected
 	 * yet. A roving tabindex whose single `0` is nowhere makes the group
 	 * unreachable, so the seed has to be re-evaluated whenever it stops naming a
-	 * card that exists — which is not only at construction.
+	 * card that exists: which is not only at construction.
 	 */
 	let focused = $state('');
 
@@ -70,14 +70,14 @@
 	 * on the first render, which is nothing, and the group would sit there with
 	 * no tab stop at all.
 	 *
-	 * The same effect covers the other two ways `focused` goes stale — a card
-	 * being removed from `options`, and a draft being reset — and it never steals
+	 * The same effect covers the other two ways `focused` goes stale: a card
+	 * being removed from `options`, and a draft being reset: and it never steals
 	 * focus from a card that is still present, so a click is not yanked away by
 	 * the parent's echo of the same selection back as a prop change.
 	 */
 	$effect(() => {
 		if (selectable.some((option) => option.id === focused)) return;
-		// Prefer the selection, but only if it is actually reachable — a draft
+		// Prefer the selection, but only if it is actually reachable: a draft
 		// restored onto a card that is no longer offered must not point the tab
 		// stop at nothing.
 		focused = (selectable.find((option) => option.id === value) ?? selectable[0])?.id ?? '';
@@ -118,7 +118,7 @@
 
 		const from = selectable.findIndex((option) => option.id === focused);
 		// `-1` when nothing matches, which lands on the first card going forwards
-		// and the last going backwards — the behaviour the pattern specifies for
+		// and the last going backwards: the behaviour the pattern specifies for
 		// an unselected group.
 		const next = selectable[(from + step + selectable.length) % selectable.length];
 		if (next) {
@@ -162,7 +162,7 @@
 	/*
 	 * `-1`, not `0`. The pattern puts one tab stop *inside* the group, on the
 	 * checked card, and a `0` here would add a second stop wrapping a group whose
-	 * children are already navigable — so the operator would hit the container,
+	 * children are already navigable: so the operator would hit the container,
 	 * then have to arrow into a card they could have reached directly. `-1` keeps
 	 * the container focusable for scripts and for the empty-state case without
 	 * putting it in the sequence.

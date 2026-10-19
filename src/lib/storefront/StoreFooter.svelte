@@ -7,8 +7,8 @@
 	/**
 	 * The footer.
 	 *
-	 * Carries the business information a customer actually needs at pickup —
-	 * address, phone, opening hours — plus a route back to sign-in. It is a
+	 * Carries the business information a customer actually needs at pickup:
+	 * address, phone, opening hours: plus a route back to sign-in. It is a
 	 * content section, not decoration: on a storefront with no dedicated contact
 	 * page this is where "where am I collecting from" is answered.
 	 */

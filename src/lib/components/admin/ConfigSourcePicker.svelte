@@ -45,7 +45,7 @@
 					</span>
 					<span class="opt-hint">{options.platform_reason}</span>
 				{:else}
-					<span class="opt-line ok">Available — managed by your platform administrator</span>
+					<span class="opt-line ok">Available: managed by your platform administrator</span>
 					<span class="opt-hint">
 						Your organization does not see or hold these credentials.
 					</span>

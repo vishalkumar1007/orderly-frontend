@@ -44,7 +44,7 @@
 <span class="pchip">
 	<span class={`badge badge-${view.tone} badge-plain`}>{view.label}</span>
 	{#if payment.is_test}
-		<span class="pchip-test" title="Dummy payment — nobody was charged">TEST</span>
+		<span class="pchip-test" title="Dummy payment: nobody was charged">TEST</span>
 	{/if}
 </span>
 

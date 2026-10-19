@@ -8,7 +8,7 @@ export type StoreLink = {
 	slug?: string;
 	public_host: string;
 	public_path: string;
-	/** Absolute storefront URL — prefer this over assembling host+path. */
+	/** Absolute storefront URL: prefer this over assembling host+path. */
 	public_url?: string;
 	is_published: boolean;
 	ordering_open?: boolean;

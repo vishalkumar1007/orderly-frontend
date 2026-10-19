@@ -109,7 +109,7 @@
 		 * `/api/v1/public/theme` and not `/api/v1/tenant/theme`: whoever is
 		 * setting a password has no token yet by definition, so the
 		 * authenticated route answered 401 and this page fell back to the
-		 * built-in indigo — the one screen where the brand matters most was the
+		 * built-in indigo: the one screen where the brand matters most was the
 		 * one screen that never showed it. The public route is the same handler
 		 * on the same host-resolved tenant, and the payload is presentation
 		 * only.

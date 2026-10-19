@@ -18,8 +18,8 @@
 	 *
 	 * The one panel on the dashboard that is not a number: it is the list of
 	 * things that will not fix themselves. Every row is derived from real state
-	 * — a suspended business, a trial about to lapse, an administrator who never
-	 * signed in, a provider whose last test failed — and every row links to the
+	 * a suspended business, a trial about to lapse, an administrator who never
+	 * signed in, a provider whose last test failed: and every row links to the
 	 * screen where it can be dealt with.
 	 *
 	 * An empty list is a real answer, so the panel says so explicitly rather
@@ -82,7 +82,7 @@
 		// every business at once, not for one.
 		for (const component of health?.components ?? []) {
 			if (component.status !== 'ERROR' && component.status !== 'WARNING') continue;
-			// UNAVAILABLE is deliberately excluded — "we don't run that here" is
+			// UNAVAILABLE is deliberately excluded: "we don't run that here" is
 			// a fact about the deployment, not a problem to chase.
 			out.push({
 				id: `health-${component.id}`,
@@ -186,7 +186,7 @@
 		</ul>
 		{#if overflow > 0}
 			<p class="att-more">
-				and {overflow} more — see <a href="/superadmin/businesses">all businesses</a>.
+				and {overflow} more: see <a href="/superadmin/businesses">all businesses</a>.
 			</p>
 		{/if}
 	{/if}

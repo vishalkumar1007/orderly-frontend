@@ -5,7 +5,7 @@
 		<!--
 			viewport-fit=cover lets the app draw under the iPhone notch and home
 			indicator; the shell pads its fixed bars with env(safe-area-inset-*).
-			maximum-scale is intentionally NOT set — pinch zoom must keep working.
+			maximum-scale is intentionally NOT set: pinch zoom must keep working.
 		-->
 		<meta
 			name="viewport"
@@ -21,7 +21,7 @@
 
 		<!--
 			Critical boot styles. These must stay in sync with the token values in
-			src/routes/layout.css — they paint the first frame before the stylesheet
+			src/routes/layout.css: they paint the first frame before the stylesheet
 			arrives, so the page never flashes white or unstyled.
 		-->
 		<style>
@@ -57,7 +57,7 @@
 
 		<script>
 			// Resolve the theme BEFORE first paint. This script is synchronous in
-			// <head>, so the browser cannot paint before it runs — the page never
+			// <head>, so the browser cannot paint before it runs: the page never
 			// flashes light mode while Svelte hydrates. The token values above
 			// must stay in sync with layout.css.
 			(function () {
@@ -71,7 +71,7 @@
 						mode = 'dark';
 					}
 				} catch (e) {
-					/* private mode — fall through to the light default */
+					/* private mode: fall through to the light default */
 				}
 				root.setAttribute('data-theme', mode);
 			})();

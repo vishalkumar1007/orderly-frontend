@@ -13,7 +13,7 @@
 	 *
 	 * The five stages are fixed on the server; these settings tune what happens
 	 * around them. What a customer is *told* along the way belongs to
-	 * Notifications — one setting, one home, so neither screen can quietly
+	 * Notifications: one setting, one home, so neither screen can quietly
 	 * overwrite the other's idea of the document.
 	 */
 	let props: Partial<StorefrontContext> = $props();
@@ -64,11 +64,11 @@
 		<h2>The pipeline</h2>
 		<p class="sfctl-note">Every order moves through these five stages, in this order.</p>
 		<ol class="wf-stages">
-			<li><strong>Order placed</strong> — the customer has checked out</li>
-			<li><strong>Accepted</strong> — the shop has taken it</li>
-			<li><strong>Preparing</strong> — the kitchen is on it</li>
-			<li><strong>Ready</strong> — waiting for collection</li>
-			<li><strong>Completed</strong> — collected</li>
+			<li><strong>Order placed</strong>: the customer has checked out</li>
+			<li><strong>Accepted</strong>: the shop has taken it</li>
+			<li><strong>Preparing</strong>: the kitchen is on it</li>
+			<li><strong>Ready</strong>: waiting for collection</li>
+			<li><strong>Completed</strong>: collected</li>
 		</ol>
 		<p class="field-hint" style="margin-top:0.7rem;">
 			An order can be cancelled while it is <em>Order placed</em> or <em>Accepted</em>. After that
@@ -163,7 +163,7 @@
 		</div>
 		{#if autoComplete}
 			<div class="alert alert-warn" style="margin-top:0.9rem;">
-				With this on, <strong>Ready</strong> is never a resting state — an order goes straight from
+				With this on, <strong>Ready</strong> is never a resting state: an order goes straight from
 				preparing to completed. You will not see ready orders waiting on the board.
 			</div>
 		{/if}

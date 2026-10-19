@@ -11,9 +11,9 @@ import {
  * What kind of business this console belongs to.
  *
  * The type arrives with the identity, once, in the shop layout. Every screen
- * beneath it needs the same answer — the kitchen board to know whether it is a
+ * beneath it needs the same answer: the kitchen board to know whether it is a
  * kitchen, a bar or a packing bench; the catalogue to know whether its groups
- * are categories, aisles or courses — and none of them should re-fetch it or
+ * are categories, aisles or courses: and none of them should re-fetch it or
  * receive it as a prop threaded through layouts that do not care.
  *
  * It is deliberately a plain module rune rather than context: the value is
@@ -49,7 +49,7 @@ export function hasBusinessModule(module: ModuleKey): boolean {
 
 /**
  * Does this business type run on orders at all? False for the capability-driven
- * types (appointments, reservations, ...) — their dashboard/selling data would
+ * types (appointments, reservations, ...): their dashboard/selling data would
  * otherwise show real-looking zeros for a flow the business doesn't use.
  */
 export function orderingEnabled(): boolean {

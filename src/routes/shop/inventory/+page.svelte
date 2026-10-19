@@ -148,7 +148,7 @@
 	const MODES: { id: AdjustReason; label: string; hint: string }[] = [
 		{ id: 'ADD', label: 'Add stock', hint: 'A delivery or a batch you just made.' },
 		{ id: 'WASTE', label: 'Write off', hint: 'Spoiled, dropped or given away.' },
-		{ id: 'CORRECTION', label: 'Set total', hint: 'You counted the shelf — enter what is really there.' }
+		{ id: 'CORRECTION', label: 'Set total', hint: 'You counted the shelf: enter what is really there.' }
 	];
 
 	function openAdjust(row: StockRow, reason: AdjustReason = 'ADD') {
@@ -426,7 +426,7 @@
 									<span class="muted inv-unit">{r.unit}</span>
 								</td>
 								<td class="col-md muted">
-									{r.reorder_threshold ? `${r.reorder_threshold} ${r.unit}` : '—'}
+									{r.reorder_threshold ? `${r.reorder_threshold} ${r.unit}` : '-'}
 								</td>
 								<td><StatusBadge status={b.label} kind={b.kind} /></td>
 								<td class="col-md muted">{formatRelative(r.updated_at)}</td>
@@ -504,12 +504,12 @@
 				<strong>{adjustCurrent}</strong>
 				<span class="inv-arrow" aria-hidden="true">→</span>
 				<strong class:inv-bad={adjustAfter !== null && adjustAfter < 0}>
-					{adjustAfter === null || adjustProblem ? '—' : adjustAfter}
+					{adjustAfter === null || adjustProblem ? '-' : adjustAfter}
 				</strong>
 				<span class="muted">{adjustRow.unit}</span>
 			</div>
 
-			<FormField label="Note" htmlFor="inv-note" hint="Optional — shows in the history.">
+			<FormField label="Note" htmlFor="inv-note" hint="Optional: shows in the history.">
 				<TextInput id="inv-note" bind:value={adjustNote} maxlength={200} placeholder="e.g. Tuesday delivery" />
 			</FormField>
 
@@ -588,7 +588,7 @@
 </Modal>
 
 <!-- History -->
-<SlideOver bind:open={historyOpen} title={historyRow ? `${historyRow.product_name} — history` : 'History'}>
+<SlideOver bind:open={historyOpen} title={historyRow ? `${historyRow.product_name}: history` : 'History'}>
 	{#if historyLoading}
 		<p class="muted">Loading…</p>
 	{:else if historyError}

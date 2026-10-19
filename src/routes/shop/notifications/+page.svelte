@@ -10,7 +10,7 @@
 
 	/**
 	 * The bell's dropdown only ever shows the most recent window. This is the
-	 * rest of it — every notification this account has ever had, paged back
+	 * rest of it: every notification this account has ever had, paged back
 	 * through on demand rather than loaded all at once.
 	 */
 

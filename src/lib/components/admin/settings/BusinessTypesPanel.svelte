@@ -165,7 +165,7 @@
 	>
 		{#snippet footer()}
 			<span class="bt-foot">
-				Each card saves on its own — there is no page-wide save to forget.
+				Each card saves on its own: there is no page-wide save to forget.
 			</span>
 		{/snippet}
 
@@ -184,7 +184,7 @@
 							<span class="bt-meta">
 								<code class="mono">{row.code}</code>
 								{#if !hasTemplate(row.code)}
-									<span class="bt-tag warn" title="No built-in template — neutral defaults are used">
+									<span class="bt-tag warn" title="No built-in template: neutral defaults are used">
 										generic defaults
 									</span>
 								{/if}

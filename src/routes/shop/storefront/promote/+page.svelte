@@ -262,7 +262,7 @@
 			toast.success('Link copied');
 			setTimeout(() => (copiedLink = false), 2000);
 		} catch {
-			toast.error('Could not copy — select the link manually');
+			toast.error('Could not copy: select the link manually');
 		}
 	}
 

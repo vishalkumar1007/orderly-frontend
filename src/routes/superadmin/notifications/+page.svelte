@@ -25,6 +25,7 @@
 	import type { NotificationDelivery, NotificationEventDef, NotificationRule } from '$lib/admin/notificationTypes';
 	import EventChannelGrid from '$lib/components/admin/EventChannelGrid.svelte';
 	import EventRuleMatrix from '$lib/components/admin/EventRuleMatrix.svelte';
+	import { goto } from '$app/navigation';
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
 	import FormField from '$lib/components/admin/FormField.svelte';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
@@ -41,7 +42,7 @@
 	 * Two things live here: the platform's own outbound messaging (account
 	 * email, business onboarding, subscription and security alerts to the
 	 * console team), and the platform DEFAULT for every event in the catalog
-	 * — what a business inherits until it writes its own override.
+	 * what a business inherits until it writes its own override.
 	 *
 	 * A business's customer-facing rules are still that business's own call:
 	 * this screen sets the default they start from, not a value that
@@ -138,6 +139,9 @@
 	let logOpen = $state(false);
 	let senderOpen = $state(false);
 	let defaultsOpen = $state(false);
+	function editTemplate(ev?: NotificationEventDef) {
+		void goto('/superadmin/notifications/templates' + (ev ? `?event=${encodeURIComponent(ev.code)}` : ''));
+	}
 
 	/* ---------- platform-default rules, every event in the catalog ---------- */
 
@@ -289,6 +293,9 @@
 				<button type="button" class="btn btn-ghost btn-sm" onclick={() => (defaultsOpen = true)}>
 					<Building2 size={14} stroke={1.6} /> Business defaults
 				</button>
+				<button type="button" class="btn btn-ghost btn-sm" onclick={() => editTemplate()}>
+					<MessageSquare size={14} stroke={1.6} /> Email templates
+				</button>
 			</div>
 		</div>
 
@@ -306,6 +313,7 @@
 				]}
 				busyKey={busyRuleKey}
 				onchange={onRuleChange}
+				onedit={editTemplate}
 			/>
 		{/if}
 	</div>
@@ -346,10 +354,10 @@
 
 <SlideOver bind:open={senderOpen} title="Sender & test">
 	<dl class="dl">
-		<div><dt>From name</dt><dd>{fromName || '—'}</dd></div>
-		<div><dt>From address</dt><dd class="mono">{fromEmail || '—'}</dd></div>
-		<div><dt>Reply-to</dt><dd class="mono">{replyTo || fromEmail || '—'}</dd></div>
-		<div><dt>Support address</dt><dd class="mono">{settings?.general.support_email || '—'}</dd></div>
+		<div><dt>From name</dt><dd>{fromName || '-'}</dd></div>
+		<div><dt>From address</dt><dd class="mono">{fromEmail || '-'}</dd></div>
+		<div><dt>Reply-to</dt><dd class="mono">{replyTo || fromEmail || '-'}</dd></div>
+		<div><dt>Support address</dt><dd class="mono">{settings?.general.support_email || '-'}</dd></div>
 	</dl>
 	<div style="margin:0.9rem 0 1.4rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
 		<a class="btn btn-ghost btn-sm" href="/superadmin/providers/smtp">Edit email provider</a>

@@ -50,7 +50,7 @@ export function loadConfig(service: ConfigService): Promise<ConfigView | null> {
 
 /**
  * Pre-fetch all three service configs in parallel.
- * Safe to call multiple times — already-cached services are skipped.
+ * Safe to call multiple times: already-cached services are skipped.
  *
  * A prefetch failing is not an error anybody should be told about: nothing is
  * on screen yet. The screen that actually opens the service calls

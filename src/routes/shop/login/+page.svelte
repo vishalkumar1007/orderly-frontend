@@ -39,13 +39,13 @@
 	let challengeToken = $state('');
 	let mfaCode = $state('');
 	let useRecoveryCode = $state(false);
-	/** Which method the challenge is for — picked once from the login response, not switchable mid-flow. */
+	/** Which method the challenge is for: picked once from the login response, not switchable mid-flow. */
 	let challengeMethod = $state<'TOTP' | 'EMAIL_OTP'>('TOTP');
 	let emailSending = $state(false);
 	let resendCooldown = $state(0);
 
 	// Forced enrollment: the account has zero MFA methods and policy now
-	// requires one. A separate screen from the challenge above — there is no
+	// requires one. A separate screen from the challenge above: there is no
 	// code to verify yet, only one to set up.
 	let enrollStep = $state(false);
 	let enrollmentToken = $state('');
@@ -128,7 +128,7 @@
 	 * The shop's own identity, loaded server-side.
 	 *
 	 * `logoUrl` is empty whenever the shop has not uploaded one, and that is the
-	 * common case — a placeholder glyph would be inventing a brand that does not
+	 * common case: a placeholder glyph would be inventing a brand that does not
 	 * exist. With no logo the name stands on its own, which is also what a shop
 	 * called "Momo magic" wants: no competing mark stealing the first glance.
 	 */
@@ -141,7 +141,7 @@
 	 *
 	 * Applying it here rather than through `applyBrandTheme` is deliberate: that
 	 * function writes to `<html>`, which cannot be done from a server load without
-	 * a flash — the browser would paint the default palette first and repaint after
+	 * a flash: the browser would paint the default palette first and repaint after
 	 * hydration. An inline style on the page root is in the very first frame, and
 	 * because every token on this screen is read inside it, the override is scoped
 	 * to exactly this page.
@@ -151,7 +151,7 @@
 
 	/**
 	 * A logo URL that 404s must not leave a torn image where the brand should be,
-	 * so a failed load falls back to showing the name alone — the same state as
+	 * so a failed load falls back to showing the name alone: the same state as
 	 * never having had a logo.
 	 */
 	let logoBroken = $state(false);
@@ -239,7 +239,7 @@
 	screen uses the tokens rather than hard-coded colours like the old page did.
 
 	Deliberately not a card. A floating panel with its own border and shadow reads
-	as a dialog, and this is not one — it is a doorway. The page is a single
+	as a dialog, and this is not one: it is a doorway. The page is a single
 	centred column of type and inputs on the tenant's own background, which is what
 	makes it look like part of the shop rather than a generic admin screen.
 -->
@@ -367,7 +367,7 @@
 
 			{#if hostKind === 'unknown'}
 				<p class="osh-login-note">
-					Open your shop's own address to sign in — for example
+					Open your shop's own address to sign in: for example
 					<code>{'{shop}'}.{baseDomain}</code>. Platform admins use
 					<a href="/superadmin/login">/superadmin/login</a>.
 				</p>
@@ -480,7 +480,7 @@
 <style>
 	/*
 		No card. A bordered, shadowed panel reads as a dialog or a modal, and a
-		sign-in screen is neither — it is a doorway into the shop. So the page is a
+		sign-in screen is neither: it is a doorway into the shop. So the page is a
 		single narrow column of type and inputs sitting directly on the tenant's own
 		background, with the shop's name as the one piece of real identity.
 
@@ -497,7 +497,7 @@
 		from the bottom in the secondary.
 
 		The base is mixed at 5%, not replaced. A sign-in form has to stay readable
-		first — the text colour is unchanged and sits on a near-neutral surface, so
+		first: the text colour is unchanged and sits on a near-neutral surface, so
 		contrast is preserved whatever accent the owner picks. Branding the page
 		means tinting it, not inverting it.
 	*/

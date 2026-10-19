@@ -102,7 +102,7 @@
 
 	/**
 	 * The short form of the launch checklist. The full list, with its optional
-	 * steps, lives on /shop/storefront/promote — this is the nudge, not the workspace, so it
+	 * steps, lives on /shop/storefront/promote: this is the nudge, not the workspace, so it
 	 * carries only what stands between the shop and its first order.
 	 */
 	const tenantSlug = $derived(($page.data.tenantSlug as string) || '');
@@ -178,7 +178,7 @@
 
 	/** Minutes read as a duration, or a dash when nothing has been measured. */
 	function minutesLabel(value: number | undefined): string {
-		if (!value || value <= 0) return '—';
+		if (!value || value <= 0) return '-';
 		if (value < 1) return 'under a minute';
 		if (value < 60) return `${Math.round(value)} min`;
 		const hours = Math.floor(value / 60);
@@ -195,7 +195,7 @@
 			case 'ONLINE':
 				return 'Online payment';
 			case 'ONLINE_TEST':
-				return 'Online (test — not counted)';
+				return 'Online (test: not counted)';
 			case 'CASH':
 				return 'Cash';
 			case 'UNRECORDED':
@@ -241,7 +241,7 @@
 			toast.success('Link copied');
 			setTimeout(() => (copiedLink = false), 2000);
 		} catch {
-			toast.error('Could not copy — select the link manually');
+			toast.error('Could not copy: select the link manually');
 		}
 	}
 
@@ -432,7 +432,7 @@
 						</div>
 					</div>
 					{#if !store.is_published}
-						<p class="dash-link-hint">Draft — not public yet. Publish when you’re ready.</p>
+						<p class="dash-link-hint">Draft: not public yet. Publish when you’re ready.</p>
 					{/if}
 				{/if}
 			</div>
@@ -627,7 +627,7 @@
 		<div class="dash-metrics">
 			<MetricCard
 				label={`Revenue · ${periodLabel}`}
-				value={analyticsLoading ? '—' : money(periodRevenue)}
+				value={analyticsLoading ? '-' : money(periodRevenue)}
 				hint="Selected period"
 				loading={analyticsLoading}
 				trend={periodTrend}
@@ -635,7 +635,7 @@
 			/>
 			<MetricCard
 				label={`Orders · ${periodLabel}`}
-				value={analyticsLoading ? '—' : periodOrders}
+				value={analyticsLoading ? '-' : periodOrders}
 				hint="Selected period"
 				loading={analyticsLoading}
 				trend={orderTrend}
@@ -643,14 +643,14 @@
 			/>
 			<MetricCard
 				label="Average order"
-				value={analyticsLoading ? '—' : money(periodAvg)}
+				value={analyticsLoading ? '-' : money(periodAvg)}
 				hint={`Across ${periodLabel}`}
 				loading={analyticsLoading}
 			/>
 			<MetricCard
 				label="Menu health"
 				value={analyticsLoading
-					? '—'
+					? '-'
 					: `${analytics?.products_available ?? 0} live`}
 				hint={`${analytics?.products_unavailable ?? 0} unavailable`}
 				loading={analyticsLoading}
@@ -660,7 +660,7 @@
 		<div class="dash-metrics">
 			<MetricCard
 				label="Typical prep time"
-				value={analyticsLoading ? '—' : prepLabel}
+				value={analyticsLoading ? '-' : prepLabel}
 				hint={analytics && analytics.avg_prep_minutes > 0
 					? `${analytics.avg_prep_minutes} min on average`
 					: 'From accepted to ready'}
@@ -668,16 +668,16 @@
 			/>
 			<MetricCard
 				label="Time to accept"
-				value={analyticsLoading ? '—' : acceptLabel}
+				value={analyticsLoading ? '-' : acceptLabel}
 				hint="How long orders wait before you accept them"
 				loading={analyticsLoading}
 			/>
 			<MetricCard
 				label="Fulfilment rate"
 				value={analyticsLoading
-					? '—'
+					? '-'
 					: analytics?.fulfilment_rate == null
-						? '—'
+						? '-'
 						: `${analytics.fulfilment_rate}%`}
 				hint={analytics && analytics.completed_orders + analytics.cancelled_orders > 0
 					? `${analytics.completed_orders} completed · ${analytics.cancelled_orders} cancelled`
@@ -686,7 +686,7 @@
 			/>
 			<MetricCard
 				label="Cancellations"
-				value={analyticsLoading ? '—' : `${analytics?.cancellation_rate ?? 0}%`}
+				value={analyticsLoading ? '-' : `${analytics?.cancellation_rate ?? 0}%`}
 				hint={analytics && analytics.cancelled_today > 0
 					? `${analytics.cancelled_today} today`
 					: 'None today'}
@@ -771,7 +771,7 @@
 		<Reveal class="panel">
 			<EmptyState
 				title="No orders yet today"
-				description="Share your store link or QR code — new orders will show up here."
+				description="Share your store link or QR code: new orders will show up here."
 			>
 				{#snippet action()}
 					<a class="btn btn-primary" href="/shop/storefront/promote?tab=marketing&asset=qr">Open marketing kit</a>

@@ -13,7 +13,7 @@
 	 * QR code.
 	 *
 	 * The code points at the tenant's own subdomain, generated server-side from
-	 * the slug the platform resolved — not assembled in the browser, so what is
+	 * the slug the platform resolved: not assembled in the browser, so what is
 	 * printed is exactly the address customers should open.
 	 *
 	 * The code is rendered in the tenant's brand colour, with a contrast check
@@ -54,7 +54,7 @@
 		} catch {
 			// Clipboard access is blocked in some browsers; the URL is on screen to
 			// copy by hand, so say so rather than failing silently.
-			toast.error('Could not copy automatically — select the address above instead');
+			toast.error('Could not copy automatically: select the address above instead');
 		}
 	}
 

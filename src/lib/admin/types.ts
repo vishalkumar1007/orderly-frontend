@@ -2,8 +2,8 @@ export type TenantStatus = 'ACTIVE' | 'SUSPENDED' | 'TRIAL' | 'CREATED' | 'SETUP
 export type SetupStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
 export type PlanCode = 'TRIAL' | 'STARTER' | 'BUSINESS';
 /**
- * A business-type code. The set is open on purpose — an operator can add one
- * under Settings — so this is a string with the built-in shapes documented
+ * A business-type code. The set is open on purpose: an operator can add one
+ * under Settings: so this is a string with the built-in shapes documented
  * rather than a closed union. `lib/admin/businessTypes.ts` owns what each code
  * means.
  */
@@ -120,7 +120,7 @@ export type CreateTenantPayload = {
 	 * Per-capability on/off choices for capability-driven business types
 	 * (Barber, Hotel, General). Only applied server-side where
 	 * business_type_capabilities marks the capability configurable for the
-	 * chosen type — everything else in this map is ignored, never a way to
+	 * chosen type: everything else in this map is ignored, never a way to
 	 * force on a module the business type structurally does not have.
 	 */
 	capability_overrides?: Record<string, boolean>;
@@ -213,7 +213,7 @@ export type TenantSecurity = {
 
 /**
  * Revenue and order figures are business-private data and are not exposed
- * to platform superadmins — only operational/monitoring fields are returned.
+ * to platform superadmins: only operational/monitoring fields are returned.
  */
 export type TenantMetrics = {
 	active_users: number;
@@ -229,7 +229,7 @@ export type DashboardOverview = {
 	active_tenants: number;
 	pending_setup: number;
 	suspended_tenants: number;
-	/** plan.md §4.1 / tenet_plan.md §26 — tenants still on a trial plan. */
+	/** plan.md §4.1 / tenet_plan.md §26: tenants still on a trial plan. */
 	trial_tenants: number;
 };
 
@@ -244,7 +244,7 @@ export type BusinessMetrics = {
 	total_orders: number;
 	orders_today: number;
 	revenue: string;
-	/** plan.md §4.1 — "Total order value today". */
+	/** plan.md §4.1: "Total order value today". */
 	order_value_today: string;
 	active_users: number;
 };
@@ -474,7 +474,7 @@ export type PlatformSettings = {
 		session_timeout_minutes: number;
 		password_min_length: number;
 		invite_expiry_hours: number;
-		/** Governs console accounts only — never a tenant's, see tenant mfa-policy for that. */
+		/** Governs console accounts only: never a tenant's, see tenant mfa-policy for that. */
 		mfa_mode: 'DISABLED' | 'OPTIONAL' | 'REQUIRED';
 		mfa_allowed_methods: ('TOTP' | 'EMAIL_OTP')[];
 		mfa_enforce_scope: 'ALL_ADMINS' | 'SELECTED_ROLES';
@@ -500,7 +500,7 @@ export type PlatformSettings = {
 
 /**
  * The built-in shapes. The live catalogue comes from `GET /admin/tenant-types`
- * — this is only the fallback used before it loads.
+ * this is only the fallback used before it loads.
  */
 export const BUSINESS_TYPES: BusinessType[] = [
 	'FOOD_SHOP',

@@ -151,7 +151,7 @@
 		/>
 	</FormField>
 
-	<FormField label="Description" htmlFor="pf-desc" hint="Optional — shown under the name">
+	<FormField label="Description" htmlFor="pf-desc" hint="Optional: shown under the name">
 		<TextArea id="pf-desc" rows={2} bind:value={description} placeholder="Short description for customers" />
 	</FormField>
 
@@ -252,7 +252,7 @@
 					label={hasBusinessModule('variants') && !hasBusinessModule('addons')
 						? 'Sizes & variants'
 						: 'Options / Add-ons'}
-					hint="Sizes, toppings, extras — optional"
+					hint="Sizes, toppings, extras: optional"
 				>
 					<OptionGroupsEditor bind:groups={optionGroups} disabled={saving} {currencySymbol} />
 				</FormField>

@@ -350,7 +350,7 @@
 			{loading}
 			empty={!loading && plans.length === 0}
 			emptyTitle="No plans yet"
-			emptyDescription="Create a plan before onboarding a business — every business needs one."
+			emptyDescription="Create a plan before onboarding a business: every business needs one."
 		>
 			{#snippet head()}
 				<th>Plan</th>
@@ -438,7 +438,7 @@
 				<h2>Subscriptions</h2>
 				<p>
 					One row per business: what it is provisioned on, and when that runs out. A trial that
-					lapses does not suspend anything on its own — it is a prompt for you.
+					lapses does not suspend anything on its own: it is a prompt for you.
 				</p>
 			</div>
 		</div>
@@ -513,9 +513,9 @@
 						</td>
 						<td><StatusBadge status={String(sub.plan_name)} kind="accent" dot={false} /></td>
 						<td><StatusBadge status={String(sub.status)} /></td>
-						<td class="col-md muted">{sub.trial_end ? formatDate(sub.trial_end) : '—'}</td>
+						<td class="col-md muted">{sub.trial_end ? formatDate(sub.trial_end) : '-'}</td>
 						<td class="col-sm muted">{formatDate(sub.start_date)}</td>
-						<td class="col-md muted">{sub.renewal_date ? formatDate(sub.renewal_date) : '—'}</td>
+						<td class="col-md muted">{sub.renewal_date ? formatDate(sub.renewal_date) : '-'}</td>
 						<td>
 							<Menu
 								label={`Actions for ${sub.tenant_name}`}
@@ -709,7 +709,7 @@
 
 <Modal
 	bind:open={moveOpen}
-	title={moveTarget ? `Change plan — ${moveTarget.tenant_name}` : 'Change plan'}
+	title={moveTarget ? `Change plan: ${moveTarget.tenant_name}` : 'Change plan'}
 >
 	<p class="muted" style="margin:0 0 0.9rem;font-size:var(--fs-body);line-height:1.5;">
 		The business moves immediately and its subscription follows. Nothing is charged.
