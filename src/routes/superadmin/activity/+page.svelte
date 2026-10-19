@@ -197,7 +197,7 @@
 			<h2>{tab === 'feed' ? 'Recent activity' : 'Audit log'}</h2>
 			<p>
 				{#if tab === 'feed'}
-					The last {logs.length} events across the platform, newest first — onboarding, plan
+					The last {logs.length} events across the platform, newest first: onboarding, plan
 					changes, provider changes and every sign-in.
 				{:else}
 					The same record, filtered for review: who did it, to what, and whether it was
@@ -335,7 +335,7 @@
 							<span class="muted" style="display:block;font-size:var(--fs-code);">{log.actor_email}</span>
 						{/if}
 					</td>
-					<td class="col-sm" style="color:var(--text-2);">{log.tenant || '—'}</td>
+					<td class="col-sm" style="color:var(--text-2);">{log.tenant || '-'}</td>
 					<td><StatusBadge status={String(log.result)} /></td>
 					<td class="muted col-md" style="white-space:nowrap;" title={formatDateTime(log.timestamp)}>
 						{formatRelative(log.timestamp)}
@@ -367,7 +367,7 @@
 			{#if selected.resource_id}
 				<div><dt>Resource ID</dt><dd class="mono">{selected.resource_id}</dd></div>
 			{/if}
-			<div><dt>Business</dt><dd>{selected.tenant || '—'}</dd></div>
+			<div><dt>Business</dt><dd>{selected.tenant || '-'}</dd></div>
 			<div><dt>Result</dt><dd><StatusBadge status={String(selected.result)} /></dd></div>
 		</dl>
 

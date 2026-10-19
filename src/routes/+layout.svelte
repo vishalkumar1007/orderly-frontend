@@ -53,7 +53,7 @@
 	});
 
 	/**
-	 * Depend only on derived primitives — reading `$page` inside the effect
+	 * Depend only on derived primitives: reading `$page` inside the effect
 	 * re-runs on every client navigation and re-hit `/tenant/theme`.
 	 */
 	const onShopConsole = $derived(pathname.startsWith('/shop'));
@@ -65,7 +65,7 @@
 	 * Which console, if any, this page belongs to.
 	 *
 	 * Both of them paint from the same per-user appearance record; they differ
-	 * only in the default underneath it. The customer storefront is neither —
+	 * only in the default underneath it. The customer storefront is neither:
 	 * it renders from `--sf-*` tokens and has no account to read.
 	 */
 	const consoleKind = $derived.by<'tenant' | 'platform' | null>(() => {
@@ -99,7 +99,7 @@
 
 		// Paint last session's resolved theme first. The appearance a person
 		// chose lives on their account, which means the correct answer is one
-		// round trip away — long enough to flash the built-in accent at somebody
+		// round trip away: long enough to flash the built-in accent at somebody
 		// who picked another one.
 		const remembered = readStoredTheme(scope);
 		if (remembered) applyBrandTheme(remembered);
@@ -111,7 +111,7 @@
 				if (cancelled) return;
 				adoptAppearance(kind, scope, appearance);
 			} catch {
-				/* signed out, or an older API — do not auto-retry */
+				/* signed out, or an older API: do not auto-retry */
 			}
 		})();
 		return () => {

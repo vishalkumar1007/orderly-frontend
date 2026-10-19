@@ -93,7 +93,10 @@ const LIVE = new Set(STAGES.map((s) => s.key));
 
 const OPS_LIVE_MS = 5000;
 const OPS_IDLE_MS = 20000;
-const BADGE_MS = 60000;
+const BADGE_MS = 15000;
+// A hidden tab keeps polling, slower: staff often keep the console in a
+// background tab and still need to hear a new order.
+const HIDDEN_MS = 30000;
 const BACKOFF_START_MS = 5000;
 const BACKOFF_CAP_MS = 60000;
 
@@ -169,12 +172,13 @@ export function normalizeOrder(raw: Record<string, unknown>): Order {
  *
  * `/shop/orders` and `/shop/kitchen` are two views of the same data, so they share
  * one poller instead of each hitting the API on their own timer. Polling is
- * reference-counted (stops when no screen is showing it) and pauses while the
- * tab is hidden, which matters a lot for operators on phones.
+ * reference-counted (stops when no screen is showing it) and slows down while
+ * the tab is hidden rather than stopping, so a background tab still hears a
+ * new order.
  *
  * Two modes share the same data:
- * - `ops` — Selling / Kitchen / Live (5s live / 20s idle)
- * - `badge` — shop shell topbar (60s) so non-ops pages do not hammer the API
+ * - `ops`: Selling / Kitchen / Live (5s live / 20s idle)
+ * - `badge`: shop shell topbar (15s): it drives the new-order sound everywhere
  */
 class OrderBoard {
 	orders = $state<Order[]>([]);
@@ -197,7 +201,7 @@ class OrderBoard {
 		return this.#opsSubscribers + this.#badgeSubscribers;
 	}
 
-	/** New orders awaiting a decision — the number that actually matters. */
+	/** New orders awaiting a decision: the number that actually matters. */
 	get newCount(): number {
 		return this.orders.filter((o) => o.status === 'PENDING').length;
 	}
@@ -216,7 +220,7 @@ class OrderBoard {
 	}
 
 	forStage(stage: string): Order[] {
-		// Newest first — the operator's next job is almost always the latest.
+		// Newest first: the operator's next job is almost always the latest.
 		return this.orders.filter((o) => o.status === stage).slice().reverse();
 	}
 
@@ -242,11 +246,10 @@ class OrderBoard {
 			if (typeof document !== 'undefined') {
 				this.#onVisibility = () => {
 					if (!document.hidden) void this.refresh();
-					else this.#stopTimer();
 				};
 				document.addEventListener('visibilitychange', this.#onVisibility);
 			}
-			// refresh()'s finally schedules the next tick — do not double-schedule here.
+			// refresh()'s finally schedules the next tick: do not double-schedule here.
 			void this.refresh();
 			return;
 		}
@@ -384,17 +387,18 @@ class OrderBoard {
 	}
 
 	/**
-	 * Ops polls fast while there is work; badge-only stays at 60s so the rest of
-	 * the console does not keep a phone radio busy. Error backoff overrides both.
+	 * Ops polls fast while there is work; badge-only every 15s so a new order is
+	 * heard quickly anywhere in the console; a hidden tab every 30s. Error
+	 * backoff overrides all of them.
 	 */
 	#schedule() {
 		this.#stopTimer();
 		if (this.#subscriberCount === 0 || this.#authStopped) return;
-		if (typeof document !== 'undefined' && document.hidden) return;
-
 		let delay: number;
 		if (this.#backoffMs > 0) {
 			delay = this.#backoffMs;
+		} else if (typeof document !== 'undefined' && document.hidden) {
+			delay = HIDDEN_MS;
 		} else if (this.#opsSubscribers > 0) {
 			delay = this.hasLive ? OPS_LIVE_MS : OPS_IDLE_MS;
 		} else {

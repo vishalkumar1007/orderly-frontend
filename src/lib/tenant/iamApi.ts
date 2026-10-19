@@ -6,7 +6,7 @@ import { api } from '$lib/api/client';
  * The role catalogue and the permission matrix come from the API rather than
  * being declared here, because the same table decides what the middleware
  * enforces. A console that shipped its own copy would eventually promise access
- * the API refuses — the exact bug this arrangement prevents.
+ * the API refuses: the exact bug this arrangement prevents.
  */
 
 export type BusinessRole = 'TENANT_ADMIN' | 'MANAGER' | 'STAFF';

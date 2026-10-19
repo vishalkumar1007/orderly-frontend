@@ -33,7 +33,7 @@
 	 *       {/snippet}
 	 *     </FormField>
 	 *
-	 * The plain form — `<FormField …><TextInput id="org-name" /></FormField>` —
+	 * The plain form: `<FormField …><TextInput id="org-name" /></FormField>`:
 	 * still works and is what the ~85 existing call sites use. It gets the label,
 	 * the `role="alert"` on the message, and the matching `for`/`id`, but cannot
 	 * reach inside the control to add `aria-describedby`, because the component

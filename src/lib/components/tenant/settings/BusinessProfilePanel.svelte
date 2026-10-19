@@ -7,7 +7,7 @@
 	import { toast } from '$lib/components/admin/toast';
 
 	/**
-	 * Business profile — organization contact only.
+	 * Business profile: organization contact only.
 	 *
 	 * Pickup address and phone customers see on confirmation. Ordering pause,
 	 * store status, and bill pricing live under Storefront → Launch.

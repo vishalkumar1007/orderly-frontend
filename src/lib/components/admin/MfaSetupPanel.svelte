@@ -25,13 +25,13 @@
 	import { toast } from '$lib/components/admin/toast';
 
 	/**
-	 * Two-factor authentication for one person's own account — one or more
+	 * Two-factor authentication for one person's own account: one or more
 	 * methods (authenticator app, email code), each addable and removable on
 	 * its own, with a single shared set of recovery codes issued once, on
 	 * whichever method is enrolled first.
 	 *
 	 * Mounted as-is in both the superadmin's own profile settings and a
-	 * tenant's per-person Security section — same component, same endpoints,
+	 * tenant's per-person Security section: same component, same endpoints,
 	 * because enrollment belongs to the signed-in user's row, not to whichever
 	 * console they're looking at it from.
 	 */
@@ -196,7 +196,7 @@
 				afterRecoveryCodes = 'regenerated';
 				view = 'recovery-codes';
 				removeModalOpen = false;
-				toast.success('New recovery codes generated — your old ones no longer work');
+				toast.success('New recovery codes generated: your old ones no longer work');
 			}
 		} catch (err) {
 			removeError = errorMessage(
@@ -217,7 +217,7 @@
 		const text = recoveryCodes.join('\n');
 		navigator.clipboard?.writeText(text).then(
 			() => toast.success('Recovery codes copied'),
-			() => toast.error('Could not copy — select and copy manually')
+			() => toast.error('Could not copy: select and copy manually')
 		);
 	}
 
@@ -234,7 +234,7 @@
 
 <SettingsSection
 	title="Two-factor authentication"
-	description="A code from an authenticator app or your email, in addition to your password, when you sign in. Set up and controlled by you — nobody else can see your secrets or your codes."
+	description="A code from an authenticator app or your email, in addition to your password, when you sign in. Set up and controlled by you: nobody else can see your secrets or your codes."
 	icon={ShieldCheck}
 >
 	{#if loading}
@@ -242,7 +242,7 @@
 	{:else if view === 'status'}
 		<div class="mfa-status">
 			{#if !available}
-				<p class="muted">Not available for your business yet — ask your platform administrator to turn it on.</p>
+				<p class="muted">Not available for your business yet: ask your platform administrator to turn it on.</p>
 			{:else if methods.length === 0}
 				<p class="muted">Add a method below to require a code at sign-in.</p>
 			{:else}
@@ -339,7 +339,7 @@
 		<div class="mfa-recovery">
 			<p class="mfa-step-label">
 				{afterRecoveryCodes === 'regenerated'
-					? 'Your new recovery codes — your old ones no longer work.'
+					? 'Your new recovery codes: your old ones no longer work.'
 					: 'Save these recovery codes somewhere safe.'}
 				Each works once, if you ever lose access to your other methods. They are shown only now.
 			</p>

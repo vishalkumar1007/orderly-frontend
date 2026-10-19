@@ -56,7 +56,7 @@
 					{
 						label: 'Double charges (24 h)',
 						count: health.duplicates_24h,
-						hint: 'A customer paid twice for one order. The extra payment is refunded automatically — confirm it completed.'
+						hint: 'A customer paid twice for one order. The extra payment is refunded automatically: confirm it completed.'
 					},
 					{
 						label: 'Callbacks that failed to apply (24 h)',

@@ -81,7 +81,7 @@
 	 *
 	 * Imported here rather than left inside the page's own `<style>` because it is
 	 * shared by six child components, and a `<style>` block in a Svelte component
-	 * is scoped to that component's markup — the children could not have used it.
+	 * is scoped to that component's markup: the children could not have used it.
 	 * The page is the only place that knows all six are in play at once, so the
 	 * import belongs to the page.
 	 */
@@ -93,12 +93,12 @@
 	 * Seven screens and one transaction. The order is deliberate: the business
 	 * type comes first because it decides the defaults every later step starts
 	 * from, and review comes last because by then there is nothing left to
-	 * guess. Creation is a single call — the business, its subscription, its
+	 * guess. Creation is a single call: the business, its subscription, its
 	 * administrator and its configured storefront either all exist or none of
 	 * them do.
 	 *
 	 * The right column is not decoration: it is the same claim the platform
-	 * makes everywhere else — that business type drives the UI — made visible
+	 * makes everywhere else, that business type drives the UI, made visible
 	 * while you are still filling in the form, from state the wizard already
 	 * holds, not a second fetch.
 	 *
@@ -117,12 +117,12 @@
 	];
 
 	const CURRENCIES = [
-		{ value: 'INR', label: 'INR — Indian Rupee' },
-		{ value: 'USD', label: 'USD — US Dollar' },
-		{ value: 'AED', label: 'AED — UAE Dirham' },
-		{ value: 'GBP', label: 'GBP — Pound Sterling' },
-		{ value: 'EUR', label: 'EUR — Euro' },
-		{ value: 'SGD', label: 'SGD — Singapore Dollar' }
+		{ value: 'INR', label: 'INR: Indian Rupee' },
+		{ value: 'USD', label: 'USD: US Dollar' },
+		{ value: 'AED', label: 'AED: UAE Dirham' },
+		{ value: 'GBP', label: 'GBP: Pound Sterling' },
+		{ value: 'EUR', label: 'EUR: Euro' },
+		{ value: 'SGD', label: 'SGD: Singapore Dollar' }
 	];
 
 	const TIMEZONES = [
@@ -175,6 +175,8 @@
 
 	// Platform configuration mappings (SMTP and Storage status)
 	let smtpConfigured = $state(false);
+	// Saved and tested but its Enabled switch is off: the server will not send.
+	let smtpSwitchedOff = $state(false);
 	let storageConfigured = $state(false);
 	let configsLoaded = $state(false);
 
@@ -334,14 +336,14 @@
 	/** The console theme catalogue, for seeding the business's own console. */
 	let consolePresets = $state<ConsolePreset[]>([]);
 	let config = $state(initial.config);
-	/** Capability-driven types only (Barber, Hotel, General) — see step 6. */
+	/** Capability-driven types only (Barber, Hotel, General): see step 6. */
 	let capabilityOverrides = $state(initial.capabilityOverrides);
 	let capabilityRows = $state<CapabilityRow[]>([]);
 	let capabilitiesLoading = $state(false);
 	let termsAccepted = $state(initial.termsAccepted);
 	/** Off by default; editable later from the business's own Configuration tab. */
 	let mfaAllowed = $state(false);
-	/** Seeds the initial policy only — the business's own Tenant Admin owns it from here on. */
+	/** Seeds the initial policy only: the business's own Tenant Admin owns it from here on. */
 	let mfaMode = $state<'OPTIONAL' | 'REQUIRED'>('OPTIONAL');
 	let mfaTotp = $state(true);
 	let mfaEmailOtp = $state(false);
@@ -353,6 +355,28 @@
 	const PHONE_RE = /^[+\d][\d\s()-]{5,19}$/;
 
 	/* ---------- catalogue ---------- */
+
+	type PlatformConfigRow = Awaited<ReturnType<typeof fetchPlatformConfigs>>['configurations'][number];
+
+	function applyPlatformConfigs(configs: PlatformConfigRow[]) {
+		const usable = (c?: PlatformConfigRow) =>
+			!!c && (c.status === 'ENABLED' || c.status === 'CONFIGURED') && c.enabled;
+		const smtp = configs.find((c) => c.service === 'SMTP');
+		smtpConfigured = usable(smtp);
+		smtpSwitchedOff = !!smtp && !smtp.enabled && smtp.status !== 'UNCONFIGURED';
+		storageConfigured = usable(configs.find((c) => c.service === 'STORAGE'));
+	}
+
+	// The SMTP warning links to Providers in a new tab. Re-read on return so
+	// enabling SMTP there clears the warning here without a reload.
+	async function refreshPlatformConfigs() {
+		if (!configsLoaded) return;
+		try {
+			applyPlatformConfigs((await fetchPlatformConfigs()).configurations ?? []);
+		} catch {
+			// Keep the last known state; the first load already reported failures.
+		}
+	}
 
 	onMount(async () => {
 		const savedSuccess = loadOnboardSuccess<CreatedTenant>();
@@ -414,17 +438,7 @@
 			if (!org.timezone) org.timezone = settings.general.timezone || 'Asia/Kolkata';
 
 			if (platformConfigs?.configurations) {
-				const smtp = platformConfigs.configurations.find((c) => c.service === 'SMTP');
-				smtpConfigured =
-					!!smtp &&
-					(smtp.status === 'ENABLED' || smtp.status === 'CONFIGURED') &&
-					smtp.enabled;
-
-				const storage = platformConfigs.configurations.find((c) => c.service === 'STORAGE');
-				storageConfigured =
-					!!storage &&
-					(storage.status === 'ENABLED' || storage.status === 'CONFIGURED') &&
-					storage.enabled;
+				applyPlatformConfigs(platformConfigs.configurations);
 
 				if (!storageConfigured && !theme.logo_url) {
 					logoMode = 'url';
@@ -476,7 +490,7 @@
 		config = configFromTemplate(next);
 		// A plan restricted to other business types is no longer a valid choice.
 		if (plan && !plans.some((p) => p.code === plan)) plan = '';
-		// The previous type's module choices do not carry over — a Hotel's
+		// The previous type's module choices do not carry over: a Hotel's
 		// housekeeping toggle means nothing once the type becomes a Barber shop.
 		capabilityOverrides = {};
 		capabilityRows = [];
@@ -509,7 +523,7 @@
 	const includedCapabilities = $derived(capabilityRows.filter((c) => !c.configurable));
 	/** Capabilities the owner can choose to turn on for this type. */
 	const optionalCapabilities = $derived(capabilityRows.filter((c) => c.configurable));
-	/** Everything actually enabled — feeds both the review step and the live preview. */
+	/** Everything actually enabled: feeds both the review step and the live preview. */
 	const enabledCapabilities = $derived(
 		capabilityRows.filter((c) => !c.configurable || (capabilityOverrides[c.code] ?? c.default_enabled))
 	);
@@ -640,7 +654,7 @@
 				else if (r.reason === 'invalid_slug') slugStatus = 'invalid';
 				else slugStatus = 'taken';
 			} catch {
-				// A failed check must not read as "taken" — leave it unresolved
+				// A failed check must not read as "taken": leave it unresolved
 				// and let the create call be the authority.
 				slugStatus = 'idle';
 			}
@@ -884,7 +898,7 @@
 				 * It seeds the owner's console as well as the storefront, so the
 				 * setup-password link and the first sign-in already carry the
 				 * brand this operator picked. Either side can be changed
-				 * afterwards — the console under Settings → Appearance, the
+				 * afterwards: the console under Settings → Appearance, the
 				 * storefront under Customize → Theme.
 				 */
 				...(consoleThemeSeed(theme, consolePresets) ?? {}),
@@ -1029,6 +1043,8 @@
 		return `${methods.join(' or ')}, ${when}`;
 	}
 </script>
+
+<svelte:window onfocus={refreshPlatformConfigs} />
 
 {#if created}
 	{@const tenantUrl = rewriteFrontendPort(created.tenant_url)}
@@ -1577,10 +1593,16 @@
 							<IconAlertTriangle size={17} stroke={2} />
 						</div>
 						<div class="onb-warning-callout-content">
-							<div class="onb-warning-callout-title">Email service (SMTP) is not configured</div>
+							<div class="onb-warning-callout-title">
+								{smtpSwitchedOff ? 'Email service (SMTP) is switched off' : 'Email service (SMTP) is not configured'}
+							</div>
 							<div class="onb-warning-callout-text">
-								The tenant will still be created, but the invitation email will not be sent because SMTP is not configured on the platform. You will be provided with a single-use setup link after creation to share directly with the administrator.
-								<a href="/superadmin/providers" target="_blank" rel="noreferrer" class="onb-warning-callout-link">Configure SMTP in Providers &rarr;</a>
+								{#if smtpSwitchedOff}
+									SMTP is saved on the platform but its <strong>Enabled</strong> switch is off, so the invitation email will not be sent. Turn it on and save, or continue and share the single-use setup link you get after creation.
+								{:else}
+									The tenant will still be created, but the invitation email will not be sent because SMTP is not configured on the platform. You will be provided with a single-use setup link after creation to share directly with the administrator.
+								{/if}
+								<a href="/superadmin/providers/smtp" target="_blank" rel="noreferrer" class="onb-warning-callout-link">{smtpSwitchedOff ? 'Enable SMTP in Providers' : 'Configure SMTP in Providers'} &rarr;</a>
 							</div>
 						</div>
 					</div>
@@ -1847,7 +1869,7 @@
 						{/if}
 						{#if includedCapabilities.length === 0 && optionalCapabilities.length === 0}
 							<p class="onb-hint">
-								No capability matrix is configured for this business type yet — it will be
+								No capability matrix is configured for this business type yet: it will be
 								created with no modules enabled.
 							</p>
 						{/if}
@@ -2017,7 +2039,7 @@
 									<span class="onb-spec-badge">Tenant Admin</span>
 								</div>
 								<div class="onb-spec-meta">
-									<span>{admin.admin_email || '—'}</span>
+									<span>{admin.admin_email || '-'}</span>
 									<span class="onb-spec-dot">·</span>
 									{#if configsLoaded && !smtpConfigured}
 										<span class="onb-spec-warn-badge">Email not configured · Manual setup link</span>
@@ -2103,24 +2125,28 @@
 							</button>
 						</div>
 
-						<!-- Row 6: Security -->
-						<div class="onb-spec-row">
-							<span class="onb-spec-label">Security</span>
-							<div class="onb-spec-body">
-								<Switch
+					</div>
+
+					<!-- Security: a choice made here, not a summary of a step, so it gets
+					     its own card instead of a row in the summary table (whose hidden
+					     overflow clipped the policy dropdown). -->
+					<section class="onb-security-card" aria-labelledby="onb-security-h">
+						<span class="onb-spec-label" id="onb-security-h">Security</span>
+						<div class="onb-security-body">
+							<Switch
 									bind:checked={mfaAllowed}
 									label="Allow this business to use two-factor authentication"
-									hint="Off by default. The policy below just seeds a starting point — the business's own Tenant Admin owns and can change it afterward from their Settings → Security."
+									hint="Off by default. The policy below just seeds a starting point: the business's own Tenant Admin owns and can change it afterward from their Settings → Security."
 								/>
 								{#if mfaAllowed}
-									<div style="margin-top:0.6rem;display:flex;flex-direction:column;gap:0.5rem;">
+									<div class="onb-security-options">
 										<Select
 											label="Starting policy"
 											id="onb-mfa-mode"
 											value={mfaMode}
 											options={[
-												{ value: 'OPTIONAL', label: 'Optional — anyone may turn it on for themselves' },
-												{ value: 'REQUIRED', label: 'Required — enforced for all administrators' }
+												{ value: 'OPTIONAL', label: 'Optional: anyone may turn it on for themselves' },
+												{ value: 'REQUIRED', label: 'Required: enforced for all administrators' }
 											]}
 											onchange={(v) => (mfaMode = v as 'OPTIONAL' | 'REQUIRED')}
 										/>
@@ -2128,9 +2154,8 @@
 										<Switch bind:checked={mfaEmailOtp} label="Email code" />
 									</div>
 								{/if}
-							</div>
 						</div>
-					</div>
+					</section>
 
 					<label class="onb-terms-row">
 						<input

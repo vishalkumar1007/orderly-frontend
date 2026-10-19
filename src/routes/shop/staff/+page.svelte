@@ -26,9 +26,9 @@
 	// Mirrors the roles the API accepts. What each one can reach is shown on
 	// the IAM screen; this list only decides who can be invited as what.
 	const ROLES = [
-		{ value: 'TENANT_ADMIN', label: 'Owner — full control of this business' },
-		{ value: 'MANAGER', label: 'Manager — runs the shop, cannot reconfigure it' },
-		{ value: 'STAFF', label: 'Staff — selling and kitchen only' }
+		{ value: 'TENANT_ADMIN', label: 'Owner: full control of this business' },
+		{ value: 'MANAGER', label: 'Manager: runs the shop, cannot reconfigure it' },
+		{ value: 'STAFF', label: 'Staff: selling and kitchen only' }
 	];
 
 	let users = $state<ShopUser[]>([]);
@@ -128,7 +128,7 @@
 			if (confirmKind === 'reset') {
 				const res = await resetShopUserAccess(target.id);
 				confirmOpen = false;
-				toast.success('Access reset — all sessions revoked');
+				toast.success('Access reset: all sessions revoked');
 				showInvite(res, 'Access reset');
 			} else {
 				const status = confirmKind === 'disable' ? 'DISABLED' : 'ACTIVE';
@@ -243,7 +243,7 @@
 								{initials(u.name || u.email)}
 							</span>
 							<span class="cell-id-txt">
-								<strong>{u.name || '—'}</strong>
+								<strong>{u.name || '-'}</strong>
 								<span style="font-family:var(--font);">{u.email}</span>
 							</span>
 						</div>
@@ -299,7 +299,7 @@
 			hint={addForm.role === 'TENANT_ADMIN'
 				? 'Owners can change anything here, including payments, the storefront and who has access.'
 				: addForm.role === 'MANAGER'
-					? 'Managers run orders, the kitchen, the menu, customers and staff — but cannot change how the business is configured.'
+					? 'Managers run orders, the kitchen, the menu, customers and staff: but cannot change how the business is configured.'
 					: 'Staff can work Selling and Kitchen. They see no configuration at all.'}
 		>
 			<SelectField id="su-role" bind:value={addForm.role} options={ROLES} />

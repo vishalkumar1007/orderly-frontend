@@ -15,12 +15,12 @@
  *   1. add the row under Settings → Business types (or a migration), and
  *   2. add a template below, keyed by the same code.
  *
- * A type that exists in the database but has no template still works — it falls
- * back to {@link GENERIC_TEMPLATE} — so the console never breaks because the
+ * A type that exists in the database but has no template still works: it falls
+ * back to {@link GENERIC_TEMPLATE}: so the console never breaks because the
  * catalogue moved ahead of the code.
  */
 
-// Tabler, not Lucide — see planing/ui_rules.md: "Tabler is the Clauge icon
+// Tabler, not Lucide: see planing/ui_rules.md: "Tabler is the Clauge icon
 // language." The onboarding wizard is the first screen built to that rule;
 // these icons feed its business-type cards and the live preview's tab.
 import IconBed from '@tabler/icons-svelte/icons/bed';
@@ -40,7 +40,7 @@ import type { TenantType } from './types';
  * The words a type uses for the same underlying objects.
  *
  * These are not decoration. A grocer does not have a "menu" of "products" in
- * "categories" — they have a catalogue of products in aisles, and a console
+ * "categories": they have a catalogue of products in aisles, and a console
  * that insists otherwise reads as software built for somebody else. Every
  * label in the business console comes from here.
  */
@@ -59,14 +59,14 @@ export type Terminology = {
 	/** How the customer takes delivery in this build (pickup only). */
 	fulfilment: string;
 	/**
-	 * Where orders are prepared — Kitchen, Bar, Packing, Service desk. It is
+	 * Where orders are prepared: Kitchen, Bar, Packing, Service desk. It is
 	 * the same board in every case; the word is what tells the person using it
 	 * that the software understands their job.
 	 */
 	station: string;
 	/**
 	 * What the middle stage of the board is called. A kitchen cooks, a bar
-	 * pours, a grocer packs and a hotel is simply working on it — printing
+	 * pours, a grocer packs and a hotel is simply working on it: printing
 	 * "Cooking" above a shelf-picking queue is how a board stops being read.
 	 */
 	prep: string;
@@ -84,7 +84,7 @@ export type Terminology = {
  * A business type enables a set of these. They relabel and reorder far more
  * often than they hide: a grocer keeps the preparation board, it is simply
  * called Packing. Something is only hidden when it is genuinely meaningless
- * for the type — a pickup display in a hotel, where nobody is waiting at a
+ * for the type: a pickup display in a hotel, where nobody is waiting at a
  * counter.
  */
 export type ModuleKey =
@@ -102,11 +102,11 @@ export type ModuleKey =
 	| 'stock'
 	/** Charging an order to a room rather than taking payment at handover. */
 	| 'room_charge'
-	/** Vegetarian / non-vegetarian tagging on an item — meaningless off a food menu. */
+	/** Vegetarian / non-vegetarian tagging on an item: meaningless off a food menu. */
 	| 'diet_tags'
 	/** The generic product catalogue (Menu). Off for types with their own catalogue page. */
 	| 'catalog'
-	/** The bookable service list — Barber's equivalent of a catalogue. */
+	/** The bookable service list: Barber's equivalent of a catalogue. */
 	| 'services'
 	/** Scheduled bookings against a service. */
 	| 'appointments'
@@ -119,7 +119,7 @@ export type ModuleKey =
 
 /**
  * Storefront defaults, in the vocabulary the storefront schema already uses.
- * The keys match the API payload on purpose — this object is sent, not
+ * The keys match the API payload on purpose: this object is sent, not
  * translated, so there is no second mapping to keep in step.
  */
 export type StorefrontDefaults = {
@@ -180,7 +180,7 @@ export type BusinessTypeTemplate = {
 	// its icons as legacy SvelteComponentTyped classes, which do not satisfy
 	// Svelte 5's function-component Component type even though both render
 	// fine at runtime. This is an icon-package interop gap, not a real type
-	// hole — every value assigned here is a Svelte component.
+	// hole: every value assigned here is a Svelte component.
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	icon: any;
 	/** Console brand preset applied to the tenant's own portal. */
@@ -196,7 +196,7 @@ export type BusinessTypeTemplate = {
 	controls: ConfigControl[];
 	/**
 	 * True when this type has no opinion about order acceptance, prep time or
-	 * payment timing — Barber, Hotel and General are not order-shaped
+	 * payment timing: Barber, Hotel and General are not order-shaped
 	 * businesses, so step 6 asks a different question for them: which of the
 	 * business type's capabilities (business_type_capabilities on the server)
 	 * should actually be turned on, not how orders should be accepted.
@@ -274,7 +274,7 @@ const BARBER_TERMS: Terminology = {
 	order: 'Appointment',
 	orders: 'Appointments',
 	fulfilment: 'In person',
-	// There is no kitchen here — there is the line of chairs and the queue
+	// There is no kitchen here: there is the line of chairs and the queue
 	// number a customer is called by.
 	station: 'Queue',
 	prep: 'In service',
@@ -482,7 +482,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 	},
 
 	/*
-	 * HOTEL, BARBER and GENERAL are not order-shaped businesses — a hotel
+	 * HOTEL, BARBER and GENERAL are not order-shaped businesses: a hotel
 	 * takes reservations against rooms, a barber books appointments and runs
 	 * a queue, and a general business is whatever its owner turns on. None of
 	 * them has an "order acceptance mode" or a "preparation time", so
@@ -491,8 +491,8 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 	 * on), driven by business_type_capabilities on the server rather than by
 	 * the fixed food-operational fields below.
 	 *
-	 * `behaviour` / `payments` / `workflow` still need real values — they seed
-	 * tenant_storefront_settings columns that exist for every business type —
+	 * `behaviour` / `payments` / `workflow` still need real values: they seed
+	 * tenant_storefront_settings columns that exist for every business type:
 	 * but the values are inert defaults here, never shown or edited in the
 	 * wizard for these three types.
 	 */
@@ -515,7 +515,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 			button_style: 'square'
 		},
 		// A guest is identified before a room can be reserved in their name.
-		// prep_time_minutes is inert for this type (never shown, never read) —
+		// prep_time_minutes is inert for this type (never shown, never read):
 		// 1 rather than 0 only to stay inside the shared field's 1–240 range.
 		behaviour: { ordering_enabled: false, customer_login_mode: 'required', prep_time_minutes: 1 },
 		payments: {
@@ -545,7 +545,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 		label: 'Barber Shop',
 		tagline: 'Appointments and walk-ins, one queue',
 		description:
-			'Barbers, salons and grooming studios. A customer books a service with a barber, or joins the walk-in queue — both are called from the same line.',
+			'Barbers, salons and grooming studios. A customer books a service with a barber, or joins the walk-in queue: both are called from the same line.',
 		icon: IconScissors,
 		brand: { preset_id: 'pink', color_mode: 'system' },
 		terminology: BARBER_TERMS,
@@ -558,7 +558,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 			card_style: 'outlined',
 			button_style: 'rounded'
 		},
-		// prep_time_minutes is inert for this type — see the HOTEL comment above.
+		// prep_time_minutes is inert for this type: see the HOTEL comment above.
 		behaviour: { ordering_enabled: false, customer_login_mode: 'optional', prep_time_minutes: 1 },
 		payments: {
 			online_payment_enabled: true,
@@ -588,7 +588,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 		label: 'General',
 		tagline: 'Pick the modules this business needs',
 		description:
-			'Anything that does not fit the shapes above. Customers, staff, payments and billing are on by default; every other module — a catalogue, appointments, rooms, a queue — is the owner’s choice during setup.',
+			'Anything that does not fit the shapes above. Customers, staff, payments and billing are on by default; every other module, a catalogue, appointments, rooms, a queue, is the owner’s choice during setup.',
 		icon: IconBuildingStore,
 		brand: { preset_id: 'lime', color_mode: 'system' },
 		terminology: FOOD_TERMS,
@@ -623,7 +623,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 };
 
 /**
- * The fallback for a type with no template — including "Other" and any type an
+ * The fallback for a type with no template: including "Other" and any type an
  * operator adds later. Neutral on every axis: it configures a working shop
  * without pretending to know the business.
  */
@@ -632,7 +632,7 @@ export const GENERIC_TEMPLATE: BusinessTypeTemplate = {
 	label: 'Other',
 	tagline: 'A working default for anything else',
 	description:
-		'Any business that does not fit the shapes above. Starts with a neutral theme, a plain catalogue and manual order acceptance — the tenant admin tunes it from there.',
+		'Any business that does not fit the shapes above. Starts with a neutral theme, a plain catalogue and manual order acceptance: the tenant admin tunes it from there.',
 	icon: IconBuildingStore,
 	brand: { preset_id: 'indigo-violet', color_mode: 'system' },
 	terminology: FOOD_TERMS,
@@ -733,13 +733,13 @@ export function quickActionsFor(code?: string | null): { label: string; href: st
 /**
  * Display label for a type code, preferring the operator's own catalogue.
  *
- * The database is the authority on what a type is called — an operator can
- * rename "Food shop" to "Street food" under Settings — so the catalogue wins
+ * The database is the authority on what a type is called: an operator can
+ * rename "Food shop" to "Street food" under Settings: so the catalogue wins
  * when it has the row, and the template is the fallback.
  */
 export function labelForType(code?: string | null, catalog: TenantType[] = []): string {
 	const normalized = normalizeTypeCode(code);
-	if (!normalized) return '—';
+	if (!normalized) return '-';
 	const hit = catalog.find((t) => t.code === normalized);
 	if (hit?.label) return hit.label;
 	return templateFor(normalized).label;
@@ -750,7 +750,7 @@ export function labelForType(code?: string | null, catalog: TenantType[] = []): 
  * paired with its template, in the catalogue's own order.
  *
  * Driving this from the server list rather than from the local table is what
- * makes a new type a data change instead of a release — a row added under
+ * makes a new type a data change instead of a release: a row added under
  * Settings shows up here on the next load, with the generic template until
  * someone writes a better one.
  */
@@ -786,7 +786,7 @@ export function configurationPayload(template: BusinessTypeTemplate, overrides?:
 export const CONTROL_LABELS = {
 	customer_login_mode: {
 		off: 'No customer accounts',
-		optional: 'Optional — guests can also order',
+		optional: 'Optional: guests can also order',
 		required: 'Required before ordering'
 	},
 	acceptance_mode: {

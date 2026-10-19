@@ -11,7 +11,7 @@
 	 * One provider's configuration.
 	 *
 	 * The panel is shared with the business-side screens, so a credential form
-	 * behaves identically wherever it appears — and the redaction rules it
+	 * behaves identically wherever it appears: and the redaction rules it
 	 * relies on live in one component rather than two.
 	 */
 

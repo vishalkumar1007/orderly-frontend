@@ -27,7 +27,7 @@
 	 *
 	 * Reading order: the four numbers that matter, the trend beside what needs
 	 * action, the shape of the estate, then the record of what happened. One
-	 * accent, hairline rows, no decoration — colour appears only on data and
+	 * accent, hairline rows, no decoration: colour appears only on data and
 	 * status.
 	 */
 	let {

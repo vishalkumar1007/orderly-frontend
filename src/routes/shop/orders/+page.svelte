@@ -97,7 +97,7 @@
 	{/if}
 
 	{#if !isOnline()}
-		<div class="osh-banner offline">You're offline — showing the last orders we received.</div>
+		<div class="osh-banner offline">You're offline: showing the last orders we received.</div>
 	{/if}
 
 	<!-- Status tabs. On a phone these replace the four-column board. -->

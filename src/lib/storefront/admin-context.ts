@@ -63,7 +63,7 @@ export function useStorefront(getProps?: () => Partial<StorefrontContext> | unde
  *
  * `config` is a reactive value that the layout replaces after every successful
  * write, so reading it directly into `$state` would silently look like it tracks
- * the server — and a customer's unsaved edit would vanish on the next save.
+ * the server: and a customer's unsaved edit would vanish on the next save.
  * Seeding once is the behaviour these screens want, and `untrack` says so out
  * loud instead of leaving it to a reader to work out.
  */

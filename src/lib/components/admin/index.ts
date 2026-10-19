@@ -25,7 +25,7 @@ export { default as SeriesBars } from './SeriesBars.svelte';
  * them, because a Svelte `<style>` block is scoped to its own component and
  * could not have styled the children.
  *
- * The names are deliberately distinct from the older top-level `PlanPicker` —
+ * The names are deliberately distinct from the older top-level `PlanPicker`:
  * that one is a plan selector for an existing subscription, this one is a
  * card inside a wizard step.
  */

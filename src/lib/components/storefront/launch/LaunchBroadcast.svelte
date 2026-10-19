@@ -78,7 +78,7 @@
 		<div>
 			<h2 class="intro-h">Customer Banner</h2>
 			<p class="intro-p">
-				Pin a short announcement to the top of your storefront — offers, alerts, or welcome notes.
+				Pin a short announcement to the top of your storefront: offers, alerts, or welcome notes.
 			</p>
 		</div>
 	</div>
@@ -174,7 +174,7 @@
 							<span class="preview-text">{broadcastText.trim()}</span>
 						</div>
 					{:else}
-						<p class="sf-preview-empty">No banner — enter text above.</p>
+						<p class="sf-preview-empty">No banner: enter text above.</p>
 					{/if}
 				</div>
 			</div>

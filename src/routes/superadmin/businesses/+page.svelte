@@ -116,7 +116,7 @@
 			const saved = localStorage.getItem(VIEW_KEY);
 			if (saved === 'list' || saved === 'cards') view = saved;
 		} catch {
-			/* private mode — keep default */
+			/* private mode: keep default */
 		}
 		void load();
 	});
@@ -174,7 +174,7 @@
 		Boolean(search.trim() || statusFilter || typeFilter || planFilter || setupFilter)
 	);
 
-	/** Reset to page 1 only when the filter key actually changes — not on every tick. */
+	/** Reset to page 1 only when the filter key actually changes: not on every tick. */
 	let filterKey = $derived(
 		`${search}\0${statusFilter}\0${typeFilter}\0${planFilter}\0${setupFilter}\0${sortKey}`
 	);
@@ -619,7 +619,7 @@
 								{labelForType(t.business_type, types)}
 							</td>
 							<td class="col-sm">
-								{t.owner_name || '—'}
+								{t.owner_name || '-'}
 								{#if t.setup_status === 'PENDING'}
 									<span class="muted biz-sub-line">awaiting setup</span>
 								{/if}
@@ -628,7 +628,7 @@
 								{#if t.plan}
 									<StatusBadge status={String(t.plan)} kind="accent" dot={false} />
 								{:else}
-									<span class="muted">—</span>
+									<span class="muted">-</span>
 								{/if}
 							</td>
 							<td>
@@ -691,10 +691,10 @@
 	onconfirm={runConfirm}
 />
 
-<Modal bind:open={planOpen} title={target ? `Change plan — ${target.name}` : 'Change plan'}>
+<Modal bind:open={planOpen} title={target ? `Change plan: ${target.name}` : 'Change plan'}>
 	<p class="muted biz-lede">
 		The business moves to the new plan immediately and its subscription follows. Nothing is
-		charged — this records which plan it is provisioned on.
+		charged: this records which plan it is provisioned on.
 	</p>
 	<PlanPicker {plans} bind:value={planChoice} />
 	{#snippet footer()}
@@ -759,8 +759,8 @@
 <style>
 	/*
 	 * Everything below used to be an inline `style` attribute on the element it
-	 * applied to. That put layout decisions — a 1%-wide column, a 550 weight, a
-	 * `white-space` — in the markup where they could not be reused, could not be
+	 * applied to. That put layout decisions: a 1%-wide column, a 550 weight, a
+	 * `white-space`: in the markup where they could not be reused, could not be
 	 * found by searching the stylesheet, and could not carry a comment explaining
 	 * why the value was what it was.
 	 *
@@ -792,7 +792,7 @@
 
 	/*
 	 * `width: 1%` on a table header is the standard way to make a column shrink
-	 * to its content while the other columns share the remaining width — the
+	 * to its content while the other columns share the remaining width: the
 	 * actions column should be as narrow as the buttons in it, not a share of the
 	 * table. On its own, not scoped to `.table`, because this table is not always
 	 * inside one.

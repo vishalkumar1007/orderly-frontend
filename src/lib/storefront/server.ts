@@ -7,7 +7,7 @@
  * platform host and get nothing back.
  *
  * Nothing here reads a tenant id from a URL, a query string or a header the
- * client controls — the slug comes from `locals`, which the host hook derived
+ * client controls: the slug comes from `locals`, which the host hook derived
  * from the request hostname.
  */
 

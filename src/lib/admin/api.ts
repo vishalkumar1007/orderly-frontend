@@ -212,7 +212,7 @@ function normalizePlan(p: Plan): Plan {
 export function toPlanOption(p: Plan): PlanOption {
 	return {
 		id: p.id,
-		// The backend matches on the exact upper-case name — send `code`, never `name`.
+		// The backend matches on the exact upper-case name: send `code`, never `name`.
 		code: p.name.toUpperCase(),
 		label: p.name.charAt(0) + p.name.slice(1).toLowerCase(),
 		description: p.description ?? '',
@@ -420,7 +420,7 @@ export async function resendTenantInvite(tenantId: string) {
  * A tenant's staff, as seen from the support side.
  *
  * This is the read/recover path, not a second place to run a tenant's team
- * from — see server.go's route comment. Resetting access or resending an
+ * from: see server.go's route comment. Resetting access or resending an
  * invite is unblocking someone locked out; it does not add a routine
  * "edit any field" surface here.
  */
@@ -435,7 +435,7 @@ export async function resetTenantUserAccess(tenantId: string, userId: string): P
 	});
 }
 
-/** Turns off a locked-out user's two-factor authentication. Never returns a secret or codes — there are none to return. */
+/** Turns off a locked-out user's two-factor authentication. Never returns a secret or codes: there are none to return. */
 export async function resetTenantUserMFA(tenantId: string, userId: string): Promise<void> {
 	await api(`/api/v1/admin/tenants/${tenantId}/users/${userId}/reset-mfa`, { method: 'POST' });
 }
@@ -457,7 +457,7 @@ export async function fetchTenantTypes(): Promise<TenantType[]> {
 }
 
 /**
- * The capability matrix row for one business type — what the wizard's
+ * The capability matrix row for one business type: what the wizard's
  * capability-driven configuration step (Barber, Hotel, General) renders as
  * fixed "included" badges plus toggles for the configurable ones.
  */

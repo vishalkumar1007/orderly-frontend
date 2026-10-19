@@ -7,7 +7,7 @@
 	 *
 	 * `role="alert"` is the point of the component existing. The previous notices
 	 * were bare `<div>`s with an icon, so when creation failed the page changed
-	 * colour and gained a paragraph and nothing was announced — the operator had
+	 * colour and gained a paragraph and nothing was announced: the operator had
 	 * to go looking for what had just happened. `role="alert"` is assertive and
 	 * interrupts; `role="status"` is polite and waits for a pause. Creation
 	 * failure is worth interrupting for, a missing plan catalogue is not, so

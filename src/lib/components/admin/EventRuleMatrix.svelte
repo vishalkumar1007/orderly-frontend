@@ -17,7 +17,7 @@
 	 *
 	 * `rules` should already be filtered to one audience bucket by the
 	 * caller (e.g. "not CUSTOMER" for Admin Notifications, "CUSTOMER" for
-	 * Storefront) — see isCustomerFacing in notificationTypes.ts.
+	 * Storefront): see isCustomerFacing in notificationTypes.ts.
 	 */
 	let {
 		events,

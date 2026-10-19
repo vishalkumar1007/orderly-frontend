@@ -3,14 +3,14 @@ import type { ThemePreset } from '$lib/brandTheme';
 /**
  * Turning a chosen storefront look into the business's console theme.
  *
- * Onboarding asks for one look, and that look is the business's — not just its
+ * Onboarding asks for one look, and that look is the business's: not just its
  * shop window. A new owner signing in to a console painted in a stock indigo
  * they never chose reads as "the theme did not save"; worse, the setup link and
  * the sign-in screen they see *first* are painted from the console theme, so
  * the very first impression was the one place the choice did not reach.
  *
- * The two catalogues are genuinely different — a storefront preset carries hero
- * and card styles a console has no use for — so this maps rather than shares.
+ * The two catalogues are genuinely different: a storefront preset carries hero
+ * and card styles a console has no use for: so this maps rather than shares.
  * The nearest console preset supplies the radii and fonts; the two colours the
  * operator actually picked ride along as overrides, so the console shows those
  * exact colours and "reset to preset" still means something later.
@@ -72,7 +72,7 @@ export function nearestPreset(hex: string, presets: readonly ThemePreset[]): The
 /**
  * The console theme fields for `POST /admin/tenants`.
  *
- * Returns `null` when there is no catalogue to map onto — the business is then
+ * Returns `null` when there is no catalogue to map onto: the business is then
  * created with the server's own default rather than with a preset id that does
  * not exist, which the API would reject outright.
  */
@@ -88,7 +88,7 @@ export function consoleThemeSeed(
 	if (HEX_RE.test(look.secondary.trim())) overrides.accent2 = look.secondary.trim().toLowerCase();
 
 	// A storefront preset says light or dark outright. The console's third
-	// option — follow the operating system — is a personal preference rather
+	// option, follow the operating system, is a personal preference rather
 	// than a brand decision, so it is never what onboarding picks.
 	const mode = look.mode === 'dark' ? 'dark' : 'light';
 

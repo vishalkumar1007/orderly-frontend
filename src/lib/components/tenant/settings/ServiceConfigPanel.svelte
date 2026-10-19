@@ -68,11 +68,12 @@
 		detail = d;
 		effective = e;
 		provider = d.own_config.provider ?? '';
-		enabled = d.own_config.enabled ?? false;
+		// Nothing saved yet: default the first save to switched on.
+		enabled = d.own_config.status === 'UNCONFIGURED' ? true : (d.own_config.enabled ?? false);
 		testTo = String(d.own_config.config?.from_email ?? '');
 	}
 
-	/** First load / cache miss — shares inflight with other panels. */
+	/** First load / cache miss: shares inflight with other panels. */
 	async function loadFromCache() {
 		loading = true;
 		error = '';

@@ -125,6 +125,12 @@ export async function saveTenantNotificationTemplate(payload: TemplateWrite): Pr
 	});
 }
 
+/** Drop the business's own wording so the platform default applies again. */
+export async function resetTenantNotificationTemplate(eventCode: string, channel: string): Promise<void> {
+	const params = new URLSearchParams({ event_code: eventCode, channel });
+	await api(`/api/v1/tenant/notification-templates?${params.toString()}`, { method: 'DELETE' });
+}
+
 export async function testSendTenantTemplate(payload: TestSendPayload): Promise<TestSendOutcome> {
 	return api<TestSendOutcome>('/api/v1/tenant/notification-templates/test-send', {
 		method: 'POST',

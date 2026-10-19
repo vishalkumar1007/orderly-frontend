@@ -110,7 +110,7 @@
 	<header class="cust-head">
 		<div>
 			<p class="muted cust-lead">
-				People who order from your shop — registered accounts and walk-in guests.
+				People who order from your shop: registered accounts and walk-in guests.
 			</p>
 			<div class="cust-stats">
 				<span><strong>{counts.total}</strong> total</span>
@@ -169,7 +169,7 @@
 							</span>
 							<span class="cell-id-txt">
 								<strong>{c.name || 'Guest'}</strong>
-								<span style="font-family:var(--font);">{c.phone || '—'}</span>
+								<span style="font-family:var(--font);">{c.phone || '-'}</span>
 							</span>
 						</div>
 					</td>
@@ -179,7 +179,7 @@
 					<td>{c.order_count}</td>
 					<td>{money(c.total_spend)}</td>
 					<td class="muted">
-						{c.last_order_at ? formatRelative(c.last_order_at) : '—'}
+						{c.last_order_at ? formatRelative(c.last_order_at) : '-'}
 					</td>
 					<td>
 						{#if c.is_blocked}

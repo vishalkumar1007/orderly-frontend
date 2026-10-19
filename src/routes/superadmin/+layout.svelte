@@ -40,7 +40,7 @@
 	/**
 	 * Which side of the login wall the current `status` describes. This layout
 	 * is reused across client-side navigations within /superadmin/*, so it must
-	 * not resolve identity only once in onMount — that left `user` null after an
+	 * not resolve identity only once in onMount: that left `user` null after an
 	 * in-app login and rendered the blank branch. Tracking the side lets us
 	 * re-resolve on the login <-> app crossing while holding the resolved user
 	 * across ordinary navigation, so the shell never flashes back to a skeleton.
@@ -50,7 +50,7 @@
 	const tab = $derived($page.url.searchParams.get('tab'));
 	const navContext = $derived({ businesses, tab });
 	const crumbs = $derived<AdminCrumb[]>(adminCrumbs($page.url.pathname, navContext));
-	/** Super Admin dashboards use the full shell width — no centered content cap. */
+	/** Super Admin dashboards use the full shell width: no centered content cap. */
 	const contentWide = true;
 	/** Onboarding belongs to the Businesses section, and not to its own page. */
 	const showOnboardAction = $derived(
@@ -66,7 +66,7 @@
 				if (s.general.platform_name?.trim()) platformName = s.general.platform_name.trim();
 			})
 			.catch(() => {
-				/* the rail falls back to "Orderly" — not worth an error state */
+				/* the rail falls back to "Orderly": not worth an error state */
 			});
 		fetchTenants()
 			.then((rows) => {

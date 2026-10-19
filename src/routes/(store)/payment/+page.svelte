@@ -16,7 +16,7 @@
 	 *
 	 * The order already exists by the time this screen opens; all it does is ask
 	 * the backend to start a payment and report the outcome. Every state on this
-	 * screen is a state the *server* recorded — this component cannot assert that
+	 * screen is a state the *server* recorded: this component cannot assert that
 	 * money arrived, it can only ask.
 	 *
 	 * Two gateways sit behind this screen, and the server picks which:
@@ -24,7 +24,7 @@
 	 *    report an outcome that the server verifies;
 	 *  - real payments: `Start` returns public checkout details, the gateway's
 	 *    own window takes the card, and this page then only *polls*. The
-	 *    gateway's signed callback to the server is what marks the order paid —
+	 *    gateway's signed callback to the server is what marks the order paid:
 	 *    nothing this page sends can.
 	 */
 	let { data } = $props();
@@ -265,7 +265,7 @@
 				Order #{session.order_number} · {config?.store?.name}
 			</span>
 			{#if session.is_test}
-				<div class="sf-testbadge">Test payment — no money is charged</div>
+				<div class="sf-testbadge">Test payment: no money is charged</div>
 			{/if}
 		</div>
 
@@ -273,7 +273,7 @@
 			<div class="sf-alert" data-tone="error" role="alert" style="margin-top:14px;">
 				<span>
 					{session.failure_reason ?? 'That payment did not go through.'}
-					Your order is safe — try again or pick another way to pay.
+					Your order is safe: try again or pick another way to pay.
 				</span>
 			</div>
 		{:else if session.payment_status === 'PENDING'}
@@ -327,7 +327,7 @@
 				{:else if stillWaiting}
 					<p>
 						<strong>We haven't heard back from your bank yet.</strong><br />
-						If you were charged, your order will update by itself — you don't need to pay again.
+						If you were charged, your order will update by itself: you don't need to pay again.
 					</p>
 					<a class="sf-btn sf-btn-secondary" href={'/order/' + orderNumber}>Check my order</a>
 				{:else}
@@ -336,14 +336,14 @@
 						<p style="color:var(--sf-danger,#b42318);">{gatewayNote}</p>
 					{/if}
 					<button class="sf-btn sf-btn-primary sf-btn-lg sf-btn-block" type="button" disabled={busy} onclick={payNow}>
-						{busy ? 'Starting…' : (failed ? 'Try again — ' : 'Pay ') + money(session.amount, currency)}
+						{busy ? 'Starting…' : (failed ? 'Try again: ' : 'Pay ') + money(session.amount, currency)}
 					</button>
 				{/if}
 			</div>
 		{:else if session.method === 'CASH' && session.payment_status !== 'PAID'}
 			<div class="sf-gateway" style="margin-top:18px;">
 				<p>
-					<strong>Pay at pickup.</strong> Nothing to pay now — hand over {money(session.amount, currency)}
+					<strong>Pay at pickup.</strong> Nothing to pay now: hand over {money(session.amount, currency)}
 					when you collect your order.
 				</p>
 				<a class="sf-btn sf-btn-primary" href={'/order/' + orderNumber}>View my order</a>
@@ -351,7 +351,7 @@
 		{:else if !failed}
 			<div class="sf-gateway" style="margin-top:18px;">
 				<p>
-					<strong>Test payment.</strong> No real money moves — the button below reports the
+					<strong>Test payment.</strong> No real money moves: the button below reports the
 					outcome to the server, which is what marks the order paid.
 				</p>
 				<div class="sf-btn-row">

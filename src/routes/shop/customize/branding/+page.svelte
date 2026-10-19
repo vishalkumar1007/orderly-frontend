@@ -109,7 +109,7 @@
 			<p style="margin:0;font-weight:600;">{name.trim() || 'Your store name'}</p>
 			<p style="margin:0.1rem 0 0;font-size:var(--fs-code);color:var(--text-2);">
 				{#if logoBroken}
-					That logo address did not load — check it is reachable.
+					That logo address did not load: check it is reachable.
 				{:else if logoUrl.trim()}
 					This logo appears in your storefront header
 				{:else}

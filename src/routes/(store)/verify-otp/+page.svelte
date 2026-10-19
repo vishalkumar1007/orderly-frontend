@@ -191,7 +191,7 @@
 
 			{#if devCode}
 				<div class="sf-alert" data-tone="info" style="margin-top:14px;text-align:left;">
-					<span>Development mode: the code is {devCode} — no SMS provider is configured.</span>
+					<span>Development mode: the code is {devCode}: no SMS provider is configured.</span>
 				</div>
 			{/if}
 		{/if}

@@ -22,7 +22,7 @@
 	/**
 	 * Order history.
 	 *
-	 * The Selling board is the present tense — a queue somebody is working.
+	 * The Selling board is the present tense: a queue somebody is working.
 	 * This is the record: every order the shop has ever taken, searchable by
 	 * number, customer or date. Filtering happens on the server, so a shop with
 	 * a year of trading behind it still answers in one page.
@@ -315,10 +315,10 @@
 						{#if order.payment_status}
 							<StatusBadge status={order.payment_status} dot={false} />
 							<span class="muted" style="display:block;font-size:var(--fs-meta);">
-								{order.payment_method || '—'}
+								{order.payment_method || '-'}
 							</span>
 						{:else}
-							<span class="muted">—</span>
+							<span class="muted">-</span>
 						{/if}
 					</td>
 					<td class="muted col-md" style="white-space:nowrap;">

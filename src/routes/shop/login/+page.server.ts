@@ -13,7 +13,7 @@ import type { PageServerLoad } from './$types';
  * same URL.
  *
  * Everything on this screen comes from the two public endpoints, and that is not
- * a convenience — it is forced. A sign-in page renders precisely when nobody is
+ * a convenience: it is forced. A sign-in page renders precisely when nobody is
  * signed in, so it has no token, so the authenticated tenant APIs are all 401.
  * Both reads degrade to null rather than failing: a login page that shows the
  * wrong accent, or no logo, is still a login page, and one that errors instead

@@ -22,7 +22,7 @@ export type ProviderInfo = {
 
 /**
  * The only configuration shape the API returns. It deliberately has no password,
- * secret_key or api_key field — the backend redacts them and reports presence
+ * secret_key or api_key field: the backend redacts them and reports presence
  * through has_secret instead.
  */
 export type ConfigView = {

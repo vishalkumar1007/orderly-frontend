@@ -34,7 +34,7 @@
 	 *
 	 * It is a public screen, so what appears on it is a decision rather than a
 	 * default: names are off unless the shop turns them on, and then only the
-	 * first name. The settings belong to this device — the TV over the counter
+	 * first name. The settings belong to this device: the TV over the counter
 	 * and the tablet by the door can show different things.
 	 */
 
@@ -87,7 +87,7 @@
 			<div>
 				<strong>Live Activity</strong>
 				{#if !fullscreen}
-					<p class="muted">Customer-facing order status — open fullscreen on a TV or display.</p>
+					<p class="muted">Customer-facing order status: open fullscreen on a TV or display.</p>
 				{/if}
 			</div>
 		</div>
@@ -140,7 +140,7 @@
 						<Switch
 							bind:checked={liveDisplay.showCustomerName}
 							label="Customer first name"
-							hint="A pickup screen is public — surnames and phone numbers are never shown."
+							hint="A pickup screen is public: surnames and phone numbers are never shown."
 							onchange={saveLiveDisplay}
 						/>
 						<Switch
@@ -205,7 +205,7 @@
 		<div class="live-paused">
 			<PauseCircle size={fullscreen ? 44 : 28} stroke={1.6} />
 			<strong>Display paused</strong>
-			<p>Orders are still being taken — this screen is simply not showing them.</p>
+			<p>Orders are still being taken: this screen is simply not showing them.</p>
 		</div>
 	{:else}
 		<div

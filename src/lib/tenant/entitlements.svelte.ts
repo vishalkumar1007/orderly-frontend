@@ -32,7 +32,7 @@ export async function loadEntitlements(): Promise<void> {
 /**
  * Whether the plan includes a feature, for locking UI up front instead of
  * letting the owner hit a 403. Unknown (entitlements not loaded) reads as
- * allowed — the API still enforces, so this only avoids a false lock.
+ * allowed: the API still enforces, so this only avoids a false lock.
  */
 export function featureAccess(code: string): { enabled: boolean; requiredPlan?: string } {
 	const f = entitlementState.data?.features.find((x) => x.code === code);

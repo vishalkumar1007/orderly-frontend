@@ -24,7 +24,7 @@
 	import { toast } from '$lib/components/admin/toast';
 
 	/**
-	 * IAM — what people can reach.
+	 * IAM: what people can reach.
 	 *
 	 * Staff answers "who works here"; this answers "what are they allowed to
 	 * do". They are deliberately separate screens over the same people: the
@@ -32,7 +32,7 @@
 	 * them together is how someone gets handed the storefront by accident.
 	 *
 	 * The role catalogue and permission matrix come from the API, which is the
-	 * same table the middleware enforces — the grid below is a description of
+	 * same table the middleware enforces: the grid below is a description of
 	 * reality, not a second copy of the rules.
 	 */
 
@@ -132,7 +132,7 @@
 			if (confirmKind === 'reset') {
 				const res = await resetShopUserAccess(target.id);
 				confirmOpen = false;
-				toast.success('Access reset — every session signed out');
+				toast.success('Access reset: every session signed out');
 				invite = res;
 				inviteHeading = 'Access reset';
 				inviteOpen = true;
@@ -236,7 +236,7 @@
 		<strong>Staff is who works here. Access control is what they can reach.</strong>
 		<p>
 			Every person below signs in on this shop's own address and can never reach another
-			business or the platform console. Changing a role takes effect on their next request —
+			business or the platform console. Changing a role takes effect on their next request:
 			there is no waiting for them to sign out.
 		</p>
 	</div>
@@ -290,7 +290,7 @@
 							</span>
 							<span class="cell-id-txt">
 								<strong>
-									{user.name || '—'}
+									{user.name || '-'}
 									{#if user.is_self}<span class="you">you</span>{/if}
 								</strong>
 								<span style="font-family:var(--font);">{user.email}</span>

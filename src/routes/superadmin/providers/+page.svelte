@@ -29,7 +29,7 @@
 	 * Providers and integrations.
 	 *
 	 * The platform's own credentials for the services every business can draw
-	 * on. Five are managed here — email, SMS, storage, AI and payments — and each
+	 * on. Five are managed here, email, SMS, storage, AI and payments, and each
 	 * reports the same three things: whether it is configured, whether it is
 	 * switched on, and whether its last test passed. Whether businesses may
 	 * use it at all is set per provider below; which specific businesses do is
@@ -65,14 +65,14 @@
 			name: 'AI',
 			icon: Bot,
 			purpose:
-				'Powers the storefront copy assistant. Entirely optional — nothing breaks when it is off.'
+				'Powers the storefront copy assistant. Entirely optional: nothing breaks when it is off.'
 		},
 		{
 			service: 'SMS',
 			name: 'SMS',
 			icon: MessageSquare,
 			purpose:
-				'Sends text notifications — order-ready, booking confirmations — to customers who opt in. Optional; nothing sends by SMS until this is configured and a business enables it.'
+				'Sends text notifications, order-ready, booking confirmations, to customers who opt in. Optional; nothing sends by SMS until this is configured and a business enables it.'
 		},
 		{
 			service: 'PAYMENTS',
@@ -176,7 +176,7 @@
 				{#if provider.service === 'PAYMENTS' && payments}
 					<div class="prov-mode" class:live={payments.mode === 'LIVE'}>
 						<span class="prov-mode-dot" aria-hidden="true"></span>
-						{payments.mode === 'LIVE' ? 'Real payments' : 'Dummy payments — nobody is charged'}
+						{payments.mode === 'LIVE' ? 'Real payments' : 'Dummy payments: nobody is charged'}
 					</div>
 				{/if}
 
@@ -211,7 +211,7 @@
 
 	<p class="prov-footnote">
 		Deciding <em>which</em> businesses may use a provider that's open to them is a configuration
-		choice, not a credential — see
+		choice, not a credential: see
 		<a href="/superadmin/settings?section=tenant-access">Settings &rarr; Business access</a>.
 	</p>
 {/if}

@@ -4,12 +4,12 @@
 #
 # Two kinds of check, kept separate on purpose:
 #
-#   Precondition — a shop must exist on the host under test. A storefront with
+#   Precondition: a shop must exist on the host under test. A storefront with
 #   nothing behind it still returns 200 with a complete-looking shell, so every
 #   per-route assertion below would pass while testing an empty page. That is
 #   worse than no check at all, because it looks like coverage.
 #
-#   Routes       — status, size, title, and that the page says it is being served
+#   Routes      : status, size, title, and that the page says it is being served
 #   as the tenant the host names. The admin routes authenticate in the browser,
 #   so their server render is only the shell skeleton; their data layer is covered
 #   by backend/scripts/smoke_storefront.sh instead.
@@ -38,7 +38,7 @@ probe=$(curl -s -o "$OUT/probe.json" -w '%{http_code}' -m 30 \
 
 if [ "$probe" != "200" ]; then
   if [ "$EXPECT_TENANT" = "0" ]; then
-    note "note: no shop on $API_HOST ($probe) — checking the empty state as asked"
+    note "note: no shop on $API_HOST ($probe): checking the empty state as asked"
   else
     reason=$(sed -n 's/.*"message":"\([^"]*\)".*/\1/p' "$OUT/probe.json" | head -1)
     note "FAIL precondition: no shop is configured for $API_HOST (GET /public/store -> $probe${reason:+: $reason})"
@@ -101,7 +101,7 @@ moved() {
   note_txt="-> $landed"
   # An SSR-disabled ancestor answers with the shell and redirects in the
   # browser, so the server-side landing spot is the path itself. That is not a
-  # failure — the only real failure is a status that is not 200.
+  # failure: the only real failure is a status that is not 200.
   if [ "$code" != "200" ]; then
     FAILED=$((FAILED + 1))
     note_txt="$note_txt  <-- expected 200, got $code"
@@ -177,7 +177,7 @@ moved /shop/storefront/workflow           '/shop/settings?section=workflow'
 # The console on the wrong host.
 #
 # The business console lives on a business's own subdomain. Reached on the
-# platform host it must land on a sign-in page — and the sign-in page is itself
+# platform host it must land on a sign-in page: and the sign-in page is itself
 # under /shop, so a guard that redirects it too makes the layout redirect to a
 # route that re-runs the guard. That loops until the browser gives up with
 # ERR_TOO_MANY_REDIRECTS, which is not a status code any per-route check would
@@ -220,7 +220,7 @@ done
 #
 # It renders precisely when nobody is signed in, so it cannot read the
 # authenticated tenant API. If the brand stops reaching it the page still renders
-# and still returns 200 — it just comes out the platform's indigo on an orange
+# and still returns 200: it just comes out the platform's indigo on an orange
 # shop, which no status check would ever notice.
 # ---------------------------------------------------------------------------
 if [ "$EXPECT_TENANT" != "0" ]; then

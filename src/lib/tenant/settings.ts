@@ -1,5 +1,6 @@
 import Bell from '@tabler/icons-svelte/icons/bell';
 import ListOrdered from '@tabler/icons-svelte/icons/list-numbers';
+import Mail from '@tabler/icons-svelte/icons/mail';
 import Palette from '@tabler/icons-svelte/icons/palette';
 import Plug from '@tabler/icons-svelte/icons/plug';
 import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
@@ -16,8 +17,8 @@ import type { ShopPermission } from './nav';
  * than as an empty pane in production.
  *
  * The section lives in the query string (`?section=…`) rather than in the path.
- * That keeps one destination in the rail — Settings is somewhere you go to
- * change one thing and leave — while still letting a link point at a section,
+ * That keeps one destination in the rail: Settings is somewhere you go to
+ * change one thing and leave: while still letting a link point at a section,
  * the back button work, and a reload stay where you were.
  */
 export type SettingsSection = {
@@ -63,6 +64,14 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
 		lede: 'What your customers hear from you as their order progresses, and where staff alerts are sent.'
 	},
 	{
+		id: 'email-templates',
+		label: 'Email templates',
+		icon: Mail,
+		group: 'Business',
+		permission: 'organization',
+		lede: 'Your logo, colour and the wording of every email your business sends. Anything you leave alone uses the standard email.'
+	},
+	{
 		id: 'integrations',
 		label: 'Integrations',
 		icon: Plug,
@@ -82,7 +91,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
 		label: 'Security',
 		icon: ShieldCheck,
 		group: 'You',
-		lede: 'Two-factor authentication: the owner sets whether it is optional or required here, and everyone sets up their own methods below — nobody else can see your secrets or your codes.'
+		lede: 'Two-factor authentication: the owner sets whether it is optional or required here, and everyone sets up their own methods below: nobody else can see your secrets or your codes.'
 	}
 ];
 
@@ -109,7 +118,7 @@ export function visibleSettingsSections(
  * Resolve `?section=` to a section this person can open.
  *
  * An unknown, missing or forbidden id falls back to the first section they do
- * hold — a stale bookmark lands somewhere useful instead of on a blank pane.
+ * hold: a stale bookmark lands somewhere useful instead of on a blank pane.
  */
 export function settingsSectionFor(
 	requested: string | null | undefined,

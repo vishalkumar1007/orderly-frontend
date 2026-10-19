@@ -16,7 +16,7 @@ export type { AdminStorefront };
  */
 let cached = $state<AdminStorefront | null>(null);
 let inflight: Promise<AdminStorefront> | null = null;
-/** True only after a successful server load — blocks saves from placeholder defaults. */
+/** True only after a successful server load: blocks saves from placeholder defaults. */
 let fromServer = $state(false);
 
 export function getStorefrontAdmin(): AdminStorefront | null {
@@ -46,7 +46,7 @@ export function invalidateStorefrontAdmin(): void {
  * Load the storefront admin document.
  * - Cache hit returns immediately unless `force`.
  * - One shared in-flight request for non-force callers.
- * - Relies on the shared api client timeout (default 8s) — no shorter
+ * - Relies on the shared api client timeout (default 8s): no shorter
  *   outer race, so a brief refresh / proxy blip does not false-alarm.
  */
 export function loadStorefrontAdmin(force = false): Promise<AdminStorefront> {

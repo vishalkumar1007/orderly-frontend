@@ -1,7 +1,7 @@
 /**
  * Tenant admin menu types and API helpers.
  *
- * Tenant scope always comes from the host + JWT — never send tenant_id.
+ * Tenant scope always comes from the host + JWT: never send tenant_id.
  */
 
 import { api } from '$lib/api/client';

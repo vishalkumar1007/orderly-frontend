@@ -41,7 +41,7 @@ export type AdminNavGroup = {
  * Five groups, thirteen destinations, in the order the work actually happens:
  * you watch the platform, you onboard and run businesses, you configure the
  * platform they share, you check what changed, and only then do you touch
- * settings. Provider credentials deliberately do NOT live under Settings —
+ * settings. Provider credentials deliberately do NOT live under Settings:
  * they are an operational surface with their own status and tests.
  */
 export const SUPERADMIN_NAV: AdminNavGroup[] = [
@@ -96,7 +96,7 @@ export const SUPERADMIN_NAV: AdminNavGroup[] = [
  * Destinations reached from the account menu rather than the rail.
  *
  * Your own account belongs under your own avatar, which is where every operator
- * looks for it first — and it is a section of Settings, not a sibling of it.
+ * looks for it first: and it is a section of Settings, not a sibling of it.
  */
 export const ACCOUNT_LINKS = [
 	{ href: '/superadmin/settings?section=profile', label: 'Your profile' }
@@ -143,6 +143,7 @@ const TITLES: Record<string, string> = {
 	'/superadmin/iam': 'Users & IAM',
 	'/superadmin/providers': 'Providers & integrations',
 	'/superadmin/notifications': 'Notifications',
+	'/superadmin/notifications/templates': 'Email templates',
 	'/superadmin/activity': 'Activity & audit',
 	'/superadmin/health': 'System health',
 	'/superadmin/settings': 'Settings'

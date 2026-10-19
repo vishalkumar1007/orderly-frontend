@@ -97,7 +97,7 @@ export async function tenantLogin(
 	return handleLoginResult(data);
 }
 
-/** Completes a login that returned `mfaRequired` — the second step. */
+/** Completes a login that returned `mfaRequired`: the second step. */
 export async function verifyMfa(
 	challengeToken: string,
 	codeOrRecovery: string,
@@ -149,7 +149,7 @@ export async function setupPassword(
 
 /**
  * Forced enrollment: the account has zero MFA methods and policy now
- * requires one, past its grace period. Each pair mirrors setup/confirm —
+ * requires one, past its grace period. Each pair mirrors setup/confirm:
  * start returns a secret/QR (or sends an email code), confirm both enrolls
  * the method and completes the login the way verifyMfa does.
  */
@@ -208,7 +208,7 @@ export async function me() {
  * The identity together with the business it was issued for.
  *
  * On a tenant host the API answers with both. The console needs the business
- * type before it draws anything — the rail's labels come from it — so this is
+ * type before it draws anything, the rail's labels come from it, so this is
  * one call rather than a second round trip after the shell has rendered.
  */
 export async function meWithTenant(): Promise<{ user: User; tenant: HostTenant | null }> {

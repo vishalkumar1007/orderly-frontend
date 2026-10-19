@@ -383,7 +383,7 @@
 			<h2>Menu layout</h2>
 			<p class="sfctl-note">
 				How product cards are arranged and how filters look on the customer menu. These are
-				closed styles from the platform catalogue — no free-form CSS.
+				closed styles from the platform catalogue: no free-form CSS.
 			</p>
 			<div class="sfctl-grid" data-cols="2">
 				{#each [

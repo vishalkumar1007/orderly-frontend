@@ -8,7 +8,7 @@
  *
  * Scoping: everything is under `.sf-root` (or an `sf-*` class used inside it),
  * and light/dark surfaces are keyed off `[data-sf-theme]`. The admin console
- * uses a separate token set in layout.css — Tailwind is imported there (and in
+ * uses a separate token set in layout.css: Tailwind is imported there (and in
  * the public store layout), not here, so admin theme/preview can safely load
  * these rules without a second preflight pass.
  *
@@ -47,7 +47,7 @@
 	--sf-filter-style: chips;
 
 	/* Fallback brand values. The inline style on this element always wins, so
-	   these only matter if the config request fails — and then the storefront
+	   these only matter if the config request fails: and then the storefront
 	   still looks like a storefront rather than unstyled text. */
 	--sf-primary: #5b4bdb;
 	--sf-primary-ink: #ffffff;
@@ -720,7 +720,7 @@
 }
 
 /* ==========================================================================
-   PRODUCT CARDS — Swiggy/Zomato style
+   PRODUCT CARDS: Swiggy/Zomato style
    ========================================================================== */
 
 .sf-products {
@@ -1658,6 +1658,16 @@
 	line-height: 1.45;
 }
 
+.sf-sound-btn {
+	margin-top: 14px;
+}
+
+.sf-sound-note {
+	margin: 12px 0 0;
+	font-size: var(--fs-code, 12px);
+	color: var(--sf-text-3);
+}
+
 .sf-order-code {
 	display: inline-flex;
 	align-items: baseline;
@@ -2080,7 +2090,7 @@
 }
 
 /* ==========================================================================
-   ENHANCED STYLES — Professional UI improvements
+   ENHANCED STYLES: Professional UI improvements
    ========================================================================== */
 
 /* --- Product Cards: Larger, more visual --- */
@@ -2658,7 +2668,7 @@
 }
 
 /* ==========================================================================
-   STOREFRONT REFACTOR — layout, filters, desktop, qty stepper
+   STOREFRONT REFACTOR: layout, filters, desktop, qty stepper
    ========================================================================== */
 
 @media (min-width: 900px) {

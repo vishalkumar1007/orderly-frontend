@@ -1,7 +1,7 @@
 /**
  * Turning a failed request into something a Super Admin can act on.
  *
- * Raw backend text is never shown. Not because it is secret — it is not — but
+ * Raw backend text is never shown. Not because it is secret, it is not, but
  * because "pq: duplicate key value violates unique constraint tenants_slug_key"
  * tells an operator nothing about what to do next, while "That subdomain is
  * already taken" tells them exactly.
@@ -38,7 +38,7 @@ export type DescribedError = {
 const CODE_MESSAGES: Record<string, { title: string; detail: string; kind: ErrorKind }> = {
 	slug_taken: {
 		title: 'That subdomain is already taken',
-		detail: 'Choose a different subdomain — every business needs its own.',
+		detail: 'Choose a different subdomain: every business needs its own.',
 		kind: 'conflict'
 	},
 	slug_reserved: {
@@ -184,7 +184,7 @@ export function describeError(err: unknown): DescribedError {
  * The message for a failed sign-in or first-run setup.
  *
  * These cannot use {@link errorMessage}: a 401 there is answered with "your
- * session has expired", which is exactly wrong on a sign-in form — there was
+ * session has expired", which is exactly wrong on a sign-in form: there was
  * no session, the password was simply wrong. Anything that is not a rejected
  * credential falls through to the shared mapper, so a database outage during
  * sign-in still reads as a server problem rather than a typo.
@@ -205,7 +205,7 @@ export function authErrorMessage(err: unknown, action: 'sign in' | 'create the a
 /**
  * One line for a toast, prefixed with what was being attempted.
  *
- * `action` is written as a noun phrase — "create the business" — so the result
+ * `action` is written as a noun phrase, "create the business", so the result
  * reads as a sentence: "Unable to create the business. That subdomain is
  * already taken."
  */

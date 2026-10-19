@@ -30,7 +30,7 @@
 		 *
 		 * This is not decoration. A storefront with no tenant behind it and a
 		 * storefront for a real shop render almost identically, and
-		 * `scripts/check_storefront_routes.sh` needs to tell them apart — a route
+		 * `scripts/check_storefront_routes.sh` needs to tell them apart: a route
 		 * check that passes while serving the empty state is worse than no check,
 		 * because it looks like coverage.
 		 */

@@ -32,7 +32,7 @@ export const STOREFRONT_NAV: StorefrontNavItem[] = [
 	}
 ];
 
-/** Paths that show the legacy Customize sidebar shell (empty — sections live in Studio). */
+/** Paths that show the legacy Customize sidebar shell (empty: sections live in Studio). */
 const CUSTOMIZE_SHELL_PATHS: string[] = [];
 
 /** True when the Customize inner nav should wrap the page. */
@@ -58,7 +58,7 @@ export function isStorefrontActive(pathname: string, item: StorefrontNavItem): b
 }
 
 /**
- * Breadcrumb and page-title wording for the storefront subtree — including
+ * Breadcrumb and page-title wording for the storefront subtree: including
  * Preview and QR that are not in STOREFRONT_NAV.
  *
  * The overview is excluded deliberately. Its path segment is `storefront`, which

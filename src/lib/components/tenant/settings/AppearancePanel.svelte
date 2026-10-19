@@ -10,6 +10,7 @@
 	import {
 		adoptAppearance,
 		loadAppearance,
+		restoreSurfaceMode,
 		previewColorMode,
 		resetAppearance,
 		saveAppearance,
@@ -34,7 +35,7 @@
 	 *   device and changes nothing for anyone else who works here.
 	 * - **The business default** is what a colleague sees before they choose
 	 *   anything, and what the sign-in screen is painted with. Only the owner
-	 *   can write it, and doing so is a separate, confirmed action — it is the
+	 *   can write it, and doing so is a separate, confirmed action: it is the
 	 *   one control on this screen that other people can see the result of.
 	 *
 	 * Edits paint immediately rather than on save. A colour you cannot see until
@@ -108,12 +109,12 @@
 	/**
 	 * What the current form choices resolve to, without asking the server.
 	 *
-	 * The same merge the backend does — preset tokens, then the two accent
-	 * overrides — so the live preview and the saved result agree.
+	 * The same merge the backend does: preset tokens, then the two accent
+	 * overrides: so the live preview and the saved result agree.
 	 *
 	 * Half-typed colours are ignored rather than applied. Every themed surface
 	 * is a `color-mix` against `--accent`, and `color-mix` with a malformed
-	 * colour is invalid at computed-value time — so applying `#ab` on the way to
+	 * colour is invalid at computed-value time: so applying `#ab` on the way to
 	 * `#abcdef` did not show a wrong colour, it dropped the rail's background
 	 * entirely for a few keystrokes.
 	 */
@@ -146,7 +147,9 @@
 		appearance = next;
 		const theme = next.theme;
 		presetId = theme.preset_id;
-		colorMode = theme.color_mode;
+		// The same restored look the rest of the console paints with: reading the
+		// raw API value here showed Dark after choosing Raw on older saves.
+		colorMode = restoreSurfaceMode(scope, theme.color_mode);
 		const preset = presets.find((p) => p.id === theme.preset_id);
 		// Treat a colour as an override only when it actually differs from the
 		// preset, so an untouched theme does not save a copy of its own values.
@@ -263,7 +266,7 @@
 	 *
 	 * The escape hatch for the console: an operator who has set the platform to
 	 * something unreadable needs a way back that does not require knowing what
-	 * the original values were. The server decides what "factory" is — the
+	 * the original values were. The server decides what "factory" is: the
 	 * browser only asks.
 	 */
 	async function restoreFactoryDefault() {

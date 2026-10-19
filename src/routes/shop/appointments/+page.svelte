@@ -31,8 +31,8 @@
 	let form = $state({ service_id: '', staff_id: '', date: '', time: '' });
 	let errors = $state<Record<string, string>>({});
 
-	const serviceName = (id: string) => services.find((s) => s.id === id)?.name ?? '—';
-	const staffName = (id?: string) => (id ? staff.find((s) => s.id === id)?.name ?? '—' : 'Any');
+	const serviceName = (id: string) => services.find((s) => s.id === id)?.name ?? '-';
+	const staffName = (id?: string) => (id ? staff.find((s) => s.id === id)?.name ?? '-' : 'Any');
 
 	async function load() {
 		loading = true;
@@ -108,7 +108,7 @@
 				return [
 					{
 						label: 'Check in',
-						onclick: () => run(checkinAppointment, a.id, 'Checked in — added to queue')
+						onclick: () => run(checkinAppointment, a.id, 'Checked in: added to queue')
 					},
 					{ label: 'No-show', onclick: () => run(noShowAppointment, a.id, 'Marked no-show') },
 					{ label: 'Cancel', danger: true, onclick: () => run(cancelAppointment, a.id, 'Appointment cancelled') }

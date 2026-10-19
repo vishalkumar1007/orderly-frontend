@@ -33,7 +33,7 @@
 			copied = true;
 			setTimeout(() => (copied = false), 2000);
 		} catch {
-			toast.error('Could not copy automatically — select the address above instead');
+			toast.error('Could not copy automatically: select the address above instead');
 		}
 	}
 

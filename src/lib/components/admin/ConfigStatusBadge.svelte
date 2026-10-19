@@ -19,19 +19,22 @@
 	} = $props();
 
 	// A row that failed its last test reads as a failure even if it is switched
-	// on, because that is what the operator needs to act on.
-	const shown = $derived(status);
+	// on, because that is what the operator needs to act on. A passing row that
+	// is switched off reads as off: the last test result says nothing about use.
+	const shown = $derived<ConfigStatus>(
+		(status === 'ENABLED' || status === 'CONFIGURED') && !enabled ? 'DISABLED' : status
+	);
 </script>
 
 <span class="cfg-status" class:compact>
 	<StatusBadge status={shown} kind={CONFIG_STATUS_TONE[shown]} />
-	{#if !compact && status === 'ENABLED'}
+	{#if !compact && shown === 'ENABLED'}
 		<span class="cfg-note ok"><Info size={12} stroke={1.6} /> Active</span>
-	{:else if !compact && status === 'CONFIGURED'}
+	{:else if !compact && shown === 'CONFIGURED'}
 		<span class="cfg-note">Saved, not enabled</span>
 	{:else if !compact && status === 'CONNECTION_FAILED'}
 		<span class="cfg-note bad"><TriangleAlert size={12} stroke={1.6} /> Check settings</span>
-	{:else if !compact && status === 'DISABLED'}
+	{:else if !compact && shown === 'DISABLED'}
 		<span class="cfg-note">Switched off</span>
 	{:else if !compact && status === 'UNCONFIGURED'}
 		<span class="cfg-note">{enabled ? 'Not set up' : 'Not set up'}</span>

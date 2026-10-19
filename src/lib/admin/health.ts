@@ -14,7 +14,7 @@ export type HealthSummary = {
 	warning: number;
 	error: number;
 	unavailable: number;
-	/** 'ok' | 'warn' | 'bad' | '' — drives the status dot and the toast kind. */
+	/** 'ok' | 'warn' | 'bad' | '': drives the status dot and the toast kind. */
 	tone: 'ok' | 'warn' | 'bad' | '';
 	/** Short sentence for a heading or a toast. */
 	headline: string;
@@ -52,7 +52,7 @@ export function healthSummary(health: SystemHealth | null): HealthSummary {
  * The line shown after a check the operator asked for.
  *
  * It names what the API answered rather than saying "refreshed", because the
- * whole reason to press the button is to find out whether anything changed —
+ * whole reason to press the button is to find out whether anything changed:
  * and on a healthy platform two consecutive checks look identical on screen.
  */
 export function healthCheckMessage(health: SystemHealth | null): string {

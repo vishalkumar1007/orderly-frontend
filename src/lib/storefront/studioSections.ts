@@ -16,7 +16,7 @@ import type { ConfigControl, Terminology } from '$lib/admin/businessTypes';
  * of three copies that drift.
  *
  * `label` is a function because a section's name belongs to the business type.
- * A hotel does not have a Menu and a grocery does not either — calling it one
+ * A hotel does not have a Menu and a grocery does not either: calling it one
  * is how a console ends up feeling like it was built for somebody else's shop.
  */
 export type StudioSectionGroup = 'appearance' | 'operations';
@@ -40,7 +40,7 @@ export type StudioSection = {
 	categories: string[];
 	/**
 	 * Controls this section exists to change. A section whose every control is
-	 * irrelevant to the business type is not shown at all — an empty panel is
+	 * irrelevant to the business type is not shown at all: an empty panel is
 	 * worse than a missing one. An empty list means "always relevant".
 	 */
 	requires?: ConfigControl[];

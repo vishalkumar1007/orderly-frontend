@@ -4,7 +4,7 @@
 # status, size and title.
 #
 # The console authenticates in the browser, so a server render can only prove
-# that a route exists, resolves its layout and does not throw — which is
+# that a route exists, resolves its layout and does not throw: which is
 # exactly the class of failure a type check cannot see: a bad import, a missing
 # page for a rail entry, a server load that redirects to the wrong place.
 #

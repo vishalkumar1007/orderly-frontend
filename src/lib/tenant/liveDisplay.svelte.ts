@@ -3,7 +3,7 @@
  *
  * These live in the browser, not on the tenant record, and that is deliberate:
  * the setting belongs to the *screen*, not the business. A shop with a big TV
- * over the counter and a tablet by the door wants different things on each —
+ * over the counter and a tablet by the door wants different things on each:
  * larger tickets on the TV, customer names only where the staff stand. Storing
  * one shared value on the server would force both devices to agree.
  *
@@ -20,7 +20,7 @@ export type LiveDisplaySettings = {
 	paused: boolean;
 	showPreparing: boolean;
 	showReady: boolean;
-	/** First name only — a pickup screen is a public display. */
+	/** First name only: a pickup screen is a public display. */
 	showCustomerName: boolean;
 	/** Minutes since the order arrived, for customers judging the queue. */
 	showWaitTime: boolean;
@@ -55,7 +55,7 @@ export function loadLiveDisplay(): void {
 			liveDisplay.showReady = true;
 		}
 	} catch {
-		/* blocked or corrupt storage — the defaults are already in place */
+		/* blocked or corrupt storage: the defaults are already in place */
 	}
 }
 

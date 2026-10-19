@@ -1,10 +1,10 @@
 /**
- * Tenant admin storefront configuration — types and API.
+ * Tenant admin storefront configuration: types and API.
  *
  * The admin screens are deliberately thin. Every value here is validated by the
  * server against a closed catalogue, and a rejected value comes back as a
  * specific error the form can show next to the field that caused it. The client
- * mirrors the enums only so the pickers can render — it is not the authority.
+ * mirrors the enums only so the pickers can render: it is not the authority.
  */
 
 import { api, ApiClientError } from '$lib/api/client';
@@ -451,8 +451,8 @@ export const HERO_OPTIONS = [
 ];
 
 export const LAYOUT_OPTIONS = [
-	{ value: 'list', label: 'List', hint: 'Horizontal rows — good for long menus' },
-	{ value: 'grid', label: 'Grid', hint: 'Photo-forward tiles — good on desktop' },
+	{ value: 'list', label: 'List', hint: 'Horizontal rows: good for long menus' },
+	{ value: 'grid', label: 'Grid', hint: 'Photo-forward tiles: good on desktop' },
 	{ value: 'compact', label: 'Compact', hint: 'Dense rows for quick scanning' }
 ];
 

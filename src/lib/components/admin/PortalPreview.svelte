@@ -51,6 +51,24 @@
 
 	let activeTab = $state<'admin' | 'storefront'>('admin');
 
+	// The brand colour as text. Used straight, a near-black brand vanished on
+	// the dark preview (and a pale one on the light): lift or deepen it until
+	// it reads against the background. Filled buttons keep the real colour.
+	function luminance(hex: string): number | null {
+		const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+		if (!m) return null;
+		const n = parseInt(m[1], 16);
+		return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+	}
+	const brand = $derived(primary || accent);
+	const brandInk = $derived.by(() => {
+		const l = luminance(brand);
+		if (l === null) return brand;
+		if (mode !== 'light' && l < 0.45) return `color-mix(in srgb, ${brand} 35%, #ffffff)`;
+		if (mode === 'light' && l > 0.72) return `color-mix(in srgb, ${brand} 45%, #000000)`;
+		return brand;
+	});
+
 	const CAP_ICON: Record<string, typeof IconUsers> = {
 		CUSTOMERS: IconUsers,
 		STAFF: IconAddressBook,
@@ -208,7 +226,7 @@
 						</div>
 
 						<nav class="pv-console-nav">
-							<div class="pv-nav-row is-active" style:color={primary || accent} style:background={`color-mix(in srgb, ${primary || accent} 18%, transparent)`}>
+							<div class="pv-nav-row is-active" style:color={brandInk} style:background={`color-mix(in srgb, ${brandInk} 16%, transparent)`}>
 								<IconDashboard size={14} stroke={2} />
 								<span>Dashboard</span>
 							</div>
@@ -225,7 +243,7 @@
 					<div class="pv-console-main">
 						<div class="pv-content-top">
 							<span class="pv-view-title">{template.terminology.orders} live stream</span>
-							<span class="pv-badge" style:border-color={primary || accent} style:color={primary || accent}>Operational</span>
+							<span class="pv-badge" style:border-color={brandInk} style:color={brandInk}>Operational</span>
 						</div>
 
 						<!-- Metric stat tiles -->
@@ -235,7 +253,7 @@
 								<small>Today's {template.terminology.orders}</small>
 							</div>
 							<div class="pv-stat-card">
-								<span class="pv-stat-num" style:color={primary || accent}>₹12,450</span>
+								<span class="pv-stat-num" style:color={brandInk}>₹12,450</span>
 								<small>Revenue</small>
 							</div>
 						</div>
@@ -245,7 +263,7 @@
 							{#each activityRows as row}
 								<div class="pv-activity-row">
 									<span class="pv-act-label">{row.label}</span>
-									<span class="pv-act-status" style:background={`color-mix(in srgb, ${primary || accent} 20%, transparent)`} style:color={primary || accent}>
+									<span class="pv-act-status" style:background={`color-mix(in srgb, ${brandInk} 20%, transparent)`} style:color={brandInk}>
 										{row.status}
 									</span>
 								</div>
@@ -270,8 +288,8 @@
 					<span class="pv-phone-title">{businessName || 'Your Business'}</span>
 					<span
 						class="pv-phone-tag"
-						style:color={primary || accent}
-						style:border={`1px solid color-mix(in srgb, ${primary || accent} 35%, transparent)`}
+						style:color={brandInk}
+						style:border={`1px solid color-mix(in srgb, ${brandInk} 35%, transparent)`}
 						style:background={`color-mix(in srgb, ${primary || accent} 14%, ${mode === 'light' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.4)'})`}
 					>
 						{template.label}

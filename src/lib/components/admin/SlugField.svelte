@@ -49,7 +49,7 @@
 		idle: { text: '', cls: '' },
 		checking: { text: 'Checking availability…', cls: 'checking' },
 		available: { text: 'Available', cls: 'available' },
-		taken: { text: 'Already in use — try another', cls: 'taken' },
+		taken: { text: 'Already in use: try another', cls: 'taken' },
 		reserved: { text: 'Reserved by the platform', cls: 'taken' },
 		invalid: { text: 'Use lowercase letters, numbers and hyphens', cls: 'invalid' }
 	};

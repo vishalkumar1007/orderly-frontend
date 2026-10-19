@@ -4,7 +4,7 @@
    TOKENS
    ============================================================ */
 :root {
-	/* Accent — spent only on primary actions, active state, data */
+	/* Accent: spent only on primary actions, active state, data */
 	--accent: #6366f1;
 	--accent-2: #8b5cf6;
 	--accent-dark: #4f46e5;
@@ -18,11 +18,11 @@
 	--on-accent: #ffffff;
 	--on-accent-2: #ffffff;
 
-	/* Radii — professional dashboard, not bubbly */
+	/* Radii: professional dashboard, not bubbly */
 	/*
 	 * `--radius-md` was referenced from four places (two here, the shop login
 	 * card, and the onboarding stylesheet) but never declared, so every one of
-	 * them was resolving to an invalid value and falling back to 0 — square
+	 * them was resolving to an invalid value and falling back to 0: square
 	 * corners on elements designed to be rounded. The scale reads sm/md/lg/xl
 	 * with md missing, so it is restored here at 8px, which is also what
 	 * `--radius` has been carrying for the files that use that name.
@@ -39,7 +39,7 @@
 	--font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
 	/*
-	 * The type scale — nine steps, and that is the whole scale.
+	 * The type scale: nine steps, and that is the whole scale.
 	 *
 	 * The console used to declare font sizes ad hoc, which produced 50 distinct
 	 * values across the app and 88 distinct rem values in this file alone, most
@@ -49,7 +49,7 @@
 	 * a step from a step.
 	 *
 	 * Hierarchy is therefore carried by weight and colour, not by near-misses on
-	 * size — a card title is 13px/650 next to 13px/400 body, not 13.5px next to
+	 * size: a card title is 13px/650 next to 13px/400 body, not 13.5px next to
 	 * 13px. A row of numbers that drifts by 0.3px between tables is exactly what
 	 * makes a dense interface look assembled rather than designed.
 	 *
@@ -70,7 +70,7 @@
 	--fs-display: 30px; /* figures that are the content: live count, countdown */
 
 	/*
-	 * The spacing scale — the eleven gaps permitted by ui_rules.md.
+	 * The spacing scale: the eleven gaps permitted by ui_rules.md.
 	 *
 	 * Declared so the scale is nameable, and used by the primitives below and by
 	 * any component built against it. It is deliberately not applied by a
@@ -118,8 +118,8 @@
 	 *
 	 * Tinting the whole page with the accent was tried and is wrong: a console
 	 * is somewhere you read dense tables and forms for hours, and a coloured
-	 * sheet behind all of it is tiring and makes the status colours — success,
-	 * warning, danger — sit on a background that shifts with the brand. The
+	 * sheet behind all of it is tiring and makes the status colours: success,
+	 * warning, danger: sit on a background that shifts with the brand. The
 	 * theme is carried by the rail instead, which is the part you see without
 	 * reading it.
 	 */
@@ -165,7 +165,7 @@
 	--chart-grid: color-mix(in srgb, var(--border) 80%, transparent);
 
 	/*
-	 * The rail is a neutral surface with a whisper of the accent in it — 3.5%,
+	 * The rail is a neutral surface with a whisper of the accent in it: 3.5%,
 	 * enough to tell two themes apart side by side and not enough to read as a
 	 * coloured panel.
 	 *
@@ -173,7 +173,7 @@
 	 * the icon boxes and the label colours at once. Every one of them was
 	 * defensible alone; together they turned a navigation column into a swatch,
 	 * and a saturated theme made the whole thing look dim. The accent now
-	 * appears in exactly one place — the item you are on — which is the only
+	 * appears in exactly one place, the item you are on, which is the only
 	 * place it carries information.
 	 */
 	--rail: transparent;
@@ -266,8 +266,8 @@
 	--icon-bg: rgba(255, 255, 255, 0.06);
 	--icon-fg: #98a1b6;
 
-	/* Lifted toward white: the darker secondaries — indigo's #6366f1, slate's
-	   #64748b — sit at 3.7–3.9:1 against a near-black rail on their own. */
+	/* Lifted toward white: the darker secondaries: indigo's #6366f1, slate's
+	   #64748b: sit at 3.7–3.9:1 against a near-black rail on their own. */
 	--rail-accent-text: color-mix(in srgb, var(--accent-2) 72%, #ffffff);
 
 	--shadow-md: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
@@ -285,7 +285,7 @@
 }
 
 /*
- * Soft — lighter day look with a bit more page wash. Comfortable for long
+ * Soft: lighter day look with a bit more page wash. Comfortable for long
  * sessions without the stark white of classic Light.
  */
 [data-theme='soft'] {
@@ -341,7 +341,7 @@
 }
 
 /*
- * Night — neutral charcoal dark (no blue cast). The comfortable dark console
+ * Night: neutral charcoal dark (no blue cast). The comfortable dark console
  * admins can pick from Appearance.
  */
 [data-theme='night'] {
@@ -404,7 +404,7 @@
 }
 
 /*
- * Mist — cool light grey (Lumora-style mist). Barely-noticeable accent wash.
+ * Mist: cool light grey (Lumora-style mist). Barely-noticeable accent wash.
  */
 [data-theme='mist'] {
 	--bg: #f1f4f8;
@@ -458,7 +458,7 @@
 }
 
 /*
- * Graphite — flat charcoal dark with no accent page wash (Linear-like restraint).
+ * Graphite: flat charcoal dark with no accent page wash (Linear-like restraint).
  */
 [data-theme='graphite'] {
 	--bg: #0c0c0e;
@@ -517,7 +517,7 @@
 }
 
 /*
- * Raw — near-true black OLED dark, no colour wash (Vercel/OLED-friendly).
+ * Raw: near-true black OLED dark, no colour wash (Vercel/OLED-friendly).
  */
 [data-theme='raw'] {
 	--bg: #000000;
@@ -576,7 +576,7 @@
 }
 
 /*
- * Midnight — deep slate navy (#0f172a family) with a medium coloured wash.
+ * Midnight: deep slate navy (#0f172a family) with a medium coloured wash.
  */
 [data-theme='midnight'] {
 	--bg: #0b1220;
@@ -650,7 +650,7 @@ body {
 	 * The base size the whole scale is measured from, stated once.
 	 *
 	 * It was absent, so every font size in the app was an independent guess and
-	 * `body` inherited the browser's 16px — which is why a form label could end
+	 * `body` inherited the browser's 16px: which is why a form label could end
 	 * up larger than the input it labelled. Everything else now resolves up to
 	 * this one value.
 	 */
@@ -665,7 +665,7 @@ body {
 	 * things that genuinely navigate or drag. A web page that points at every
 	 * row and every card reads as a document being browsed; an app that leaves
 	 * the arrow alone reads as software you operate. Text selection is
-	 * deliberately NOT disabled — see the note in the type scale about copyable
+	 * deliberately NOT disabled: see the note in the type scale about copyable
 	 * setup links and IDs.
 	 */
 	cursor: default;
@@ -712,8 +712,8 @@ select {
 /*
  * Visually hidden, still announced.
  *
- * This utility was used in fourteen places across the console — a table header
- * reading "Actions", an icon button's accessible name, a card's hidden detail —
+ * This utility was used in fourteen places across the console: a table header
+ * reading "Actions", an icon button's accessible name, a card's hidden detail:
  * and it was never defined here. The storefront has had its own `.sf-sr-only`
  * all along, so the console's copy-pasted usages silently matched nothing and
  * rendered as ordinary visible text: a column of "Actions" and "View" labels
@@ -762,7 +762,7 @@ select {
 }
 
 /* ============================================================
-   PRIMITIVES — shared with shop / kitchen / public
+   PRIMITIVES: shared with shop / kitchen / public
    ============================================================ */
 .btn {
 	display: inline-flex;
@@ -855,7 +855,7 @@ select {
 	padding: 6px 10px;
 	/*
 	 * 12.5px, not the 13px base. An input is a control, and a control's text
-	 * reads a step under the surrounding body copy — which is why ui_rules.md
+	 * reads a step under the surrounding body copy: which is why ui_rules.md
 	 * puts buttons, inputs and tabs on their own step rather than on `--fs-body`.
 	 * It also means the label above it, at `--fs-label`, is unambiguously a
 	 * label rather than a slightly smaller copy of the value.
@@ -911,7 +911,7 @@ select.input {
  * The shell carries a soft light in the theme colour, and the rail is glass
  * over it.
  *
- * A flat tint across the whole page was wrong — it is tiring under dense
+ * A flat tint across the whole page was wrong: it is tiring under dense
  * tables and it shifts the ground the status colours sit on. What reads as
  * "themed" without doing either is a light: two wide, very low-alpha pools of
  * the accent behind the chrome, strongest at the top-left where the rail is, so
@@ -1014,7 +1014,7 @@ select.input {
 	flex: 1;
 }
 
-/* Square, transparent toggle — matches Orbit's .orbit-sb-toggle exactly. */
+/* Square, transparent toggle: matches Orbit's .orbit-sb-toggle exactly. */
 .rail-toggle {
 	width: 32px;
 	height: 32px;
@@ -1060,7 +1060,7 @@ select.input {
 	white-space: nowrap;
 }
 
-/* Quiet sections — management / config / history sit below ops visually. */
+/* Quiet sections: management / config / history sit below ops visually. */
 .rail-group-quiet .rail-group-label {
 	color: color-mix(in srgb, var(--rail-text) 48%, transparent);
 	font-weight: 600;
@@ -1071,7 +1071,7 @@ select.input {
 	color: color-mix(in srgb, var(--rail-text) 88%, transparent);
 }
 
-/* RUNNING — daily ops must read as the primary cluster. */
+/* RUNNING: daily ops must read as the primary cluster. */
 .rail-group-running {
 	gap: 0.4rem;
 	padding: 0.35rem 0.15rem 0.45rem;
@@ -1096,7 +1096,7 @@ select.input {
 }
 
 .rail-group-running .rail-link:hover {
-	/* Was a 140% color-mix, which is out of range — the whole declaration was
+	/* Was a 140% color-mix, which is out of range: the whole declaration was
 	   invalid, so the daily-ops links had no hover state at all. */
 	background: var(--rail-active);
 }
@@ -1125,7 +1125,7 @@ select.input {
  * The active item is the only coloured thing in the rail.
  *
  * It was a two-stop gradient with a tinted border and a solid accent-filled
- * icon box — three separate accent treatments on one row, which is what made a
+ * icon box: three separate accent treatments on one row, which is what made a
  * saturated theme look heavy. One flat tint and an accent glyph says the same
  * thing and stays out of the way.
  */
@@ -1174,7 +1174,7 @@ select.input {
 	flex: none;
 }
 
-/* —— Collapsed (icon rail) state —— */
+/* -- Collapsed (icon rail) state -- */
 .shell.rail-collapsed .rail-name,
 .shell.rail-collapsed .rail-group-label,
 .shell.rail-collapsed .rail-link-label,
@@ -1361,7 +1361,7 @@ select.input {
 	flex-direction: column;
 }
 
-/* Topbar — sticky glass so dashboard wash shows through */
+/* Topbar: sticky glass so dashboard wash shows through */
 .topbar {
 	position: sticky;
 	top: 0;
@@ -1384,7 +1384,7 @@ select.input {
 	flex-shrink: 1;
 }
 
-/* Breadcrumb path — small and quiet, the page title carries the weight. */
+/* Breadcrumb path: small and quiet, the page title carries the weight. */
 .crumbs {
 	display: flex;
 	align-items: center;
@@ -1869,7 +1869,7 @@ select.input {
 	font-variant-numeric: tabular-nums;
 }
 
-/* Progressive column disclosure — the table degrades instead of overflowing. */
+/* Progressive column disclosure: the table degrades instead of overflowing. */
 @media (max-width: 1180px) {
 	.table .col-md {
 		display: none;
@@ -2112,7 +2112,7 @@ select.input {
 .field-label {
 	/*
 	 * 11px/500. This was 12.5px, which is larger than the 12.5px text inside
-	 * the control directly beneath it — a label that competes with its own
+	 * the control directly beneath it: a label that competes with its own
 	 * value. ui_rules.md puts form labels a step below the base for exactly
 	 * this reason: the label is chrome, the value is content.
 	 */
@@ -2400,7 +2400,7 @@ select.input {
 	color: currentColor;
 }
 
-/* Type paint — not brand/theme surface chrome. */
+/* Type paint: not brand/theme surface chrome. */
 .toast-item.success {
 	background: var(--success-bg);
 	border-color: color-mix(in srgb, var(--success) 28%, transparent);
@@ -3123,7 +3123,7 @@ select.input {
 }
 
 /* ============================================================
-   DASHBOARD — hero, stats, bento
+   DASHBOARD: hero, stats, bento
    ============================================================ */
 .dash {
 	display: grid;
@@ -3591,7 +3591,7 @@ select.input {
 }
 
 /* ============================================================
-   AUTH — Super Admin sign-in
+   AUTH: Super Admin sign-in
    ============================================================ */
 .auth-split {
 	min-height: 100vh;

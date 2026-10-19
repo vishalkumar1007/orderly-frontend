@@ -47,7 +47,7 @@
 	let folioLoading = $state(false);
 	let chargeForm = $state({ description: '', amount: '0' });
 
-	const typeName = (id: string) => roomTypes.find((t) => t.id === id)?.name ?? '—';
+	const typeName = (id: string) => roomTypes.find((t) => t.id === id)?.name ?? '-';
 	const availableRooms = (roomTypeId: string) =>
 		rooms.filter((r) => r.room_type_id === roomTypeId && r.status === 'AVAILABLE');
 
@@ -139,7 +139,7 @@
 			folioCharges = data.charges ?? [];
 			folioTotal = data.total ?? 0;
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'No folio yet — check in first');
+			toast.error(err instanceof Error ? err.message : 'No folio yet: check in first');
 			folioCharges = [];
 			folioTotal = 0;
 		} finally {

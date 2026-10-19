@@ -14,7 +14,7 @@
 		exact = false,
 		/**
 		 * Paths under `href` that belong to a sibling entry and must not light
-		 * this one up — e.g. the tenant list stays lit on a tenant's detail page
+		 * this one up: e.g. the tenant list stays lit on a tenant's detail page
 		 * but not on the create form.
 		 */
 		exclude = [] as string[],

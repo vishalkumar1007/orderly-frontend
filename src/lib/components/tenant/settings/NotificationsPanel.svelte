@@ -20,7 +20,7 @@
 	import TextInput from '$lib/components/admin/TextInput.svelte';
 	import UpgradeNote from '$lib/components/admin/UpgradeNote.svelte';
 	import { toast } from '$lib/components/admin/toast';
-	import MessageTemplates from './MessageTemplates.svelte';
+	import { goto } from '$app/navigation';
 	import { storefrontAdminApi } from '$lib/storefront/admin';
 	import { seed, useStorefront, type StorefrontContext } from '$lib/storefront/admin-context';
 	import { fetchTenantConfigs } from '$lib/admin/configApi';
@@ -28,7 +28,7 @@
 	import { formatRelative } from '$lib/admin/format';
 	import { settingsHref } from '$lib/tenant/settings';
 	import { featureAccess } from '$lib/tenant/entitlements.svelte';
-	import { playSound, SOUND_OPTIONS } from '$lib/sound';
+	import { playSound, SOUND_OPTIONS } from '$lib/sound.svelte';
 	import {
 		soundEnabled as bellSoundEnabled,
 		setSoundEnabled as setBellSoundEnabled
@@ -52,7 +52,7 @@
 	} from '$lib/admin/notificationTypes';
 
 	/**
-	 * Notifications — one page, no sub-sections.
+	 * Notifications: one page, no sub-sections.
 	 *
 	 *   channel strip   is each way of reaching people actually available?
 	 *   audience toggle Team | Customers
@@ -194,12 +194,9 @@
 
 	/* ---------- drawer: message wording ---------- */
 
-	let wordingOpen = $state(false);
-	let wordingEvent = $state('');
-
-	function editWording(ev: NotificationEventDef) {
-		wordingEvent = ev.code;
-		wordingOpen = true;
+	// Wording and branding live on their own Settings page, the template studio.
+	function editWording(ev?: NotificationEventDef) {
+		void goto(settingsHref('email-templates') + (ev ? `&event=${encodeURIComponent(ev.code)}` : ''));
 	}
 
 	/* ---------- drawer: delivery log ---------- */
@@ -349,6 +346,9 @@
 			</button>
 		</div>
 		<div class="actions">
+			<button type="button" class="btn btn-ghost btn-sm" onclick={() => editWording()}>
+				<Mail size={14} stroke={1.6} /> Email templates
+			</button>
 			<button type="button" class="btn btn-ghost btn-sm" onclick={() => (logOpen = true)}>
 				<History size={14} stroke={1.6} /> Delivery log
 			</button>
@@ -384,28 +384,11 @@
 			busyKey={busyRuleKey}
 			onchange={onRuleChange}
 			onrevert={onRuleRevert}
-			onedit={audience === 'customers' ? editWording : undefined}
+			onedit={editWording}
 			editLocked={!templatesAccess.enabled}
 		/>
 	{/if}
 </div>
-
-<SlideOver bind:open={wordingOpen} title="Message wording">
-	{#if templatesAccess.enabled}
-		<p class="drawer-note">
-			Change what a customer message says. Until you do, the standard wording is used.
-		</p>
-		{#key wordingEvent}
-			<MessageTemplates
-				events={events.filter((e) => customerRules.some((r) => r.event_code === e.code))}
-				rules={customerRules}
-				initialEvent={wordingEvent}
-			/>
-		{/key}
-	{:else}
-		<UpgradeNote feature="Custom message wording" requiredPlan={templatesAccess.requiredPlan} />
-	{/if}
-</SlideOver>
 
 <SlideOver bind:open={logOpen} title="Delivery log">
 	<p class="drawer-note">Recent emails and texts from this business. Failed ones can be retried.</p>

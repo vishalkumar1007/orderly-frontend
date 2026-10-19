@@ -33,7 +33,7 @@
 
 	// Every noun on this screen belongs to the business, not to us. A grocer
 	// manages aisles of products; a hotel manages departments of services.
-	// The data model is the same either way — only the words change.
+	// The data model is the same either way: only the words change.
 	const t = $derived(terms());
 
 	const seed = getMenuSnapshot();
@@ -50,7 +50,7 @@
 	/**
 	 * Seeded from the URL so a link can point at a real view rather than just
 	 * at the screen. A grocer's "what is out of stock" shortcut is the same
-	 * catalogue with one filter applied — worth a link, not a second page.
+	 * catalogue with one filter applied: worth a link, not a second page.
 	 */
 	let availabilityFilter = $state<'all' | 'available' | 'unavailable'>(
 		availabilityFromUrl($page.url.searchParams.get('availability'))

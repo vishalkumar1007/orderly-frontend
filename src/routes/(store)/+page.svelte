@@ -11,7 +11,7 @@
 	/**
 	 * The storefront home page.
 	 *
-	 * Everything visible here comes from the tenant's saved layout — the section
+	 * Everything visible here comes from the tenant's saved layout: the section
 	 * list, its order, and which sections are on. The page itself decides
 	 * nothing about what a shop should show.
 	 */

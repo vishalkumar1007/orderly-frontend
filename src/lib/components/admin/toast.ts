@@ -2,7 +2,7 @@ import { writable } from 'svelte/store';
 
 export type ToastKind = 'success' | 'error' | 'warn' | 'info';
 
-/** Optional inline button — used for prompts that need a decision. */
+/** Optional inline button: used for prompts that need a decision. */
 export type ToastAction = {
 	label: string;
 	onClick: () => void;

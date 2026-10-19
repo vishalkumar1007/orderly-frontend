@@ -22,7 +22,7 @@
 		return 'neutral';
 	});
 
-	const label = $derived(status ? String(status).replaceAll('_', ' ') : '—');
+	const label = $derived(status ? String(status).replaceAll('_', ' ') : '-');
 </script>
 
 <span class={['badge', `badge-${tone}`, dot ? '' : 'badge-plain'].join(' ').trim()}>{label}</span>
