@@ -275,7 +275,7 @@ try {
 
 	{
 		const ids = tenantSettings.SETTINGS_SECTIONS.map((s) => s.id);
-		eq('section ids', ids, ['business', 'workflow', 'notifications', 'integrations', 'appearance', 'security']);
+		eq('section ids', ids, ['business', 'workflow', 'notifications', 'email-templates', 'integrations', 'appearance', 'security']);
 		eq('no duplicate section id', ids.length, new Set(ids).size);
 
 		// Every section names a capability the API actually grants, or none at
