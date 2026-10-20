@@ -76,7 +76,7 @@
 		if (!target || !frameReady) return;
 		try {
 			target.postMessage(
-				{ type: MSG_DRAFT, draft: structuredClone(config) },
+				{ type: MSG_DRAFT, draft: $state.snapshot(config) },
 				window.location.origin
 			);
 		} catch {

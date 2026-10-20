@@ -138,13 +138,23 @@ export const menuApi = {
 			body: JSON.stringify(body)
 		}),
 	deleteProduct: (id: string) =>
-		api<{ status: string }>(`/api/v1/tenant/products/${id}`, { method: 'DELETE' }),
+		api<{ status: 'deleted' | 'archived' }>(`/api/v1/tenant/products/${id}`, { method: 'DELETE' }),
 	duplicateProduct: (id: string) =>
 		api<MenuProduct>(`/api/v1/tenant/products/${id}/duplicate`, { method: 'POST' }),
 	reorderProducts: (ids: string[]) =>
 		api<{ status: string }>('/api/v1/tenant/products/reorder', {
 			method: 'POST',
 			body: JSON.stringify({ ids })
+		}),
+	/** One round trip for many rows. `archive` removes them from the menu. */
+	bulkProducts: (body: {
+		ids: string[];
+		action: 'available' | 'unavailable' | 'archive' | 'move';
+		category_id?: string;
+	}) =>
+		api<{ updated: number }>('/api/v1/tenant/products/bulk', {
+			method: 'POST',
+			body: JSON.stringify(body)
 		}),
 
 	uploadImage: async (file: File) => {

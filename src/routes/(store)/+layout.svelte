@@ -11,6 +11,7 @@
 	import ServiceError from '$lib/components/ServiceError.svelte';
 	import '$lib/storefront/storefront-app.css';
 	import { createCart, loadInitialCart, provideCart } from '$lib/storefront/cart-state.svelte';
+	import { captureAttribution } from '$lib/storefront/api';
 	import { customerSession } from '$lib/storefront/session.svelte';
 	import { FALLBACK_THEME, fontImportFor, hasCompleteTokens, themeVars } from '$lib/storefront/theme';
 	import type { StoreProduct } from '$lib/storefront/api';
@@ -51,6 +52,7 @@
 
 	onMount(() => {
 		signedIn = Boolean(customerSession.load(slug));
+		captureAttribution($page.url.searchParams);
 		online = navigator.onLine;
 		const goOnline = () => (online = true);
 		const goOffline = () => (online = false);

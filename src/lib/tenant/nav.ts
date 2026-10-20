@@ -212,6 +212,11 @@ const TITLES: Array<[string, string]> = [
 	['/shop/menu', 'Menu'],
 	['/shop/storefront/promote', 'Publish & Marketing'],
 	['/shop/storefront/launch', 'Publish & Marketing'],
+	['/shop/marketing', 'Marketing'],
+	['/shop/marketing/new', 'New campaign'],
+	['/shop/marketing/offers', 'Offers & Loyalty'],
+	['/shop/marketing/automations', 'Automations'],
+	['/shop/marketing/social', 'Social'],
 	['/shop', 'Dashboard']
 ];
 
@@ -378,6 +383,13 @@ export const TENANT_NAV: ShopNavGroup[] = [
 				label: 'Publish & Marketing',
 				icon: Megaphone,
 				exact: true,
+				permission: 'storefront'
+			},
+			{
+				href: '/shop/marketing',
+				label: 'Marketing',
+				icon: Megaphone,
+				nested: true,
 				permission: 'storefront'
 			}
 		]

@@ -255,7 +255,7 @@ try {
 		eq(
 			'Storefront destinations',
 			storefront?.items.map((i) => i.label),
-			['Customize', 'Action', 'Publish & Marketing']
+			['Customize', 'Action', 'Publish & Marketing', 'Marketing']
 		);
 	}
 

@@ -1,6 +1,6 @@
 /** Configurable integrations. Mirrors the backend's configsvc package. */
 
-export type ConfigService = 'SMTP' | 'STORAGE' | 'AI' | 'SMS' | 'PAYMENTS';
+export type ConfigService = 'SMTP' | 'STORAGE' | 'AI' | 'SMS' | 'PAYMENTS' | 'META';
 export type ConfigSource = 'PLATFORM' | 'ORGANIZATION';
 export type ConfigStatus =
 	| 'UNCONFIGURED'
@@ -151,7 +151,8 @@ export const CONFIG_SERVICE_LABEL: Record<ConfigService, string> = {
 	STORAGE: 'Storage',
 	AI: 'AI',
 	SMS: 'SMS',
-	PAYMENTS: 'Payments'
+	PAYMENTS: 'Payments',
+	META: 'Meta (WhatsApp, Facebook, Instagram)'
 };
 
 export const CONFIG_STATUS_LABEL: Record<ConfigStatus, string> = {
@@ -223,6 +224,27 @@ export const CONFIG_FIELDS: Record<
 		{ key: 'account_sid', label: 'Account SID' },
 		{ key: 'auth_token', label: 'Auth token', type: 'password', secret: true },
 		{ key: 'from_number', label: 'From number', hint: 'E.164 format, e.g. +14155551234' }
+	],
+	META: [
+		{
+			key: 'access_token',
+			label: 'Access token',
+			type: 'password',
+			secret: true,
+			hint: 'A System User token from Meta Business Suite with whatsapp_business_messaging, pages_manage_posts and instagram_content_publish'
+		},
+		{
+			key: 'app_secret',
+			label: 'App secret',
+			type: 'password',
+			secret: true,
+			hint: 'Signs webhook deliveries. From the app dashboard, Settings, Basic.'
+		},
+		{ key: 'phone_number_id', label: 'WhatsApp phone number ID', hint: 'Leave blank if you do not use WhatsApp' },
+		{ key: 'page_id', label: 'Facebook Page ID', hint: 'Leave blank if you do not publish to Facebook' },
+		{ key: 'instagram_user_id', label: 'Instagram account ID', hint: 'The professional account linked to the Page' },
+		{ key: 'verify_token', label: 'Webhook verify token', hint: 'Any string; enter the same one when subscribing the webhook in Meta' },
+		{ key: 'api_version', label: 'Graph API version', hint: 'Defaults to v21.0' }
 	],
 	PAYMENTS: [
 		{

@@ -6,7 +6,7 @@
 	import Lock from '@tabler/icons-svelte/icons/lock';
 	import { useCart } from '$lib/storefront/cart-state.svelte';
 	import { lineTotal, quoteRequest } from '$lib/storefront/cart.svelte';
-	import { friendlyError, storefrontApi, type OrderDetail } from '$lib/storefront/api';
+	import { friendlyError, readAttribution, storefrontApi, type OrderDetail, type Quote } from '$lib/storefront/api';
 	import { ApiClientError } from '$lib/api/client';
 	import { customerSession, customerToken, isSignedIn } from '$lib/storefront/session.svelte';
 	import { formatPhone, money } from '$lib/storefront/format';
@@ -43,6 +43,32 @@
 	let signedIn = $state(false);
 	let clientToken = $state('');
 
+	// Offers and points. The code is checked by the server on every quote and
+	// again, under lock, when the order is placed.
+	let couponInput = $state('');
+	let couponCode = $state('');
+	let offer = $state<Quote['offer'] | null>(null);
+	let loyalty = $state<Quote['loyalty'] | null>(null);
+	let redeemPoints = $state(0);
+	let usePoints = $state(false);
+	let marketingOptIn = $state(false);
+
+	function applyCoupon() {
+		couponCode = couponInput.trim().toUpperCase();
+		void refreshQuote();
+	}
+	function clearCoupon() {
+		couponInput = '';
+		couponCode = '';
+		offer = null;
+		void refreshQuote();
+	}
+	function togglePoints() {
+		usePoints = !usePoints;
+		redeemPoints = usePoints ? (loyalty?.max_points ?? 0) : 0;
+		void refreshQuote();
+	}
+
 	onMount(() => {
 		const session = customerSession.load(data.tenantSlug ?? '');
 		signedIn = Boolean(session);
@@ -74,8 +100,19 @@
 	async function refreshQuote() {
 		if (!cart.lines.length) return;
 		try {
-			const quote = await storefrontApi.quote(quoteRequest(cart.lines));
+			const quote = await storefrontApi.quote(
+				quoteRequest(cart.lines),
+				{
+					...(couponCode ? { coupon_code: couponCode } : {}),
+					...(redeemPoints > 0 ? { redeem_points: redeemPoints } : {}),
+					...(phone.trim() ? { customer_phone: phone.trim() } : {})
+				},
+				customerToken(data.tenantSlug ?? '')
+			);
 			cart.setTotals(quote.totals);
+			offer = quote.offer ?? null;
+			loyalty = quote.loyalty ?? null;
+			if (loyalty && redeemPoints > loyalty.max_points) redeemPoints = loyalty.max_points;
 		} catch {
 			// Not fatal: the server prices the order on submit.
 		}
@@ -117,7 +154,11 @@
 					...(notes.trim() ? { notes: notes.trim() } : {}),
 					payment_method: method,
 					client_token: clientToken,
-					items: quoteRequest(cart.lines)
+					items: quoteRequest(cart.lines),
+					...(offer?.valid && couponCode ? { coupon_code: couponCode } : {}),
+					...(redeemPoints > 0 ? { redeem_points: redeemPoints } : {}),
+					...(marketingOptIn ? { marketing_opt_in: true } : {}),
+					...(readAttribution() ? { attribution: readAttribution() } : {})
 				},
 				customerToken(data.tenantSlug ?? '')
 			);
@@ -212,6 +253,9 @@
 					</div>
 				{/each}
 				<div class="sf-totals">
+					{#if totals.discount > 0}
+						<div class="sf-total-row"><span>Discount</span><span>-{money(totals.discount, currency)}</span></div>
+					{/if}
 					{#if totals.tax > 0}
 						<div class="sf-total-row"><span>Tax</span><span>{money(totals.tax, currency)}</span></div>
 					{/if}
@@ -225,6 +269,53 @@
 						<span>{money(totals.total, currency)}</span>
 					</div>
 				</div>
+			</div>
+
+			<h2 class="sf-group-title">Offers and points</h2>
+			<div class="sf-panel" style="display:grid;gap:10px;">
+				<div style="display:flex;gap:8px;align-items:flex-start;">
+					<input
+						class="sf-input"
+						type="text"
+						bind:value={couponInput}
+						placeholder="Offer code"
+						autocomplete="off"
+						autocapitalize="characters"
+						aria-label="Offer code"
+						style="flex:1;text-transform:uppercase;"
+						onkeydown={(e) => {
+							if (e.key === 'Enter') {
+								e.preventDefault();
+								applyCoupon();
+							}
+						}}
+					/>
+					{#if offer?.valid}
+						<button class="sf-btn sf-btn-secondary" type="button" onclick={clearCoupon}>Remove</button>
+					{:else}
+						<button class="sf-btn sf-btn-secondary" type="button" onclick={applyCoupon} disabled={!couponInput.trim()}>Apply</button>
+					{/if}
+				</div>
+				{#if offer}
+					<p style="margin:0;font-size:var(--fs-body);color:{offer.valid ? 'var(--sf-success, #15803d)' : 'var(--sf-danger, #b91c1c)'};">
+						{offer.message}
+					</p>
+				{/if}
+				{#if loyalty && loyalty.points > 0}
+					<label class="sf-check" style="cursor:pointer;">
+						<input type="checkbox" checked={usePoints} onchange={togglePoints} disabled={loyalty.max_points === 0} />
+						<span class="sf-check-body" style="flex:1;">
+							<span class="sf-check-name">Use my points</span>
+							<span style="display:block;font-size:var(--fs-code);color:var(--sf-text-3);">
+								{#if loyalty.max_points === 0}
+									You have {loyalty.points} points. You need {loyalty.min_redeem_points} to redeem.
+								{:else}
+									{loyalty.points} points available. Use {loyalty.max_points} for {money(loyalty.max_points * loyalty.point_value, currency)} off.
+								{/if}
+							</span>
+						</span>
+					</label>
+				{/if}
 			</div>
 
 			<h2 class="sf-group-title">Your details</h2>
@@ -320,6 +411,16 @@
 			<label class="sf-field" style="margin-top:18px;">
 				<span class="sf-label">{exp.words.note} <span class="sf-optional">(optional)</span></span>
 				<textarea class="sf-textarea" bind:value={notes} maxlength="140" placeholder="Anything else?"></textarea>
+			</label>
+
+			<label class="sf-check" style="margin-top:14px;cursor:pointer;">
+				<input type="checkbox" bind:checked={marketingOptIn} />
+				<span class="sf-check-body" style="flex:1;">
+					<span class="sf-check-name">Send me offers and news</span>
+					<span style="display:block;font-size:var(--fs-code);color:var(--sf-text-3);">
+						Occasional messages from {config?.store?.name || 'this business'}. You can unsubscribe from any message.
+					</span>
+				</span>
 			</label>
 
 			{#if !signedIn && exp.features.signIn && !exp.features.signInRequired}

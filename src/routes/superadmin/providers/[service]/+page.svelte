@@ -21,7 +21,8 @@
 		storage: 'STORAGE',
 		ai: 'AI',
 		sms: 'SMS',
-		payments: 'PAYMENTS'
+		payments: 'PAYMENTS',
+		meta: 'META'
 	};
 
 	const service = $derived(SERVICES[($page.params.service ?? '').toLowerCase()]);

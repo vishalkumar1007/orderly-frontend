@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import ArrowRight from '@tabler/icons-svelte/icons/arrow-right';
 	import Bot from '@tabler/icons-svelte/icons/robot';
+	import BrandMeta from '@tabler/icons-svelte/icons/brand-meta';
 	import CreditCard from '@tabler/icons-svelte/icons/credit-card';
 	import HardDrive from '@tabler/icons-svelte/icons/device-floppy';
 	import Mail from '@tabler/icons-svelte/icons/mail';
@@ -73,6 +74,13 @@
 			icon: MessageSquare,
 			purpose:
 				'Sends text notifications, order-ready, booking confirmations, to customers who opt in. Optional; nothing sends by SMS until this is configured and a business enables it.'
+		},
+		{
+			service: 'META',
+			name: 'Meta',
+			icon: BrandMeta,
+			purpose:
+				'WhatsApp Business Platform messages, Facebook Page and Instagram publishing for business marketing. Optional; a business may also connect its own Meta app.'
 		},
 		{
 			service: 'PAYMENTS',

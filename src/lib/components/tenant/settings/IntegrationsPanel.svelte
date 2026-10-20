@@ -17,6 +17,7 @@
 	import Mail from '@tabler/icons-svelte/icons/mail';
 	import MessageSquare from '@tabler/icons-svelte/icons/message';
 	import Sparkles from '@tabler/icons-svelte/icons/sparkles';
+	import BrandMeta from '@tabler/icons-svelte/icons/brand-meta';
 	import type { IconComponent as Component } from '$lib/icons';
 	import type { ConfigService, EffectiveConfig } from '$lib/admin/configTypes';
 	import { loadTenantConfig } from '$lib/admin/tenantConfigCache.svelte';
@@ -39,7 +40,8 @@
 		{ id: 'SMTP', label: 'Email', hint: 'Order emails, receipts and staff invitations', icon: Mail },
 		{ id: 'SMS', label: 'SMS', hint: 'Order and booking text messages', icon: MessageSquare },
 		{ id: 'STORAGE', label: 'Storage', hint: 'Menu photos, logos and other uploads', icon: HardDrive },
-		{ id: 'AI', label: 'AI', hint: 'Writing help for menus and descriptions', icon: Sparkles }
+		{ id: 'AI', label: 'AI', hint: 'Writing help for menus and descriptions', icon: Sparkles },
+		{ id: 'META', label: 'Meta', hint: 'WhatsApp campaigns, Facebook and Instagram posts', icon: BrandMeta }
 	];
 
 	let status = $state<Partial<Record<ConfigService, EffectiveConfig | null>>>({});

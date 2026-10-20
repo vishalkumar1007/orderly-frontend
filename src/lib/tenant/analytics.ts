@@ -6,7 +6,8 @@ export type AnalyticsWindow = '7d' | '14d' | '30d' | '90d';
 export type Granularity = 'day' | 'week' | 'month';
 
 export type DayPoint = { day: string; order_count: number; revenue: number };
-export type HourPoint = { hour: number; order_count: number };
+/** `revenue` is the average money taken in that hour on one day. */
+export type HourPoint = { hour: number; order_count: number; revenue: number };
 /** Orders in one weekday (0 = Monday) and hour cell, on the shop's clock. */
 export type WeekHourPoint = { weekday: number; hour: number; order_count: number };
 export type ProductPoint = { name: string; units: number; revenue: number };
@@ -69,6 +70,8 @@ export type TenantAnalytics = {
 	orders_by_day: DayPoint[];
 	/** The same data grouped by `granularity`; `day` is the first day of each bucket. */
 	orders_by_period: DayPoint[];
+	/** The window immediately before this one, paired with `orders_by_day` by index. */
+	orders_prev_by_day: DayPoint[];
 	orders_by_hour: HourPoint[];
 	/** Older servers omit it. */
 	orders_by_weekday_hour?: WeekHourPoint[];
@@ -80,6 +83,17 @@ export type TenantAnalytics = {
 	top_categories: CategoryPoint[];
 	payment_mix: PaymentPoint[];
 	status_breakdown: StatusPoint[];
+
+	/** All customers on the books, including those who did not order in this window. */
+	customers_total: number;
+	/** Customers who ordered in the window and joined during it. */
+	customers_new: number;
+	/** Customers who ordered in the window and joined before it. */
+	customers_returning: number;
+	/** Everyone identified who ordered in the window. New + returning. */
+	customers_active: number;
+	/** Share of active customers who ordered more than once, or null when nobody did. */
+	repeat_customer_rate: number | null;
 };
 
 export async function fetchTenantAnalytics(

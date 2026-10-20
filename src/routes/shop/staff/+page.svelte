@@ -1,5 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import AttendanceSettings from '$lib/components/staff/AttendanceSettings.svelte';
+	import StaffDetail from '$lib/components/staff/StaffDetail.svelte';
+	import Timesheet from '$lib/components/staff/Timesheet.svelte';
+	import UpgradeNote from '$lib/components/admin/UpgradeNote.svelte';
+	import { featureAccess } from '$lib/tenant/entitlements.svelte';
+	import { getAttendanceSettings } from '$lib/tenant/attendanceApi';
 	import UserPlus from '@tabler/icons-svelte/icons/user-plus';
 	import { formatRelative, initials } from '$lib/admin/format';
 	import type { UserInviteResult } from '$lib/admin/types';
@@ -30,6 +36,26 @@
 		{ value: 'MANAGER', label: 'Manager: runs the shop, cannot reconfigure it' },
 		{ value: 'STAFF', label: 'Staff: selling and kitchen only' }
 	];
+
+	let tab = $state<'team' | 'attendance' | 'settings'>('team');
+	let detailOpen = $state(false);
+	let detailUser = $state<ShopUser | null>(null);
+	let attEnabled = $state(false);
+	const attPlan = $derived(featureAccess('ATTENDANCE'));
+
+	function openDetail(u: ShopUser) {
+		detailUser = u;
+		detailOpen = true;
+	}
+
+	function selectTab(t: 'team' | 'attendance' | 'settings') {
+		tab = t;
+		if (t === 'attendance' && attPlan.enabled) {
+			getAttendanceSettings()
+				.then((r) => (attEnabled = r.enabled))
+				.catch(() => (attEnabled = false));
+		}
+	}
 
 	let users = $state<ShopUser[]>([]);
 	let loading = $state(true);
@@ -221,6 +247,25 @@
 		</button>
 	</header>
 
+	<div class="tabs" role="tablist" aria-label="Staff">
+		<button type="button" role="tab" aria-selected={tab === 'team'} onclick={() => selectTab('team')}>Team</button>
+		<button type="button" role="tab" aria-selected={tab === 'attendance'} onclick={() => selectTab('attendance')}>Attendance</button>
+		<button type="button" role="tab" aria-selected={tab === 'settings'} onclick={() => selectTab('settings')}>Settings</button>
+	</div>
+
+	{#if tab === 'attendance'}
+		{#if attPlan.enabled}
+			<Timesheet {users} enabled={attEnabled} onsettings={() => selectTab('settings')} />
+		{:else}
+			<UpgradeNote feature="Staff attendance" requiredPlan={attPlan.requiredPlan} />
+		{/if}
+	{:else if tab === 'settings'}
+		{#if attPlan.enabled}
+			<AttendanceSettings onsaved={(r) => (attEnabled = r.enabled)} />
+		{:else}
+			<UpgradeNote feature="Staff attendance" requiredPlan={attPlan.requiredPlan} />
+		{/if}
+	{:else}
 	<section class="panel panel-flush">
 		<DataTable
 			{loading}
@@ -233,6 +278,7 @@
 				<th>Role</th>
 				<th>Status</th>
 				<th>Last activity</th>
+				<th>Last sign-in</th>
 				<th style="width:1%;"><span class="sr-only">Actions</span></th>
 			{/snippet}
 			{#each users as u (u.id)}
@@ -242,10 +288,10 @@
 							<span class="cell-avatar" style="width:1.9rem;height:1.9rem;font-size:var(--fs-meta);">
 								{initials(u.name || u.email)}
 							</span>
-							<span class="cell-id-txt">
+							<button type="button" class="cell-id-txt staff-open" onclick={() => openDetail(u)}>
 								<strong>{u.name || '-'}</strong>
 								<span style="font-family:var(--font);">{u.email}</span>
-							</span>
+							</button>
 						</div>
 					</td>
 					<td style="color:var(--text-2);">{roleLabel(String(u.role))}</td>
@@ -261,6 +307,7 @@
 						</span>
 					</td>
 					<td class="muted">{u.last_activity ? formatRelative(u.last_activity) : 'Never'}</td>
+					<td class="muted">{u.last_login_at ? formatRelative(u.last_login_at) : 'Never'}</td>
 					<td>
 						<Menu
 							label={`Actions for ${u.name}`}
@@ -280,7 +327,10 @@
 			{/each}
 		</DataTable>
 	</section>
+	{/if}
 </div>
+
+<StaffDetail bind:open={detailOpen} user={detailUser} />
 
 <Modal bind:open={addOpen} title="Invite teammate">
 	<div style="display:flex;flex-direction:column;gap:0.85rem;">
@@ -352,6 +402,20 @@
 		align-items: flex-start;
 		justify-content: space-between;
 		gap: 1rem;
+	}
+
+	.staff-open {
+		border: 0;
+		background: none;
+		padding: 0;
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+		color: inherit;
+	}
+
+	.staff-open:hover strong {
+		text-decoration: underline;
 	}
 
 	.staff-lead {

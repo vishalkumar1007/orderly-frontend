@@ -7,16 +7,17 @@
 
 	let {
 		url = $bindable(undefined),
+		uploading = $bindable(false),
 		onupload,
 		disabled = false
 	}: {
 		url?: string | undefined;
+		uploading?: boolean;
 		onupload: (url: string) => void;
 		disabled?: boolean;
 	} = $props();
 
 	let dragging = $state(false);
-	let uploading = $state(false);
 	let fileInput = $state<HTMLInputElement | null>(null);
 
 	const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -53,23 +54,51 @@
 		url = '';
 	}
 
-	async function uploadFile(file: File) {
-		if (!ACCEPTED_TYPES.includes(file.type)) {
+	const MAX_EDGE = 1200;
+
+	// Downscale in the browser so thumbnails are not full camera photos. Falls
+	// back to the original file when the browser cannot encode.
+	async function shrink(file: File): Promise<File> {
+		try {
+			const bmp = await createImageBitmap(file);
+			const scale = Math.min(1, MAX_EDGE / Math.max(bmp.width, bmp.height));
+			if (scale === 1 && file.size < 400_000) return file;
+			const canvas = document.createElement('canvas');
+			canvas.width = Math.round(bmp.width * scale);
+			canvas.height = Math.round(bmp.height * scale);
+			canvas.getContext('2d')?.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+			const encode = (type: string) =>
+				new Promise<Blob | null>((res) => canvas.toBlob(res, type, 0.85));
+			let blob = await encode('image/webp');
+			if (blob?.type !== 'image/webp') blob = await encode('image/jpeg');
+			if (!blob || blob.size >= file.size) return file;
+			const ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
+			return new File([blob], `${file.name.replace(/\.\w+$/, '')}.${ext}`, { type: blob.type });
+		} catch {
+			return file;
+		}
+	}
+
+	async function uploadFile(original: File) {
+		if (!ACCEPTED_TYPES.includes(original.type)) {
 			toast.error('Only JPEG, PNG, or WebP images are allowed');
 			return;
 		}
+		uploading = true;
+		const file = await shrink(original);
 		if (file.size > MAX_SIZE) {
+			uploading = false;
 			toast.error('Image must be 5MB or smaller');
 			return;
 		}
 
-		uploading = true;
 		try {
 			const formData = new FormData();
 			formData.append('image', file);
 			const result = await api<{ url: string }>('/api/v1/tenant/upload', {
 				method: 'POST',
-				body: formData
+				body: formData,
+				timeoutMs: 60_000
 			});
 			url = result.url;
 			onupload(result.url);

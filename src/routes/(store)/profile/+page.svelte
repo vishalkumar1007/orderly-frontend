@@ -28,6 +28,25 @@
 	let editing = $state(false);
 	let name = $state('');
 	let saving = $state(false);
+	let savingConsent = $state('');
+
+	const CHANNELS: { id: 'EMAIL' | 'SMS' | 'WHATSAPP'; label: string }[] = [
+		{ id: 'SMS', label: 'Text messages' },
+		{ id: 'WHATSAPP', label: 'WhatsApp' },
+		{ id: 'EMAIL', label: 'Email' }
+	];
+
+	async function setConsent(channel: 'EMAIL' | 'SMS' | 'WHATSAPP', granted: boolean) {
+		savingConsent = channel;
+		try {
+			const updated = await storefrontApi.updateMarketing({ [channel]: granted }, token);
+			if (profile) profile = { ...profile, marketing: updated.marketing };
+		} catch (err) {
+			error = friendlyError(err);
+		} finally {
+			savingConsent = '';
+		}
+	}
 
 	const token = $derived(customerToken(data.tenantSlug ?? ''));
 
@@ -161,6 +180,41 @@
 					</button>
 				</div>
 			{/if}
+		</div>
+
+		{#if profile.loyalty?.enabled}
+			<h2 class="sf-group-title">Your points</h2>
+			<div class="sf-panel" style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;">
+				<div>
+					<p style="margin:0;font-size:var(--fs-stat);font-weight:800;letter-spacing:-0.02em;">{profile.loyalty.points}</p>
+					<p style="margin:2px 0 0;font-size:var(--fs-body);color:var(--sf-text-2);">
+						Worth {money(profile.loyalty.value, currency)}.
+						{#if profile.loyalty.points < profile.loyalty.min_redeem_points}
+							Redeem from {profile.loyalty.min_redeem_points} points.
+						{:else}
+							Use them at checkout.
+						{/if}
+					</p>
+				</div>
+			</div>
+		{/if}
+
+		<h2 class="sf-group-title">Offers and news</h2>
+		<div class="sf-panel" style="display:grid;gap:10px;">
+			<p style="margin:0;font-size:var(--fs-body);color:var(--sf-text-2);line-height:1.45;">
+				Choose how {config?.store?.name || 'we'} may contact you about offers. Order and booking updates are not affected.
+			</p>
+			{#each CHANNELS as ch (ch.id)}
+				<label class="sf-check" style="cursor:pointer;">
+					<input
+						type="checkbox"
+						checked={profile.marketing?.[ch.id] ?? false}
+						disabled={savingConsent === ch.id}
+						onchange={(e) => setConsent(ch.id, (e.currentTarget as HTMLInputElement).checked)}
+					/>
+					<span class="sf-check-body" style="flex:1;"><span class="sf-check-name">{ch.label}</span></span>
+				</label>
+			{/each}
 		</div>
 
 		{#if exp.family !== 'order'}

@@ -31,6 +31,7 @@
 	import Toaster from '$lib/components/admin/Toaster.svelte';
 	import { toast } from '$lib/components/admin/toast';
 	import AppShell from '$lib/components/shell/AppShell.svelte';
+	import PunchClock from '$lib/components/shop/PunchClock.svelte';
 	import NotificationBell from '$lib/components/admin/NotificationBell.svelte';
 	import BusinessPolicyModal from '$lib/components/tenant/BusinessPolicyModal.svelte';
 	import { policyStore } from '$lib/tenant/policyStore';
@@ -373,6 +374,7 @@
 						<VolumeOff size={14} stroke={1.6} /> Turn on sound
 					</button>
 				{/if}
+				<PunchClock />
 				<NotificationBell scope="tenant" />
 				{#if needsAttention > 0}
 					<a class="btn btn-ghost btn-sm" href="/shop/orders">

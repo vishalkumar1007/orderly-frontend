@@ -38,7 +38,8 @@
 		{ id: 'SMTP', label: 'Email' },
 		{ id: 'SMS', label: 'SMS' },
 		{ id: 'STORAGE', label: 'Storage' },
-		{ id: 'AI', label: 'AI' }
+		{ id: 'AI', label: 'AI' },
+		{ id: 'META', label: 'Meta' }
 	];
 
 	let loading = $state(true);

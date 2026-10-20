@@ -308,7 +308,60 @@ export type QuoteLine = {
 	notes: string;
 };
 
-export type Quote = { items: QuoteLine[]; totals: CartTotals; currency: string };
+export type Quote = {
+	items: QuoteLine[];
+	totals: CartTotals;
+	currency: string;
+	/** Present when a coupon code was sent with the quote. */
+	offer?: { valid: boolean; code: string; discount?: number; message: string };
+	/** Present for a signed-in customer in a shop with loyalty on. */
+	loyalty?: {
+		points: number;
+		max_points: number;
+		point_value: number;
+		min_redeem_points: number;
+		redeem_points: number;
+		discount: number;
+	};
+};
+
+/** Extras a quote or an order can carry: an offer code, points, attribution. */
+export type QuoteExtras = {
+	coupon_code?: string;
+	redeem_points?: number;
+	customer_phone?: string;
+};
+
+export type MarketingAttribution = { link_code: string; campaign_id: string };
+
+const ATTRIBUTION_KEY = 'orderly:marketing_attribution';
+
+/**
+ * Remembers where a visitor came from (a tracked link's `mc` and `mcid`
+ * query parameters) for this browser session, so the order they place can be
+ * attributed to the link or campaign. Nothing personal is stored.
+ */
+export function captureAttribution(params: URLSearchParams): void {
+	const code = params.get('mc');
+	if (!code) return;
+	try {
+		sessionStorage.setItem(
+			ATTRIBUTION_KEY,
+			JSON.stringify({ link_code: code, campaign_id: params.get('mcid') ?? '' })
+		);
+	} catch {
+		// Private mode: the order is simply not attributed.
+	}
+}
+
+export function readAttribution(): MarketingAttribution | undefined {
+	try {
+		const raw = sessionStorage.getItem(ATTRIBUTION_KEY);
+		return raw ? (JSON.parse(raw) as MarketingAttribution) : undefined;
+	} catch {
+		return undefined;
+	}
+}
 
 export type CustomerProfile = {
 	customer: {
@@ -323,6 +376,9 @@ export type CustomerProfile = {
 	recent_orders: OrderSummary[];
 	total_orders: number;
 	benefits: string[];
+	/** Marketing consent per channel, as the customer last set it. */
+	marketing?: Record<'EMAIL' | 'SMS' | 'WHATSAPP', boolean>;
+	loyalty?: { enabled: boolean; points: number; value: number; min_redeem_points: number; point_value: number };
 };
 
 /** What the browser needs to open the gateway's payment window. */
@@ -375,8 +431,12 @@ export const storefrontApi = {
 			guest
 		),
 
-	quote: (items: QuoteRequest[]) =>
-		api<Quote>('/api/v1/public/quote', { ...guest, method: 'POST', body: JSON.stringify({ items }) }),
+	quote: (items: QuoteRequest[], extras: QuoteExtras = {}, token: string | null = null) =>
+		api<Quote>('/api/v1/public/quote', {
+			...(token ? asCustomer(token) : guest),
+			method: 'POST',
+			body: JSON.stringify({ items, ...extras })
+		}),
 
 	/**
 	 * `createOrder` may carry a customer token, which links the order to the
@@ -451,6 +511,14 @@ export const storefrontApi = {
 			...asCustomer(token),
 			method: 'PUT',
 			body: JSON.stringify({ name })
+		}),
+
+	/** Marketing consent, one or more channels at a time. */
+	updateMarketing: (marketing: Partial<Record<'EMAIL' | 'SMS' | 'WHATSAPP', boolean>>, token: string | null) =>
+		api<CustomerProfile>('/api/v1/customer/profile', {
+			...asCustomer(token),
+			method: 'PUT',
+			body: JSON.stringify({ marketing })
 		}),
 
 	orders: (token: string | null) =>
@@ -571,6 +639,10 @@ export type CreateOrderRequest = {
 	 */
 	client_token: string;
 	items: QuoteRequest[];
+	coupon_code?: string;
+	redeem_points?: number;
+	marketing_opt_in?: boolean;
+	attribution?: MarketingAttribution;
 };
 
 /** `friendlyError` turns an API failure into something a customer can read. */

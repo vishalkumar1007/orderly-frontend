@@ -18,6 +18,7 @@ export type MenuSnapshot = {
 
 let cached = $state<MenuSnapshot | null>(null);
 let inflight: Promise<MenuSnapshot> | null = null;
+let loadSeq = 0;
 
 export function getMenuSnapshot(): MenuSnapshot | null {
 	return cached;
@@ -55,21 +56,24 @@ export function loadMenuSnapshot(force = false): Promise<MenuSnapshot> {
 	const TIMEOUT_MS = 10_000;
 	let timer: ReturnType<typeof setTimeout> | undefined;
 
+	// A newer load may finish first; an older one must not overwrite it.
+	const seq = ++loadSeq;
 	const request = (async () => {
-		const [c, pr] = await Promise.all([menuApi.listCategories(), menuApi.listProducts()]);
-		let currency = cached?.currency ?? 'INR';
-		try {
-			const sf = await storefrontAdminApi.get();
-			if (sf.store?.currency) currency = sf.store.currency;
-		} catch {
-			/* optional */
-		}
+		const [c, pr, currency] = await Promise.all([
+			menuApi.listCategories(),
+			menuApi.listProducts(),
+			storefrontAdminApi
+				.get()
+				.then((sf) => sf.store?.currency || cached?.currency || 'INR')
+				.catch(() => cached?.currency ?? 'INR')
+		]);
 		const next: MenuSnapshot = {
 			categories: c.categories,
 			products: pr.products,
 			currency,
 			currencySymbol: currencySymbolFor(currency)
 		};
+		if (seq !== loadSeq && cached) return cached;
 		cached = next;
 		return next;
 	})();

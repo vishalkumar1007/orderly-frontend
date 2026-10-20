@@ -230,7 +230,15 @@ export function clearTokens() {
 	localStorage.removeItem(REFRESH_KEY);
 }
 
-async function refreshAccess(): Promise<boolean> {
+// Refresh tokens are single-use, so parallel 401s must share one refresh.
+let refreshing: Promise<boolean> | null = null;
+
+function refreshAccess(): Promise<boolean> {
+	refreshing ??= doRefresh().finally(() => (refreshing = null));
+	return refreshing;
+}
+
+async function doRefresh(): Promise<boolean> {
 	const refresh = getRefreshToken();
 	if (!refresh) return false;
 	const controller = new AbortController();

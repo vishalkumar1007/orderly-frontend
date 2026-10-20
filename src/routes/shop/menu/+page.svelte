@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import Eye from '@tabler/icons-svelte/icons/eye';
 	import Plus from '@tabler/icons-svelte/icons/plus';
 	import Search from '@tabler/icons-svelte/icons/search';
+	import LayoutGrid from '@tabler/icons-svelte/icons/layout-grid';
+	import ListIcon from '@tabler/icons-svelte/icons/list';
+	import Filter from '@tabler/icons-svelte/icons/adjustments-horizontal';
 	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
 	import Modal from '$lib/components/admin/Modal.svelte';
@@ -13,23 +15,24 @@
 	import SlideOver from '$lib/components/admin/SlideOver.svelte';
 	import { toast } from '$lib/components/admin/toast';
 	import CategoryForm from '$lib/components/menu/CategoryForm.svelte';
-	import CategoryTabs from '$lib/components/menu/CategoryTabs.svelte';
 	import EmptyState from '$lib/components/menu/EmptyState.svelte';
 	import ProductForm from '$lib/components/menu/ProductForm.svelte';
-	import ProductList from '$lib/components/menu/ProductList.svelte';
+	import ProductList, { type MenuAction, type ProductGroup } from '$lib/components/menu/ProductList.svelte';
+	import { formatCurrency } from '$lib/admin/format';
 	import {
 		getMenuSnapshot,
-		loadMenuSnapshot
+		loadMenuSnapshot,
+		setMenuSnapshot
 	} from '$lib/tenant/menuCache.svelte';
 	import {
 		menuApi,
-		productHasOptions,
 		type CategoryInput,
 		type MenuCategory,
 		type MenuProduct,
-		type ProductInput
+		type ProductInput,
+		productHasOptions
 	} from '$lib/tenant/menu';
-	import { terms } from '$lib/tenant/businessType.svelte';
+	import { hasBusinessModule, terms } from '$lib/tenant/businessType.svelte';
 
 	// Every noun on this screen belongs to the business, not to us. A grocer
 	// manages aisles of products; a hotel manages departments of services.
@@ -45,6 +48,7 @@
 	let loading = $state(!seed);
 	let saving = $state(false);
 
+	/** Category id, or '' for all. */
 	let filter = $state('');
 	let search = $state('');
 	/**
@@ -52,17 +56,63 @@
 	 * at the screen. A grocer's "what is out of stock" shortcut is the same
 	 * catalogue with one filter applied: worth a link, not a second page.
 	 */
-	let availabilityFilter = $state<'all' | 'available' | 'unavailable'>(
-		availabilityFromUrl($page.url.searchParams.get('availability'))
+	let status = $state<'all' | 'available' | 'unavailable'>(
+		statusFromUrl($page.url.searchParams.get('availability'))
 	);
+	let diet = $state<'all' | 'veg' | 'nonveg'>('all');
+	/** Extra filters a busy owner reaches for: what needs attention. */
+	let tags = $state({ featured: false, popular: false, options: false, nophoto: false });
+	// List or card view, remembered per browser.
+	const VIEW_KEY = 'orderly.menu.view';
+	let view = $state<'list' | 'grid'>(readView());
+	function readView(): 'list' | 'grid' {
+		try {
+			return localStorage.getItem(VIEW_KEY) === 'grid' ? 'grid' : 'list';
+		} catch {
+			return 'list';
+		}
+	}
+	function setView(v: 'list' | 'grid') {
+		view = v;
+		try {
+			localStorage.setItem(VIEW_KEY, v);
+		} catch {
+			/* private mode: the choice just is not remembered */
+		}
+	}
+	let filtersOpen = $state(false);
+	let filtersEl = $state<HTMLDetailsElement | null>(null);
+	function closeFilters(e: MouseEvent) {
+		if (filtersOpen && filtersEl && !filtersEl.contains(e.target as Node)) filtersOpen = false;
+	}
+	const activeTagCount = $derived(Object.values(tags).filter(Boolean).length);
 
-	function availabilityFromUrl(raw: string | null): 'all' | 'available' | 'unavailable' {
+	let sort = $state<'menu' | 'name' | 'price_asc' | 'price_desc' | 'recent'>('menu');
+
+	const tagFilters = [
+		{ key: 'featured', label: 'Featured' },
+		{ key: 'popular', label: 'Popular' },
+		{ key: 'options', label: 'With options' },
+		{ key: 'nophoto', label: 'No photo' }
+	] as const;
+
+	function clearFilters() {
+		search = '';
+		status = 'all';
+		diet = 'all';
+		filter = '';
+		tags = { featured: false, popular: false, options: false, nophoto: false };
+		sort = 'menu';
+	}
+
+	function statusFromUrl(raw: string | null): 'all' | 'available' | 'unavailable' {
 		return raw === 'available' || raw === 'unavailable' ? raw : 'all';
 	}
-	let featuredOnly = $state(false);
-	let hasOptionsOnly = $state(false);
-	let sortBy = $state<'order' | 'name' | 'price' | 'category' | 'updated'>('order');
-	let filtersOpen = $state(false);
+
+	let selected = $state<string[]>([]);
+	let bulkBusy = $state(false);
+	let bulkMove = $state('');
+	let archiveOpen = $state(false);
 
 	let productOpen = $state(false);
 	let editingProduct = $state<MenuProduct | null>(null);
@@ -85,8 +135,10 @@
 	let moveTargetId = $state('');
 	let moveBusy = $state(false);
 
-	const availableCount = $derived(products.filter((p) => p.is_available).length);
-	const unavailableCount = $derived(products.length - availableCount);
+	const sortedCategories = $derived(
+		[...categories].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+	);
+	const unavailableCount = $derived(products.filter((p) => !p.is_available).length);
 	const categoryCounts = $derived.by(() => {
 		const counts: Record<string, number> = {};
 		for (const p of products) {
@@ -94,65 +146,111 @@
 		}
 		return counts;
 	});
+	const hiddenCategories = $derived(categories.filter((c) => !c.is_active).length);
+	const averagePrice = $derived(
+		products.length ? products.reduce((sum, p) => sum + Number(p.price), 0) / products.length : 0
+	);
 
-	const shown = $derived.by(() => {
-		let list = [...products];
-		if (filter) list = list.filter((p) => p.category_id === filter);
+	function categoryActions(id: string): MenuAction[] {
+		const i = sortedCategories.findIndex((c) => c.id === id);
+		const c = sortedCategories[i];
+		if (!c) return [];
+		return [
+			{ label: `Rename or edit`, onclick: () => openEditCategory(c) },
+			{
+				label: c.is_active ? 'Hide from customers' : 'Show to customers',
+				onclick: () => toggleCategoryActive(c)
+			},
+			{ label: 'Move up', onclick: () => reorderCategory(c, -1), disabled: i === 0, separatorBefore: true },
+			{
+				label: 'Move down',
+				onclick: () => reorderCategory(c, 1),
+				disabled: i === sortedCategories.length - 1
+			},
+			{
+				label: `Delete ${t.group.toLowerCase()}`,
+				onclick: () => requestDeleteCategory(c.id),
+				danger: true,
+				separatorBefore: true
+			}
+		];
+	}
+
+	const filtering = $derived(
+		search.trim() !== '' ||
+			status !== 'all' ||
+			diet !== 'all' ||
+			Object.values(tags).some(Boolean)
+	);
+
+	const groups = $derived.by<ProductGroup[]>(() => {
 		const q = search.trim().toLowerCase();
-		if (q) {
-			list = list.filter(
-				(p) =>
-					p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q)
-			);
-		}
-		if (availabilityFilter === 'available') list = list.filter((p) => p.is_available);
-		if (availabilityFilter === 'unavailable') list = list.filter((p) => !p.is_available);
-		if (featuredOnly) list = list.filter((p) => p.is_featured);
-		if (hasOptionsOnly) list = list.filter((p) => productHasOptions(p));
-
-		const catName = (id: string) => categories.find((c) => c.id === id)?.name ?? '';
-		list.sort((a, b) => {
-			switch (sortBy) {
+		const match = (p: MenuProduct) =>
+			(!q ||
+				p.name.toLowerCase().includes(q) ||
+				(p.description || '').toLowerCase().includes(q)) &&
+			(status === 'all' || p.is_available === (status === 'available')) &&
+			(diet === 'all' || p.is_vegetarian === (diet === 'veg')) &&
+			(!tags.featured || p.is_featured) &&
+			(!tags.popular || p.is_popular) &&
+			(!tags.options || productHasOptions(p)) &&
+			(!tags.nophoto || !p.image_url);
+		const order = (a: MenuProduct, b: MenuProduct) => {
+			switch (sort) {
 				case 'name':
 					return a.name.localeCompare(b.name);
-				case 'price':
+				case 'price_asc':
 					return Number(a.price) - Number(b.price);
-				case 'category':
-					return (
-						catName(a.category_id).localeCompare(catName(b.category_id)) ||
-						a.name.localeCompare(b.name)
-					);
-				case 'updated':
-					return (b.updated_at || '').localeCompare(a.updated_at || '');
+				case 'price_desc':
+					return Number(b.price) - Number(a.price);
+				case 'recent':
+					return (b.updated_at ?? '').localeCompare(a.updated_at ?? '');
 				default:
 					return a.sort_order - b.sort_order || a.name.localeCompare(b.name);
 			}
-		});
-		return list;
+		};
+		return sortedCategories
+			.filter((c) => !filter || c.id === filter)
+			.map((c) => ({
+				id: c.id,
+				name: c.name,
+				active: c.is_active,
+				products: products
+					.filter((p) => p.category_id === c.id && match(p))
+					.sort(order)
+			}))
+			// While filtering, hide empty groups; otherwise keep them for quick add.
+			.filter((g) => !filtering || g.products.length > 0);
 	});
 
-	function catLabel(id: string) {
-		return categories.find((c) => c.id === id)?.name ?? 'Uncategorised';
+	const shownCount = $derived(groups.reduce((n, g) => n + g.products.length, 0));
+
+	/** Keep local state and the shared cache in step after every patch. */
+	function commit() {
+		setMenuSnapshot({
+			categories: $state.snapshot(categories),
+			products: $state.snapshot(products),
+			currency,
+			currencySymbol
+		});
 	}
 
-	function patchPayload(p: MenuProduct, overrides: Partial<ProductInput> = {}): ProductInput {
-		return {
-			category_id: p.category_id,
-			name: p.name,
-			description: p.description,
-			price: Number(p.price),
-			image_url: p.image_url ?? null,
-			is_available: p.is_available,
-			is_vegetarian: p.is_vegetarian,
-			is_featured: p.is_featured,
-			is_popular: p.is_popular,
-			allow_special_instructions: p.allow_special_instructions,
-			...overrides
-		};
+	function replaceProduct(next: MenuProduct) {
+		products = products.map((x) => (x.id === next.id ? next : x));
+		commit();
 	}
 
-	async function load() {
-		const snap = await loadMenuSnapshot(true);
+	function removeProducts(ids: string[]) {
+		products = products.filter((x) => !ids.includes(x.id));
+		selected = selected.filter((id) => !ids.includes(id));
+		commit();
+	}
+
+	function errMsg(err: unknown, fallback: string) {
+		return err instanceof Error ? err.message : fallback;
+	}
+
+	function apply(snap: Awaited<ReturnType<typeof loadMenuSnapshot>>) {
 		categories = snap.categories;
 		products = snap.products;
 		currency = snap.currency;
@@ -165,13 +263,10 @@
 			try {
 				const snap = await loadMenuSnapshot(Boolean(getMenuSnapshot()));
 				if (cancelled) return;
-				categories = snap.categories;
-				products = snap.products;
-				currency = snap.currency;
-				currencySymbol = snap.currencySymbol;
+				apply(snap);
 			} catch (err) {
 				if (!cancelled && categories.length === 0) {
-					error = err instanceof Error ? err.message : 'Failed to load menu';
+					error = errMsg(err, 'Failed to load menu');
 				}
 			} finally {
 				if (!cancelled) loading = false;
@@ -198,29 +293,67 @@
 		saving = true;
 		try {
 			if (editingProduct) {
-				await menuApi.updateProduct(editingProduct.id, data);
+				replaceProduct(await menuApi.updateProduct(editingProduct.id, data));
 				toast.success(`${data.name} updated`);
 			} else {
-				await menuApi.createProduct(data);
+				const created = await menuApi.createProduct(data);
+				products = [...products, created];
+				commit();
 				toast.success(`${data.name} added`);
 			}
 			productOpen = false;
-			await load();
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Could not save');
+			toast.error(errMsg(err, 'Could not save'));
 		} finally {
 			saving = false;
 		}
 	}
 
+	async function quickAdd(categoryId: string, name: string, price: number) {
+		try {
+			const created = await menuApi.createProduct({
+				name,
+				price,
+				category_id: categoryId,
+				is_available: true
+			});
+			products = [...products, created];
+			commit();
+			return true;
+		} catch (err) {
+			toast.error(errMsg(err, 'Could not add'));
+			return false;
+		}
+	}
+
 	async function toggleAvailable(p: MenuProduct) {
 		const next = !p.is_available;
-		products = products.map((x) => (x.id === p.id ? { ...x, is_available: next } : x));
+		const set = (v: boolean) => {
+			products = products.map((x) => (x.id === p.id ? { ...x, is_available: v } : x));
+			commit();
+		};
+		set(next);
 		try {
-			await menuApi.updateProduct(p.id, patchPayload(p, { is_available: next }));
+			await menuApi.updateProduct(p.id, { is_available: next });
 		} catch (err) {
-			products = products.map((x) => (x.id === p.id ? { ...x, is_available: !next } : x));
-			toast.error(err instanceof Error ? err.message : 'Could not update');
+			set(!next);
+			toast.error(errMsg(err, 'Could not update'));
+		}
+	}
+
+	async function toggleFlag(p: MenuProduct, flag: 'is_featured' | 'is_popular') {
+		try {
+			replaceProduct(await menuApi.updateProduct(p.id, { [flag]: !p[flag] }));
+		} catch (err) {
+			toast.error(errMsg(err, 'Could not update'));
+		}
+	}
+
+	async function savePrice(p: MenuProduct, price: number) {
+		try {
+			replaceProduct(await menuApi.updateProduct(p.id, { price }));
+		} catch (err) {
+			toast.error(errMsg(err, 'Could not update price'));
 		}
 	}
 
@@ -233,13 +366,16 @@
 		if (!deleteProductTarget) return;
 		deleteBusy = true;
 		try {
-			await menuApi.deleteProduct(deleteProductTarget.id);
-			toast.success(`${deleteProductTarget.name} removed`);
+			const res = await menuApi.deleteProduct(deleteProductTarget.id);
+			const name = deleteProductTarget.name;
+			removeProducts([deleteProductTarget.id]);
+			toast.success(
+				res.status === 'archived' ? `${name} archived: it has past orders` : `${name} removed`
+			);
 			deleteProductOpen = false;
 			deleteProductTarget = null;
-			await load();
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Could not remove');
+			toast.error(errMsg(err, 'Could not remove'));
 		} finally {
 			deleteBusy = false;
 		}
@@ -248,11 +384,12 @@
 	async function duplicateProduct(p: MenuProduct) {
 		try {
 			const copy = await menuApi.duplicateProduct(p.id);
+			products = [...products, copy];
+			commit();
 			toast.success(`Duplicated as ${copy.name}`);
-			await load();
 			openEditProduct(copy);
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Could not duplicate');
+			toast.error(errMsg(err, 'Could not duplicate'));
 		}
 	}
 
@@ -266,16 +403,12 @@
 		if (!moveProductTarget || !moveTargetId) return;
 		moveBusy = true;
 		try {
-			await menuApi.updateProduct(
-				moveProductTarget.id,
-				patchPayload(moveProductTarget, { category_id: moveTargetId })
-			);
+			replaceProduct(await menuApi.updateProduct(moveProductTarget.id, { category_id: moveTargetId }));
 			toast.success(`Moved ${moveProductTarget.name}`);
 			moveProductOpen = false;
 			moveProductTarget = null;
-			await load();
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Could not move');
+			toast.error(errMsg(err, 'Could not move'));
 		} finally {
 			moveBusy = false;
 		}
@@ -290,25 +423,46 @@
 		if (idx < 0 || swap < 0 || swap >= siblings.length) return;
 		const ids = siblings.map((x) => x.id);
 		[ids[idx], ids[swap]] = [ids[swap], ids[idx]];
-		const byCat = new Map<string, string[]>();
-		for (const c of categories) byCat.set(c.id, []);
-		for (const prod of [...products].sort((a, b) => a.sort_order - b.sort_order)) {
-			if (prod.category_id === p.category_id) continue;
-			const arr = byCat.get(prod.category_id) ?? [];
-			arr.push(prod.id);
-			byCat.set(prod.category_id, arr);
-		}
-		byCat.set(p.category_id, ids);
-		const ordered: string[] = [];
-		for (const c of categories) ordered.push(...(byCat.get(c.id) ?? []));
-		for (const prod of products) {
-			if (!ordered.includes(prod.id)) ordered.push(prod.id);
-		}
+		const before = products;
+		// sort_order is the array index, so only this category's ids are sent.
+		products = products.map((x) =>
+			x.category_id === p.category_id ? { ...x, sort_order: ids.indexOf(x.id) } : x
+		);
+		commit();
 		try {
-			await menuApi.reorderProducts(ordered);
-			await load();
+			await menuApi.reorderProducts(ids);
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Could not reorder');
+			products = before;
+			commit();
+			toast.error(errMsg(err, 'Could not reorder'));
+		}
+	}
+
+	async function bulk(action: 'available' | 'unavailable' | 'archive' | 'move', categoryId?: string) {
+		const ids = [...selected];
+		if (ids.length === 0) return;
+		bulkBusy = true;
+		try {
+			await menuApi.bulkProducts({ ids, action, category_id: categoryId });
+			if (action === 'archive') {
+				removeProducts(ids);
+				toast.success(`${ids.length} archived`);
+			} else {
+				products = products.map((x) => {
+					if (!ids.includes(x.id)) return x;
+					if (action === 'move') return { ...x, category_id: categoryId ?? x.category_id };
+					return { ...x, is_available: action === 'available' };
+				});
+				commit();
+				selected = [];
+				toast.success(`${ids.length} updated`);
+			}
+		} catch (err) {
+			toast.error(errMsg(err, 'Could not update selection'));
+		} finally {
+			bulkBusy = false;
+			bulkMove = '';
+			archiveOpen = false;
 		}
 	}
 
@@ -326,16 +480,18 @@
 		saving = true;
 		try {
 			if (editingCategory) {
-				await menuApi.updateCategory(editingCategory.id, data);
+				const updated = await menuApi.updateCategory(editingCategory.id, data);
+				categories = categories.map((x) => (x.id === updated.id ? updated : x));
 				toast.success(`${data.name} updated`);
 			} else {
-				await menuApi.createCategory(data);
+				const created = await menuApi.createCategory(data);
+				categories = [...categories, created];
 				toast.success(`${data.name} created`);
 			}
+			commit();
 			categoryOpen = false;
-			await load();
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Could not save category');
+			toast.error(errMsg(err, 'Could not save'));
 		} finally {
 			saving = false;
 		}
@@ -350,66 +506,78 @@
 	}
 
 	async function confirmDeleteCategory() {
-		if (!deleteCategoryTarget) return;
-		const count = categoryCounts[deleteCategoryTarget.id] ?? 0;
+		const target = deleteCategoryTarget;
+		if (!target) return;
+		const count = categoryCounts[target.id] ?? 0;
+		if (count > 0 && !moveToCategoryId) {
+			toast.error(`Choose a ${t.group.toLowerCase()} to move ${t.items.toLowerCase()} into`);
+			return;
+		}
 		categoryDeleteBusy = true;
 		try {
-			if (count > 0) {
-				if (!moveToCategoryId) {
-					toast.error('Choose a category to move products into');
-					return;
-				}
-				await menuApi.deleteCategory(deleteCategoryTarget.id, moveToCategoryId);
-			} else {
-				await menuApi.deleteCategory(deleteCategoryTarget.id);
-			}
-			toast.success(`${deleteCategoryTarget.name} deleted`);
-			if (filter === deleteCategoryTarget.id) filter = '';
+			await menuApi.deleteCategory(target.id, count > 0 ? moveToCategoryId : undefined);
+			categories = categories.filter((x) => x.id !== target.id);
+			products =
+				count > 0
+					? products.map((x) =>
+							x.category_id === target.id ? { ...x, category_id: moveToCategoryId } : x
+						)
+					: products;
+			commit();
+			toast.success(`${target.name} deleted`);
+			if (filter === target.id) filter = '';
 			deleteCategoryOpen = false;
 			deleteCategoryTarget = null;
-			await load();
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Could not delete category');
+			toast.error(errMsg(err, 'Could not delete'));
 		} finally {
 			categoryDeleteBusy = false;
 		}
 	}
 
 	async function toggleCategoryActive(c: MenuCategory) {
+		const set = (v: boolean) => {
+			categories = categories.map((x) => (x.id === c.id ? { ...x, is_active: v } : x));
+			commit();
+		};
+		set(!c.is_active);
 		try {
-			await menuApi.updateCategory(c.id, {
-				name: c.name,
-				description: c.description,
-				is_active: !c.is_active,
-				image_url: c.image_url ?? null
-			});
-			await load();
+			await menuApi.updateCategory(c.id, { is_active: !c.is_active });
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Could not update category');
+			set(c.is_active);
+			toast.error(errMsg(err, 'Could not update'));
 		}
 	}
 
 	async function reorderCategory(c: MenuCategory, direction: -1 | 1) {
-		const ordered = [...categories].sort(
-			(a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)
-		);
-		const idx = ordered.findIndex((x) => x.id === c.id);
+		const ids = sortedCategories.map((x) => x.id);
+		const idx = ids.indexOf(c.id);
 		const swap = idx + direction;
-		if (idx < 0 || swap < 0 || swap >= ordered.length) return;
-		const ids = ordered.map((x) => x.id);
+		if (idx < 0 || swap < 0 || swap >= ids.length) return;
 		[ids[idx], ids[swap]] = [ids[swap], ids[idx]];
+		const before = categories;
+		categories = categories.map((x) => ({ ...x, sort_order: ids.indexOf(x.id) }));
+		commit();
 		try {
 			await menuApi.reorderCategories(ids);
-			await load();
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Could not reorder');
+			categories = before;
+			commit();
+			toast.error(errMsg(err, 'Could not reorder'));
 		}
 	}
 
 	const deleteCategoryProductCount = $derived(
 		deleteCategoryTarget ? (categoryCounts[deleteCategoryTarget.id] ?? 0) : 0
 	);
+	const statusChips = [
+		{ id: 'all', label: 'All' },
+		{ id: 'available', label: 'In stock' },
+		{ id: 'unavailable', label: 'Sold out' }
+	] as const;
 </script>
+
+<svelte:window onclick={closeFilters} onkeydown={(e) => e.key === 'Escape' && (filtersOpen = false)} />
 
 <div class="menu-page">
 	<header class="menu-header">
@@ -417,22 +585,16 @@
 			<h1 class="menu-title">{t.catalog}</h1>
 			<p class="menu-sub">Manage what customers can order</p>
 		</div>
-		<div class="menu-header-actions">
-			<a class="btn btn-ghost" href="/shop/storefront/promote">
-				<Eye size={15} stroke={1.6} /> Preview Store
-			</a>
-			<button class="btn btn-ghost" type="button" onclick={openAddCategory}>
-				<Plus size={15} stroke={1.6} /> Add {t.group.toLowerCase()}
-			</button>
-			<button
-				class="btn btn-primary"
-				type="button"
-				onclick={() => openAddProduct()}
-				disabled={categories.length === 0}
-			>
-				<Plus size={15} stroke={1.6} /> Add {t.item.toLowerCase()}
-			</button>
-		</div>
+		{#if !loading && categories.length > 0}
+			<div class="menu-header-actions">
+				<button class="btn btn-ghost" type="button" onclick={openAddCategory}>
+					<Plus size={15} stroke={1.6} /> Add {t.group.toLowerCase()}
+				</button>
+				<button class="btn btn-primary" type="button" onclick={() => openAddProduct()}>
+					<Plus size={15} stroke={1.6} /> Add {t.item.toLowerCase()}
+				</button>
+			</div>
+		{/if}
 	</header>
 
 	{#if error}
@@ -440,33 +602,8 @@
 	{/if}
 
 	{#if loading}
-		<div class="osstats menu-stats">
-			{#each [1, 2, 3, 4] as _, i (i)}
-				<div class="osstat"><Skeleton height="2.2rem" /></div>
-			{/each}
-		</div>
-	{:else if !error}
-		<div class="osstats menu-stats">
-			<div class="osstat accent">
-				<div class="osstat-label">Total {t.items.toLowerCase()}</div>
-				<p class="osstat-value">{products.length}</p>
-			</div>
-			<div class="osstat">
-				<div class="osstat-label">Active {t.items.toLowerCase()}</div>
-				<p class="osstat-value">{availableCount}</p>
-			</div>
-			<div class="osstat">
-				<div class="osstat-label">{t.groups}</div>
-				<p class="osstat-value">{categories.length}</p>
-			</div>
-			<div class="osstat">
-				<div class="osstat-label">Unavailable {t.items.toLowerCase()}</div>
-				<p class="osstat-value">{unavailableCount}</p>
-			</div>
-		</div>
-	{/if}
-
-	{#if !loading && !error && categories.length === 0}
+		<Skeleton height="18rem" />
+	{:else if !error && categories.length === 0}
 		<Reveal class="panel" delay={60}>
 			<EmptyState
 				title={`Your ${t.catalog.toLowerCase()} is empty`}
@@ -480,152 +617,224 @@
 				{/snippet}
 			</EmptyState>
 		</Reveal>
-	{:else if !loading && !error}
-		<section class="cat-section panel">
-			<div
-				class="panel-h"
-				style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;"
-			>
-				<div>
-					<h2 style="margin:0;font-size:var(--fs-title);">{t.groups}</h2>
-					<p class="panel-note" style="margin:0.15rem 0 0;">
-						Organize {t.items.toLowerCase()} and control display order
-					</p>
+	{:else if !error}
+		<dl class="kpis">
+			<div class="kpi">
+				<dt>{t.items}</dt>
+				<dd>{products.length}</dd>
+			</div>
+			<div class="kpi">
+				<dt>Available</dt>
+				<dd class="ok">{products.length - unavailableCount}</dd>
+			</div>
+			<div class="kpi">
+				<dt>Sold out</dt>
+				<dd class:bad={unavailableCount > 0}>{unavailableCount}</dd>
+			</div>
+			<div class="kpi">
+				<dt>{t.groups}</dt>
+				<dd>
+					{categories.length}
+					{#if hiddenCategories}<small>{hiddenCategories} hidden</small>{/if}
+				</dd>
+			</div>
+			<div class="kpi">
+				<dt>Average price</dt>
+				<dd>{formatCurrency(averagePrice, currency)}</dd>
+			</div>
+		</dl>
+
+		<div class="controls">
+			<div class="toolbar">
+				<div class="search-wrap">
+					<span class="search-ico"><Search size={16} stroke={1.6} /></span>
+					<label class="sr-only" for="menu-search">Search {t.items.toLowerCase()}</label>
+					<input
+						id="menu-search"
+						class="input"
+						type="search"
+						placeholder={`Search ${t.items.toLowerCase()}`}
+						bind:value={search}
+					/>
 				</div>
-				<button class="btn btn-ghost btn-sm" type="button" onclick={openAddCategory}>
-					<Plus size={14} /> Add
-				</button>
-			</div>
-			<div class="cat-manage">
-				{#each [...categories].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)) as c (c.id)}
-					<div class="cat-row" class:inactive={!c.is_active}>
-						<div class="cat-row-main">
-							<span class="cat-name">{c.name}</span>
-							<span class="cat-count">{categoryCounts[c.id] ?? 0} products</span>
-							{#if !c.is_active}<span class="badge badge-neutral">Hidden</span>{/if}
-						</div>
-						<div class="cat-row-actions">
-							<button
-								type="button"
-								class="icon-btn"
-								aria-label="Move up"
-								onclick={() => reorderCategory(c, -1)}>↑</button
-							>
-							<button
-								type="button"
-								class="icon-btn"
-								aria-label="Move down"
-								onclick={() => reorderCategory(c, 1)}>↓</button
-							>
-							<button type="button" class="btn btn-quiet btn-sm" onclick={() => toggleCategoryActive(c)}>
-								{c.is_active ? 'Hide' : 'Show'}
-							</button>
-							<button type="button" class="btn btn-quiet btn-sm" onclick={() => openEditCategory(c)}
-								>Edit</button
-							>
-							<button
-								type="button"
-								class="btn btn-quiet btn-sm"
-								style="color:var(--danger);"
-								onclick={() => requestDeleteCategory(c.id)}
-							>
-								Delete
-							</button>
-						</div>
+				<div class="seg" role="group" aria-label="Availability">
+					{#each statusChips as c (c.id)}
+						<button
+							type="button"
+							class="seg-btn"
+							class:active={status === c.id}
+							aria-pressed={status === c.id}
+							onclick={() => (status = c.id)}
+						>
+							{c.label}
+						</button>
+					{/each}
+				</div>
+				{#if hasBusinessModule('diet_tags')}
+					<label class="sr-only" for="menu-diet">Food type</label>
+					<select id="menu-diet" class="input sel" bind:value={diet}>
+						<option value="all">All types</option>
+						<option value="veg">Veg</option>
+						<option value="nonveg">Non-veg</option>
+					</select>
+				{/if}
+				<details class="more" bind:open={filtersOpen} bind:this={filtersEl}>
+					<summary class="more-btn" class:active={activeTagCount > 0}>
+						<Filter size={16} stroke={1.6} /> Filters
+						{#if activeTagCount}<span class="more-n">{activeTagCount}</span>{/if}
+					</summary>
+					<div class="more-pop">
+						<p class="more-title">Only show {t.items.toLowerCase()} that are</p>
+						{#each tagFilters as f (f.key)}
+							<label class="more-opt">
+								<input type="checkbox" bind:checked={tags[f.key]} />
+								{f.label}
+							</label>
+						{/each}
+						<label class="more-sort" for="menu-sort">Sort by</label>
+						<select id="menu-sort" class="input" bind:value={sort}>
+							<option value="menu">Menu order</option>
+							<option value="name">Name, A to Z</option>
+							<option value="price_asc">Price, low to high</option>
+							<option value="price_desc">Price, high to low</option>
+							<option value="recent">Recently updated</option>
+						</select>
 					</div>
-				{/each}
+				</details>
+				<div class="view" role="group" aria-label="View">
+					<button
+						type="button"
+						class="view-btn"
+						class:active={view === 'list'}
+						aria-pressed={view === 'list'}
+						aria-label="List view"
+						title="List view"
+						onclick={() => setView('list')}
+					>
+						<ListIcon size={17} stroke={1.7} />
+					</button>
+					<button
+						type="button"
+						class="view-btn"
+						class:active={view === 'grid'}
+						aria-pressed={view === 'grid'}
+						aria-label="Card view"
+						title="Card view"
+						onclick={() => setView('grid')}
+					>
+						<LayoutGrid size={17} stroke={1.7} />
+					</button>
+				</div>
 			</div>
-		</section>
 
-		<CategoryTabs
-			{categories}
-			counts={categoryCounts}
-			active={filter}
-			onselect={(id: string) => (filter = id)}
-			onadd={openAddCategory}
-			ondelete={(id: string) => requestDeleteCategory(id)}
-		/>
-
-		<div class="toolbar">
-			<div class="search-wrap">
-				<span class="search-ico"><Search size={15} stroke={1.6} /></span>
-				<input class="input" type="search" placeholder="Search products…" bind:value={search} />
-			</div>
-			<button
-				type="button"
-				class="btn btn-ghost btn-sm filters-toggle"
-				onclick={() => (filtersOpen = !filtersOpen)}
-			>
-				Filters
-			</button>
-			<div class="toolbar-filters" class:open={filtersOpen}>
-				<select class="input" bind:value={availabilityFilter} aria-label="Availability">
-					<option value="all">All status</option>
-					<option value="available">Available</option>
-					<option value="unavailable">Unavailable</option>
-				</select>
-				<select class="input" bind:value={sortBy} aria-label="Sort">
-					<option value="order">Display order</option>
-					<option value="name">Name</option>
-					<option value="price">Price</option>
-					<option value="category">{t.group}</option>
-					<option value="updated">Recently updated</option>
-				</select>
-				<label class="chip-filter">
-					<input type="checkbox" bind:checked={featuredOnly} /> Featured
-				</label>
-				<label class="chip-filter">
-					<input type="checkbox" bind:checked={hasOptionsOnly} /> Has options
-				</label>
+			<div class="subbar">
+				<nav class="cats" aria-label={t.groups}>
+					<button
+						type="button"
+						class="cat"
+						class:active={filter === ''}
+						aria-current={filter === '' ? 'true' : undefined}
+						onclick={() => (filter = '')}
+					>
+						All <span class="cat-n">{products.length}</span>
+					</button>
+					{#each sortedCategories as c (c.id)}
+						<button
+							type="button"
+							class="cat"
+							class:active={filter === c.id}
+							class:hidden-cat={!c.is_active}
+							aria-current={filter === c.id ? 'true' : undefined}
+							onclick={() => (filter = c.id)}
+						>
+							{c.name} <span class="cat-n">{categoryCounts[c.id] ?? 0}</span>
+						</button>
+					{/each}
+				</nav>
+				<span class="result">
+					{#if filtering || filter || sort !== 'menu'}
+						{shownCount} of {products.length}
+						<button type="button" class="clear" onclick={clearFilters}>Clear</button>
+					{/if}
+				</span>
 			</div>
 		</div>
 
-		{#if shown.length === 0}
-			<EmptyState
-				title={products.length === 0 ? 'No products yet' : 'No matching products'}
-				description={products.length === 0
-					? 'Add your first product so customers can start ordering.'
-					: 'Try a different search or clear filters.'}
-			>
-				{#snippet action()}
-					{#if products.length === 0}
-						<button
-							class="btn btn-primary"
-							type="button"
-							onclick={() => openAddProduct(filter || undefined)}
-						>
-							+ Add {t.item.toLowerCase()}
-						</button>
-					{/if}
-				{/snippet}
-			</EmptyState>
+		{#if groups.length === 0}
+			<div class="list-empty">
+				<EmptyState
+					title={`No ${t.items.toLowerCase()} match`}
+					description="Try another search, or clear the filters above."
+				/>
+			</div>
 		{:else}
-			<ProductList
-				products={shown}
-				categoryName={catLabel}
-				{currency}
-				onedit={openEditProduct}
-				ondelete={requestDeleteProduct}
-				ontoggle={toggleAvailable}
-				onduplicate={duplicateProduct}
-				onmove={openMoveProduct}
-				onreorder={reorderProduct}
-			/>
+			<div class="sections">
+				<ProductList
+					{groups}
+					{view}
+					bind:selected
+					canReorder={!filtering}
+					{currency}
+					{currencySymbol}
+					{categoryActions}
+					onedit={openEditProduct}
+					ondelete={requestDeleteProduct}
+					ontoggle={toggleAvailable}
+					onflag={toggleFlag}
+					onduplicate={duplicateProduct}
+					onmove={openMoveProduct}
+					onreorder={reorderProduct}
+					onprice={savePrice}
+					onquickadd={quickAdd}
+					onmore={(id) => openAddProduct(id)}
+				/>
+			</div>
+		{/if}
+
+		{#if selected.length > 0}
+			<div class="bulk" role="region" aria-label="Selected items">
+				<strong>{selected.length} selected</strong>
+				<button class="btn btn-ghost btn-sm" type="button" disabled={bulkBusy} onclick={() => bulk('available')}>
+					Mark in stock
+				</button>
+				<button class="btn btn-ghost btn-sm" type="button" disabled={bulkBusy} onclick={() => bulk('unavailable')}>
+					Mark sold out
+				</button>
+				<label class="sr-only" for="bulk-move">Move selected to {t.group.toLowerCase()}</label>
+				<select
+					id="bulk-move"
+					class="input bulk-move"
+					disabled={bulkBusy}
+					bind:value={bulkMove}
+					onchange={() => bulkMove && bulk('move', bulkMove)}
+				>
+					<option value="">Move to…</option>
+					{#each sortedCategories as c (c.id)}
+						<option value={c.id}>{c.name}</option>
+					{/each}
+				</select>
+				<button class="btn btn-ghost btn-sm bulk-danger" type="button" disabled={bulkBusy} onclick={() => (archiveOpen = true)}>
+					Archive
+				</button>
+				<button class="btn btn-quiet btn-sm" type="button" onclick={() => (selected = [])}>Clear</button>
+			</div>
 		{/if}
 	{/if}
 </div>
 
 <SlideOver bind:open={productOpen} title={editingProduct ? `Edit ${t.item.toLowerCase()}` : `Add ${t.item.toLowerCase()}`}>
 	{#if productOpen}
-		<ProductForm
-			{categories}
-			editing={editingProduct}
-			{preselectCategoryId}
-			{saving}
-			{currencySymbol}
-			onclose={() => (productOpen = false)}
-			onsave={saveProduct}
-		/>
+		{#key editingProduct?.id ?? 'new'}
+			<ProductForm
+				{categories}
+				editing={editingProduct}
+				{preselectCategoryId}
+				{saving}
+				{currencySymbol}
+				onclose={() => (productOpen = false)}
+				onsave={saveProduct}
+			/>
+		{/key}
 	{/if}
 </SlideOver>
 
@@ -642,14 +851,24 @@
 
 <ConfirmDialog
 	bind:open={deleteProductOpen}
-	title="Delete product?"
+	title={`Delete ${t.item.toLowerCase()}?`}
 	message={deleteProductTarget
-		? `Delete “${deleteProductTarget.name}”? This cannot be undone.`
+		? `Delete “${deleteProductTarget.name}”? If it has past orders it is archived instead.`
 		: ''}
 	confirmLabel="Delete"
 	danger
 	loading={deleteBusy}
 	onconfirm={confirmDeleteProduct}
+/>
+
+<ConfirmDialog
+	bind:open={archiveOpen}
+	title={`Archive ${selected.length} ${t.items.toLowerCase()}?`}
+	message="They will no longer appear on your storefront."
+	confirmLabel="Archive"
+	danger
+	loading={bulkBusy}
+	onconfirm={() => bulk('archive')}
 />
 
 <Modal bind:open={deleteCategoryOpen} title={`Delete ${t.group.toLowerCase()}?`}>
@@ -687,8 +906,7 @@
 			type="button"
 			class="btn btn-danger"
 			onclick={confirmDeleteCategory}
-			disabled={categoryDeleteBusy ||
-				(deleteCategoryProductCount > 0 && !moveToCategoryId)}
+			disabled={categoryDeleteBusy || (deleteCategoryProductCount > 0 && !moveToCategoryId)}
 		>
 			{categoryDeleteBusy
 				? 'Working…'
@@ -737,11 +955,12 @@
 	.menu-page {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 1.1rem;
+		padding-bottom: 2rem;
 	}
 	.menu-header {
 		display: flex;
-		align-items: flex-start;
+		align-items: flex-end;
 		justify-content: space-between;
 		gap: 1rem;
 		flex-wrap: wrap;
@@ -750,86 +969,82 @@
 		margin: 0;
 		font-size: var(--fs-h1);
 		font-weight: 700;
+		letter-spacing: -0.015em;
 	}
 	.menu-sub {
-		margin: 0.2rem 0 0;
+		margin: 0.3rem 0 0;
 		color: var(--text-3);
 		font-size: var(--fs-body);
 	}
 	.menu-header-actions {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.4rem;
+		gap: 0.6rem;
 	}
-	.menu-stats {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+	.menu-header-actions :global(.btn) {
+		height: 2.5rem;
+		padding: 0 1rem;
 	}
-	.cat-section {
-		padding: 0.85rem 1rem 1rem;
+
+	/* Summary: one slim strip, not a wall of boxes. */
+	.kpis {
+		display: grid;
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+		margin: 0;
+		border: 1px solid var(--border);
+		border-radius: 12px;
+		background: var(--surface);
 	}
-	.cat-manage {
-		display: flex;
-		flex-direction: column;
-		gap: 0.4rem;
-	}
-	.cat-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.75rem;
-		padding: 0.55rem 0.35rem;
-		border-bottom: 1px solid var(--border);
-		flex-wrap: wrap;
-	}
-	.cat-row:last-child {
-		border-bottom: none;
-	}
-	.cat-row.inactive {
-		opacity: 0.65;
-	}
-	.cat-row-main {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		flex-wrap: wrap;
+	.kpi {
+		padding: 0.7rem 1rem;
 		min-width: 0;
 	}
-	.cat-name {
-		font-weight: 600;
+	.kpi + .kpi {
+		border-left: 1px solid var(--border);
 	}
-	.cat-count {
+	.kpi dt {
 		font-size: var(--fs-tab);
 		color: var(--text-3);
 	}
-	.cat-row-actions {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.25rem;
-		align-items: center;
+	.kpi dd {
+		margin: 0.15rem 0 0;
+		font-size: 1.25rem;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
 	}
-	.icon-btn {
-		width: 2rem;
-		height: 2rem;
-		border: 1px solid var(--border);
-		border-radius: 7px;
-		background: var(--surface);
-		cursor: pointer;
-		color: var(--text-2);
+	.kpi dd small {
+		margin-left: 0.3rem;
+		font-size: var(--fs-micro);
+		font-weight: 500;
+		color: var(--text-3);
+	}
+	.kpi dd.ok {
+		color: #16a34a;
+	}
+	.kpi dd.bad {
+		color: var(--danger);
+	}
+
+	.controls {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
 	}
 	.toolbar {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.5rem;
 		align-items: center;
+		gap: 0.5rem;
 	}
 	.search-wrap {
 		position: relative;
-		flex: 1;
-		min-width: 10rem;
+		flex: 1 1 16rem;
+		min-width: 0;
 	}
 	.search-ico {
 		position: absolute;
-		left: 0.65rem;
+		left: 0.75rem;
 		top: 50%;
 		transform: translateY(-50%);
 		color: var(--text-3);
@@ -837,45 +1052,311 @@
 		display: inline-flex;
 	}
 	.search-wrap .input {
-		padding-left: 2.1rem;
 		width: 100%;
+		height: 2.375rem;
+		padding-left: 2.3rem;
 	}
-	.toolbar-filters {
-		display: none;
-		flex-wrap: wrap;
-		gap: 0.4rem;
-		align-items: center;
-		width: 100%;
+	.seg,
+	.view {
+		display: inline-flex;
+		height: 2.375rem;
+		padding: 3px;
+		border: 1px solid var(--border);
+		border-radius: 9px;
+		background: var(--surface);
 	}
-	.toolbar-filters.open {
-		display: flex;
-	}
-	.toolbar-filters .input {
-		width: auto;
-		min-width: 8rem;
-	}
-	.chip-filter {
+	.seg-btn,
+	.view-btn {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.3rem;
+		justify-content: center;
+		padding: 0 0.8rem;
+		border: none;
+		border-radius: 6px;
+		background: transparent;
+		color: var(--text-3);
+		font: inherit;
 		font-size: var(--fs-body);
-		color: var(--text-2);
-		padding: 0.35rem 0.55rem;
-		border: 1px solid var(--border);
-		border-radius: 999px;
+		font-weight: 550;
 		cursor: pointer;
 	}
-	@media (min-width: 768px) {
-		.filters-toggle {
-			display: none;
+	.view-btn {
+		width: 2.1rem;
+		padding: 0;
+	}
+	.seg-btn:hover,
+	.view-btn:hover {
+		color: var(--text);
+	}
+	.seg-btn.active,
+	.view-btn.active {
+		background: var(--surface-2);
+		color: var(--text);
+		box-shadow: inset 0 0 0 1px var(--border);
+	}
+	.sel {
+		width: auto;
+		height: 2.375rem;
+		padding-top: 0;
+		padding-bottom: 0;
+	}
+	.more {
+		position: relative;
+	}
+	.more-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		height: 2.375rem;
+		padding: 0 0.85rem;
+		border: 1px solid var(--border);
+		border-radius: 9px;
+		background: var(--surface);
+		color: var(--text-2);
+		font-size: var(--fs-body);
+		font-weight: 550;
+		list-style: none;
+		cursor: pointer;
+		user-select: none;
+	}
+	.more-btn::-webkit-details-marker {
+		display: none;
+	}
+	.more-btn:hover,
+	.more[open] .more-btn {
+		color: var(--text);
+		background: var(--surface-2);
+	}
+	.more-btn.active {
+		border-color: var(--accent);
+		color: var(--accent-dark);
+	}
+	.more-n {
+		min-width: 1.2rem;
+		padding: 0 0.3rem;
+		border-radius: 999px;
+		background: var(--accent);
+		color: #fff;
+		font-size: var(--fs-micro);
+		line-height: 1.2rem;
+		text-align: center;
+	}
+	.more-pop {
+		position: absolute;
+		right: 0;
+		top: calc(100% + 0.4rem);
+		z-index: 20;
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		width: 15rem;
+		padding: 0.75rem;
+		border: 1px solid var(--border);
+		border-radius: 12px;
+		background: var(--surface);
+		box-shadow: 0 16px 40px rgb(0 0 0 / 0.35);
+	}
+	.more-title,
+	.more-sort {
+		margin: 0 0 0.3rem;
+		font-size: var(--fs-tab);
+		color: var(--text-3);
+	}
+	.more-sort {
+		margin-top: 0.6rem;
+	}
+	.more-opt {
+		display: flex;
+		align-items: center;
+		gap: 0.55rem;
+		padding: 0.4rem 0.35rem;
+		border-radius: 6px;
+		font-size: var(--fs-body);
+		cursor: pointer;
+	}
+	.more-opt:hover {
+		background: var(--surface-2);
+	}
+	.more-opt input {
+		appearance: none;
+		display: inline-grid;
+		place-items: center;
+		width: 1.125rem;
+		height: 1.125rem;
+		margin: 0;
+		border: 1.5px solid color-mix(in srgb, var(--text-3) 70%, transparent);
+		border-radius: 5px;
+		cursor: pointer;
+	}
+	.more-opt input:checked {
+		border-color: var(--accent);
+		background: var(--accent);
+	}
+	.more-opt input:checked::after {
+		content: '';
+		width: 0.3rem;
+		height: 0.55rem;
+		margin-top: -0.1rem;
+		border: solid #fff;
+		border-width: 0 2px 2px 0;
+		transform: rotate(45deg);
+	}
+	.more-opt input:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.subbar {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		min-width: 0;
+	}
+	.cats {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		gap: 0.4rem;
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+	.cat {
+		flex-shrink: 0;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		height: 2rem;
+		padding: 0 0.8rem;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		background: transparent;
+		color: var(--text-2);
+		font: inherit;
+		font-size: var(--fs-tab);
+		font-weight: 600;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+	.cat:hover {
+		background: var(--surface-2);
+		color: var(--text);
+	}
+	.cat.active {
+		border-color: var(--accent);
+		background: var(--accent-soft);
+		color: var(--accent-dark);
+	}
+	.cat.hidden-cat {
+		border-style: dashed;
+	}
+	.cat-n {
+		font-size: var(--fs-micro);
+		color: var(--text-3);
+		font-variant-numeric: tabular-nums;
+	}
+	.cat.active .cat-n {
+		color: inherit;
+	}
+	.result {
+		flex-shrink: 0;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.6rem;
+		font-size: var(--fs-tab);
+		color: var(--text-3);
+		font-variant-numeric: tabular-nums;
+	}
+	.clear {
+		border: none;
+		background: none;
+		padding: 0;
+		font: inherit;
+		color: var(--accent-dark);
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.clear:hover {
+		text-decoration: underline;
+	}
+	.sections {
+		margin-top: 0.25rem;
+	}
+	.list-empty {
+		padding: 2.5rem 1rem;
+		border: 1px dashed var(--border);
+		border-radius: 14px;
+	}
+
+	/* Floats over the grid while items are selected. */
+	.bulk {
+		position: sticky;
+		bottom: 1.25rem;
+		z-index: 10;
+		align-self: center;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.5rem;
+		max-width: 100%;
+		padding: 0.6rem 0.75rem 0.6rem 1.1rem;
+		border: 1px solid var(--border);
+		border-radius: 14px;
+		background: var(--surface);
+		box-shadow: 0 12px 32px rgb(0 0 0 / 0.35);
+	}
+	.bulk strong {
+		margin-right: 0.5rem;
+		font-size: var(--fs-body);
+	}
+	.bulk-move {
+		width: auto;
+		min-width: 9rem;
+		height: 2.1rem;
+		padding-top: 0;
+		padding-bottom: 0;
+	}
+	.bulk-danger {
+		color: var(--danger);
+	}
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+	}
+	@media (max-width: 900px) {
+		.kpis {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
 		}
-		.toolbar-filters {
-			display: flex;
-			width: auto;
+		.kpi:nth-child(4) {
+			border-left: none;
+		}
+		.kpi:nth-child(n + 4) {
+			border-top: 1px solid var(--border);
+		}
+	}
+	@media (max-width: 640px) {
+		.menu-page {
+			gap: 1.1rem;
+		}
+		.menu-header-actions {
+			width: 100%;
+		}
+		.menu-header-actions :global(.btn) {
 			flex: 1;
 		}
-		.menu-stats {
-			grid-template-columns: repeat(4, minmax(0, 1fr));
+		.seg {
+			flex: 1;
+		}
+		.seg-btn {
+			flex: 1;
+			padding: 0 0.5rem;
+		}
+		.bulk {
+			left: 0;
+			right: 0;
 		}
 	}
 </style>

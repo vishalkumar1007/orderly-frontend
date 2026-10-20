@@ -4,7 +4,7 @@
  * by a page that draws a chart (see EChart.svelte).
  */
 import * as echarts from 'echarts/core';
-import { BarChart, HeatmapChart, LineChart, PieChart } from 'echarts/charts';
+import { BarChart, HeatmapChart, LineChart, PieChart, TreemapChart } from 'echarts/charts';
 import {
 	GridComponent,
 	MarkLineComponent,
@@ -19,6 +19,7 @@ echarts.use([
 	BarChart,
 	PieChart,
 	HeatmapChart,
+	TreemapChart,
 	GridComponent,
 	TooltipComponent,
 	MarkLineComponent,

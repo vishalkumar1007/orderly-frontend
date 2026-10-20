@@ -14,13 +14,15 @@
 	import { api } from '$lib/api/client';
 	import EmptyState from '$lib/components/admin/EmptyState.svelte';
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
-	import HourlyBarsChart from '$lib/components/admin/HourlyBarsChart.svelte';
-	import MetricCard from '$lib/components/admin/MetricCard.svelte';
+	import CategoryShare from '$lib/components/admin/dashboard/CategoryShare.svelte';
+	import MenuPerformance from '$lib/components/admin/dashboard/MenuPerformance.svelte';
+	import PaymentMix from '$lib/components/admin/dashboard/PaymentMix.svelte';
+	import PulseStrip, { type Pulse } from '$lib/components/admin/dashboard/PulseStrip.svelte';
+	import RevenueOrdersChart from '$lib/components/admin/dashboard/RevenueOrdersChart.svelte';
+	import SalesRhythm from '$lib/components/admin/dashboard/SalesRhythm.svelte';
+	import ServiceQuality from '$lib/components/admin/dashboard/ServiceQuality.svelte';
 	import Reveal from '$lib/components/admin/Reveal.svelte';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
-	import StatusDonut from '$lib/components/admin/StatusDonut.svelte';
-	import TopProductsPanel from '$lib/components/admin/TopProductsPanel.svelte';
-	import TrendAreaChart from '$lib/components/admin/TrendAreaChart.svelte';
 	import { toast } from '$lib/components/admin/toast';
 	import { formatCurrency } from '$lib/admin/format';
 	import { orderBoard } from '$lib/tenant/orders.svelte';
@@ -87,6 +89,7 @@
 	}
 	import {
 		fetchTenantAnalytics,
+		type DayPoint,
 		type Granularity,
 		percentChange,
 		type AnalyticsWindow,
@@ -175,58 +178,105 @@
 	const periodLabel = $derived(
 		({ '7d': '7 days', '14d': '14 days', '30d': '30 days', '90d': '90 days' } as const)[window]
 	);
+	const periodDays = $derived(analytics?.days ?? Number(window.replace('d', '')) ?? 30);
 
-	/** Minutes read as a duration, or a dash when nothing has been measured. */
-	function minutesLabel(value: number | undefined): string {
-		if (!value || value <= 0) return '-';
-		if (value < 1) return 'under a minute';
-		if (value < 60) return `${Math.round(value)} min`;
-		const hours = Math.floor(value / 60);
-		const minutes = Math.round(value % 60);
-		return minutes === 0 ? `${hours} hr` : `${hours} hr ${minutes} min`;
+	/**
+	 * The window before this one. The API sends it day for day, so the chart can
+	 * overlay it and the cards can quote a real change rather than a guess.
+	 */
+	const prevDaily = $derived(analytics?.orders_prev_by_day ?? []);
+	const prevRevenue = $derived(
+		prevDaily.reduce((s, d) => s + Number(d.revenue || 0), 0)
+	);
+	const prevOrders = $derived(
+		prevDaily.reduce((s, d) => s + Number(d.order_count || 0), 0)
+	);
+	const prevAvg = $derived(prevOrders > 0 ? prevRevenue / prevOrders : 0);
+	const compareLabel = $derived(`vs previous ${periodLabel}`);
+
+	/**
+	 * The API buckets the current window by week or month, but the previous
+	 * window arrives as days. Slice those days along each current bucket's span
+	 * so the comparison overlay lines up whatever grouping is selected.
+	 */
+	function bucketPrevious(daily: DayPoint[], period: DayPoint[], previous: DayPoint[]): DayPoint[] {
+		if (period.length === 0 || previous.length !== daily.length) return previous;
+		const starts = period.map((p) => daily.findIndex((d) => d.day === p.day));
+		return period.map((p, i) => {
+			const from = starts[i];
+			const to = i + 1 < starts.length ? starts[i + 1] : daily.length;
+			if (from < 0) return { day: p.day, order_count: 0, revenue: 0 };
+			const slice = previous.slice(from, to);
+			return {
+				day: p.day,
+				order_count: slice.reduce((s, d) => s + Number(d.order_count || 0), 0),
+				revenue: slice.reduce((s, d) => s + Number(d.revenue || 0), 0)
+			};
+		});
 	}
 
-	const prepLabel = $derived(minutesLabel(analytics?.median_prep_minutes));
-	const acceptLabel = $derived(minutesLabel(analytics?.avg_accept_minutes));
+	const prevForChart = $derived(
+		bucketPrevious(analytics?.orders_by_day ?? [], analytics?.orders_by_period ?? [], prevDaily)
+	);
 
-	/** Human label for a payment method, including the unrecorded case. */
-	function payLabel(method: string): string {
-		switch (method) {
-			case 'ONLINE':
-				return 'Online payment';
-			case 'ONLINE_TEST':
-				return 'Online (test: not counted)';
-			case 'CASH':
-				return 'Cash';
-			case 'UNRECORDED':
-				return 'No payment recorded';
-			default:
-				return method.charAt(0) + method.slice(1).toLowerCase();
-		}
+	/** A change needs a period to change from; a rise from zero is not 100%. */
+	function delta(current: number, previous: number, label: string) {
+		if (previous <= 0) return null;
+		return { ...percentChange(current, previous), label };
 	}
-
-
-	/** Compare first half vs second half of the selected window. */
-	const periodTrend = $derived.by(() => {
-		const days = analytics?.orders_by_day ?? [];
-		if (days.length < 4) return null;
-		const mid = Math.floor(days.length / 2);
-		const prev = days.slice(0, mid).reduce((s, d) => s + Number(d.revenue || 0), 0);
-		const curr = days.slice(mid).reduce((s, d) => s + Number(d.revenue || 0), 0);
-		return percentChange(curr, prev);
-	});
-
-	const orderTrend = $derived.by(() => {
-		const days = analytics?.orders_by_day ?? [];
-		if (days.length < 4) return null;
-		const mid = Math.floor(days.length / 2);
-		const prev = days.slice(0, mid).reduce((s, d) => s + Number(d.order_count || 0), 0);
-		const curr = days.slice(mid).reduce((s, d) => s + Number(d.order_count || 0), 0);
-		return percentChange(curr, prev);
-	});
 
 	const revenueSeries = $derived(analytics?.orders_by_day.map((d) => Number(d.revenue || 0)) ?? []);
 	const orderSeries = $derived(analytics?.orders_by_day.map((d) => Number(d.order_count || 0)) ?? []);
+
+	const revenueTrend = $derived(delta(periodRevenue, prevRevenue, compareLabel));
+	const orderTrend = $derived(delta(periodOrders, prevOrders, compareLabel));
+	const averageTrend = $derived(delta(periodAvg, prevAvg, compareLabel));
+
+	const customersActive = $derived(analytics?.customers_active ?? 0);
+
+	const pulse = $derived<Pulse[]>([
+		{
+			label: 'Revenue',
+			value: money(periodRevenue),
+			hint: `${money(periodRevenue / Math.max(periodDays, 1))} a day on average`,
+			trend: revenueTrend,
+			series: revenueSeries,
+			lead: true
+		},
+		{
+			label: 'Orders',
+			value: periodOrders.toLocaleString('en-IN'),
+			hint: `${(periodOrders / Math.max(periodDays, 1)).toFixed(1)} a day on average`,
+			trend: orderTrend,
+			series: orderSeries,
+			spark: 'bars'
+		},
+		{
+			label: 'Average order',
+			value: money(periodAvg),
+			hint: `Across ${periodOrders.toLocaleString('en-IN')} orders`,
+			trend: averageTrend,
+			// Days without orders have no average, so they are left out of the line.
+			series:
+				analytics?.orders_by_day
+					.filter((d) => Number(d.order_count) > 0)
+					.map((d) => Number(d.revenue || 0) / Number(d.order_count)) ?? []
+		},
+		{
+			label: 'Customers',
+			value: customersActive.toLocaleString('en-IN'),
+			hint:
+				customersActive > 0
+					? analytics?.repeat_customer_rate != null
+						? `${analytics.repeat_customer_rate}% order again`
+						: 'No repeat orders yet'
+					: `${analytics?.customers_total ?? 0} customers on the books`,
+			split: [
+				{ label: 'New', value: analytics?.customers_new ?? 0 },
+				{ label: 'Returning', value: analytics?.customers_returning ?? 0 }
+			]
+		}
+	]);
 
 	const storefrontUrl = $derived(store ? resolveStorefrontUrl(store) : '');
 	const storefrontHostLabel = $derived(storefrontUrl ? storefrontUrlDisplay(storefrontUrl) : '');
@@ -248,9 +298,8 @@
 	/** Set when the plan does not include analytics: the API's own sentence. */
 	let analyticsLocked = $state('');
 
-	/** How the trend chart groups days, and which ranking the best sellers use. */
+	/** How the trend chart groups days. */
 	let granularity = $state<Granularity>('day');
-	let productsBy = $state<'units' | 'revenue'>('units');
 
 	/** Weeks need at least two of them to mean anything; months a full 30 days. */
 	const granularityAllowed = $derived({
@@ -593,11 +642,11 @@
 			</div>
 		</section>
 	{:else}
-	<section class="dash-section">
+	<section class="dash-section perf">
 		<div class="dash-section-head row">
 			<div>
 				<h2>Performance</h2>
-				<p>Revenue and orders over the last {periodLabel}</p>
+				<p>Last {periodLabel}, compared with the {periodLabel} before</p>
 			</div>
 			<div class="dash-windows" role="tablist" aria-label="Time range">
 				{#each WINDOWS as opt (opt.v)}
@@ -624,151 +673,57 @@
 			</div>
 		</div>
 
-		<div class="dash-metrics">
-			<MetricCard
-				label={`Revenue · ${periodLabel}`}
-				value={analyticsLoading ? '-' : money(periodRevenue)}
-				hint="Selected period"
+		<PulseStrip items={pulse} loading={analyticsLoading} />
+
+		<div class="dash-charts main">
+			<RevenueOrdersChart
+				data={analytics?.orders_by_period ?? analytics?.orders_by_day ?? []}
+				previous={prevForChart}
 				loading={analyticsLoading}
-				trend={periodTrend}
-				series={revenueSeries}
+				formatValue={money}
+				{granularity}
+				allowed={granularityAllowed}
+				ongranularity={(g) => {
+					if (g === granularity) return;
+					granularity = g;
+					void loadAnalytics(window, true);
+				}}
 			/>
-			<MetricCard
-				label={`Orders · ${periodLabel}`}
-				value={analyticsLoading ? '-' : periodOrders}
-				hint="Selected period"
-				loading={analyticsLoading}
-				trend={orderTrend}
-				series={orderSeries}
-			/>
-			<MetricCard
-				label="Average order"
-				value={analyticsLoading ? '-' : money(periodAvg)}
-				hint={`Across ${periodLabel}`}
-				loading={analyticsLoading}
-			/>
-			<MetricCard
-				label="Menu health"
-				value={analyticsLoading
-					? '-'
-					: `${analytics?.products_available ?? 0} live`}
-				hint={`${analytics?.products_unavailable ?? 0} unavailable`}
+
+			<ServiceQuality
+				medianPrep={analytics?.median_prep_minutes ?? 0}
+				avgPrep={analytics?.avg_prep_minutes ?? 0}
+				avgAccept={analytics?.avg_accept_minutes ?? 0}
+				fulfilment={analytics?.fulfilment_rate ?? null}
+				cancellationRate={analytics?.cancellation_rate ?? 0}
+				completed={analytics?.completed_orders ?? 0}
+				cancelled={analytics?.cancelled_orders ?? 0}
 				loading={analyticsLoading}
 			/>
 		</div>
 
-		<div class="dash-metrics">
-			<MetricCard
-				label="Typical prep time"
-				value={analyticsLoading ? '-' : prepLabel}
-				hint={analytics && analytics.avg_prep_minutes > 0
-					? `${analytics.avg_prep_minutes} min on average`
-					: 'From accepted to ready'}
-				loading={analyticsLoading}
-			/>
-			<MetricCard
-				label="Time to accept"
-				value={analyticsLoading ? '-' : acceptLabel}
-				hint="How long orders wait before you accept them"
-				loading={analyticsLoading}
-			/>
-			<MetricCard
-				label="Fulfilment rate"
-				value={analyticsLoading
-					? '-'
-					: analytics?.fulfilment_rate == null
-						? '-'
-						: `${analytics.fulfilment_rate}%`}
-				hint={analytics && analytics.completed_orders + analytics.cancelled_orders > 0
-					? `${analytics.completed_orders} completed · ${analytics.cancelled_orders} cancelled`
-					: 'Of orders that have finished'}
-				loading={analyticsLoading}
-			/>
-			<MetricCard
-				label="Cancellations"
-				value={analyticsLoading ? '-' : `${analytics?.cancellation_rate ?? 0}%`}
-				hint={analytics && analytics.cancelled_today > 0
-					? `${analytics.cancelled_today} today`
-					: 'None today'}
-				loading={analyticsLoading}
-			/>
-		</div>
-
-		<TrendAreaChart
-			title="Trend"
-			data={analytics?.orders_by_period ?? analytics?.orders_by_day ?? []}
-			loading={analyticsLoading}
-			formatValue={money}
-			{granularity}
-			allowed={granularityAllowed}
-			ongranularity={(g) => {
-				if (g === granularity) return;
-				granularity = g;
-				void loadAnalytics(window, true);
-			}}
-		/>
-
-		<div class="dash-charts">
-			<StatusDonut data={analytics?.status_breakdown ?? []} loading={analyticsLoading} />
-			<HourlyBarsChart
+		<div class="dash-charts main">
+			<SalesRhythm
 				data={analytics?.orders_by_hour ?? []}
 				grid={analytics?.orders_by_weekday_hour ?? []}
 				days={analytics?.days ?? 30}
 				loading={analyticsLoading}
+				formatValue={money}
 			/>
+
+			<PaymentMix data={analytics?.payment_mix ?? []} money={money} loading={analyticsLoading} />
 		</div>
 
-		<div class="dash-charts">
-			<TopProductsPanel
-				data={(productsBy === 'revenue' ? analytics?.top_products_by_revenue : analytics?.top_products) ?? []}
+		<div class="dash-charts even">
+			<MenuPerformance
+				products={analytics?.top_products ?? []}
+				productsByRevenue={analytics?.top_products_by_revenue ?? []}
+				money={money}
 				loading={analyticsLoading}
-				formatMoney={money}
-				metric={productsBy}
-				onmetric={(m) => (productsBy = m)}
 			/>
-			<TopProductsPanel
-				title="Best categories"
-				emptyLabel="No category sales in this period yet"
-				data={analytics?.top_categories ?? []}
-				loading={analyticsLoading}
-				formatMoney={money}
-			/>
-		</div>
 
-		<section class="panel pay-mix">
-			<div class="bento-head">
-				<h3 class="panel-h" style="margin:0;">How customers paid</h3>
-				<span class="bento-pill">{periodLabel}</span>
-			</div>
-			{#if analyticsLoading}
-				<Skeleton height="6rem" />
-			{:else if (analytics?.payment_mix ?? []).length === 0}
-				<p class="muted" style="font-size:var(--fs-body);margin:0;">
-					No completed orders in this period yet.
-				</p>
-			{:else}
-				<ul class="pay-rows">
-					{#each analytics?.payment_mix ?? [] as row (row.method + row.status)}
-						<li>
-							<div class="pay-top">
-								<strong>{payLabel(row.method)}</strong>
-								<span class="muted">
-									{row.order_count} order{row.order_count === 1 ? '' : 's'} · {money(row.revenue)}
-								</span>
-							</div>
-							<div class="pay-bar" aria-hidden="true">
-								<i style={`width:${Math.max(row.share, 2)}%;`}></i>
-							</div>
-							<span class="pay-share">{row.share}%</span>
-						</li>
-					{/each}
-				</ul>
-				<p class="field-hint" style="margin:0.75rem 0 0;">
-					Payment methods are set under
-					<a href="/shop/payments">Payments</a>.
-				</p>
-			{/if}
-		</section>
+			<CategoryShare categories={analytics?.top_categories ?? []} money={money} loading={analyticsLoading} />
+		</div>
 	</section>
 	{/if}
 
@@ -798,68 +753,6 @@
 />
 
 <style>
-	.pay-mix {
-		margin-top: 0.85rem;
-	}
-
-	.pay-rows {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: grid;
-		gap: 0.75rem;
-	}
-
-	.pay-rows li {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) 3rem;
-		grid-template-areas: 'top share' 'bar share';
-		align-items: center;
-		gap: 0.3rem 0.75rem;
-	}
-
-	.pay-top {
-		grid-area: top;
-		display: flex;
-		flex-wrap: wrap;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 0.5rem;
-		font-size: var(--fs-body);
-	}
-
-	.pay-top strong {
-		font-weight: 600;
-	}
-
-	.pay-top .muted {
-		font-size: var(--fs-code);
-	}
-
-	.pay-bar {
-		grid-area: bar;
-		height: 0.4rem;
-		border-radius: 999px;
-		background: var(--surface-3);
-		overflow: hidden;
-	}
-
-	.pay-bar i {
-		display: block;
-		height: 100%;
-		border-radius: 999px;
-		background: linear-gradient(90deg, var(--accent), var(--accent-2));
-	}
-
-	.pay-share {
-		grid-area: share;
-		text-align: right;
-		font-size: var(--fs-body);
-		font-weight: 650;
-		font-variant-numeric: tabular-nums;
-		color: var(--text-2);
-	}
-
 	.dash {
 		display: flex;
 		flex-direction: column;
@@ -1149,6 +1042,10 @@
 		color: var(--text-3);
 	}
 
+	.dash-section.perf {
+		gap: 1rem;
+	}
+
 	.dash-section-head.row {
 		display: flex;
 		flex-wrap: wrap;
@@ -1388,16 +1285,11 @@
 		box-shadow: 0 1px 2px color-mix(in srgb, var(--text) 8%, transparent);
 	}
 
-	.dash-metrics {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 0.65rem;
-	}
-
 	.dash-charts {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
-		gap: 0.75rem;
+		gap: 1rem;
+		align-items: stretch;
 	}
 
 	@media (min-width: 700px) {
@@ -1419,12 +1311,14 @@
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 
-		.dash-metrics {
-			grid-template-columns: repeat(4, minmax(0, 1fr));
-		}
-
-		.dash-charts {
+		.dash-charts.even {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+
+	@media (min-width: 1020px) {
+		.dash-charts.main {
+			grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
 		}
 	}
 
