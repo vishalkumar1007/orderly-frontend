@@ -25,7 +25,9 @@
 	import type { MfaSetup } from '$lib/mfaApi';
 	import { brandVars, type BrandTheme } from '$lib/brandTheme';
 	import { isIosLike, isStandalone, promptInstall, canInstall, onInstallPromptChange } from '$lib/pwa.svelte';
-	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
+	import MfaPanel from '$lib/components/auth/MfaPanel.svelte';
+	import ServiceError from '$lib/components/ServiceError.svelte';
+	import type { LoadError } from '$lib/storefront/server';
 
 	let email = $state('');
 	let password = $state('');
@@ -39,8 +41,11 @@
 	let challengeToken = $state('');
 	let mfaCode = $state('');
 	let useRecoveryCode = $state(false);
-	/** Which method the challenge is for: picked once from the login response, not switchable mid-flow. */
-	let challengeMethod = $state<'TOTP' | 'EMAIL_OTP'>('TOTP');
+	type Method = 'TOTP' | 'EMAIL_OTP';
+	/** The methods on offer: set up by this person and allowed by the business. */
+	let challengeMethods = $state<string[]>([]);
+	/** The method in use; empty while the person is choosing between several. */
+	let challengeMethod = $state<Method | ''>('');
 	let emailSending = $state(false);
 	let resendCooldown = $state(0);
 
@@ -49,7 +54,8 @@
 	// code to verify yet, only one to set up.
 	let enrollStep = $state(false);
 	let enrollmentToken = $state('');
-	let enrollMethod = $state<'TOTP' | 'EMAIL_OTP'>('TOTP');
+	let enrollMethods = $state<string[]>([]);
+	let enrollMethod = $state<Method | ''>('');
 	let enrollSetup = $state<MfaSetup | null>(null);
 	let enrollCode = $state('');
 	let enrollEmailSending = $state(false);
@@ -67,8 +73,28 @@
 		}, 1000);
 	}
 
-	function pickMethod(methods: string[]): 'TOTP' | 'EMAIL_OTP' {
-		return methods.includes('TOTP') ? 'TOTP' : 'EMAIL_OTP';
+	// One method goes straight to it; several are offered as a choice.
+	function only(methods: string[]): Method | '' {
+		return methods.length === 1 ? (methods[0] as Method) : '';
+	}
+
+	async function chooseChallenge(m: Method | '') {
+		challengeMethod = m;
+		if (m === 'EMAIL_OTP') await sendChallengeEmail();
+	}
+
+	async function chooseEnroll(m: Method | '') {
+		enrollMethod = m;
+		enrollSetup = null;
+		if (m === 'TOTP') {
+			try {
+				enrollSetup = await enrollMfaStart(enrollmentToken);
+			} catch (err) {
+				error = err instanceof Error ? err.message : 'Could not start setup';
+			}
+		} else if (m === 'EMAIL_OTP') {
+			await startEnrollEmail();
+		}
 	}
 
 	async function sendChallengeEmail() {
@@ -101,20 +127,16 @@
 	) {
 		if ('mfaRequired' in result) {
 			challengeToken = result.challengeToken;
-			challengeMethod = pickMethod(result.methods.length ? result.methods : ['TOTP']);
+			challengeMethods = result.methods.length ? result.methods : ['TOTP'];
 			mfaStep = true;
-			if (challengeMethod === 'EMAIL_OTP') await sendChallengeEmail();
+			await chooseChallenge(only(challengeMethods));
 			return;
 		}
 		if ('mfaEnrollRequired' in result) {
 			enrollmentToken = result.enrollmentToken;
-			enrollMethod = pickMethod(result.methods.length ? result.methods : ['TOTP']);
+			enrollMethods = result.methods.length ? result.methods : ['TOTP'];
 			enrollStep = true;
-			if (enrollMethod === 'TOTP') {
-				enrollSetup = await enrollMfaStart(enrollmentToken);
-			} else {
-				await startEnrollEmail();
-			}
+			await chooseEnroll(only(enrollMethods));
 			return;
 		}
 		goto(homeForRole(result.role, kind));
@@ -148,6 +170,7 @@
 	 */
 	const brand = $derived(($page.data.brand as BrandTheme | null) ?? null);
 	const brandStyle = $derived(brandVars(brand));
+	const loadError = $derived(($page.data.loadError as LoadError | null) ?? null);
 
 	/**
 	 * A logo URL that 404s must not leave a torn image where the brand should be,
@@ -194,7 +217,7 @@
 					challengeToken,
 					mfaCode.trim(),
 					useRecoveryCode,
-					useRecoveryCode ? undefined : challengeMethod
+					useRecoveryCode ? undefined : challengeMethod || undefined
 				);
 				goto(homeForRole(user.role, hostKind === 'admin' ? 'admin' : 'tenant'));
 				return;
@@ -222,6 +245,10 @@
 		enrollmentToken = '';
 		enrollSetup = null;
 		enrollCode = '';
+		challengeMethods = [];
+		enrollMethods = [];
+		challengeMethod = '';
+		enrollMethod = '';
 		clearInterval(cooldownHandle);
 		resendCooldown = 0;
 		enrollResendCooldown = 0;
@@ -243,6 +270,9 @@
 	centred column of type and inputs on the tenant's own background, which is what
 	makes it look like part of the shop rather than a generic admin screen.
 -->
+{#if loadError}
+	<ServiceError {...loadError} />
+{:else}
 <main class="osh-login" style={brandStyle}>
 	<form class="osh-login-panel" onsubmit={submit}>
 		<header class="osh-login-head">
@@ -267,94 +297,40 @@
 		</header>
 
 		{#if enrollStep}
-			<h2 class="osh-login-title">Set up two-factor authentication</h2>
-			<p class="osh-login-sub-copy">
-				This business requires it before you can continue.
-			</p>
-
-			{#if enrollMethod === 'TOTP' && enrollSetup}
-				<p class="osh-login-note">
-					Scan this with an authenticator app, or enter the code manually:
-					<code>{enrollSetup.secret}</code>
-				</p>
-				<img
-					src={enrollSetup.qr_code_data_uri}
-					alt="QR code for authenticator app setup"
-					width="180"
-					height="180"
-					style="display:block;margin:0 auto 1.25rem;border-radius:var(--radius-md);"
-				/>
-			{:else if enrollMethod === 'EMAIL_OTP'}
-				<p class="osh-login-note">
-					We sent a code to your email.
-					<button
-						type="button"
-						class="btn btn-ghost"
-						disabled={enrollEmailSending || enrollResendCooldown > 0}
-						onclick={startEnrollEmail}
-					>
-						{enrollResendCooldown > 0 ? `Resend in ${enrollResendCooldown}s` : 'Resend code'}
-					</button>
-				</p>
-			{/if}
-
-			<div class="osh-login-field">
-				<label class="osh-login-label" for="enroll-code">6-digit code</label>
-				<div class="osh-login-input">
-					<ShieldCheck size={16} stroke={1.6} />
-					<input
-						id="enroll-code"
-						type="text"
-						bind:value={enrollCode}
-						placeholder="123456"
-						inputmode="numeric"
-						autocomplete="one-time-code"
-						required
-					/>
-				</div>
-			</div>
+			<MfaPanel
+				kind="enroll"
+				method={enrollMethod}
+				methods={enrollMethods}
+				onchoose={chooseEnroll}
+				{email}
+				setup={enrollSetup}
+				bind:code={enrollCode}
+				cooldown={enrollResendCooldown}
+				sending={enrollEmailSending}
+				{loading}
+				{error}
+				requiredBy="This business"
+				onresend={startEnrollEmail}
+				onback={backToPassword}
+				onedit={() => (error = '')}
+			/>
 		{:else if mfaStep}
-			<h2 class="osh-login-title">Enter your code</h2>
-			<p class="osh-login-sub-copy">
-				{#if useRecoveryCode}
-					Enter one of your recovery codes.
-				{:else if challengeMethod === 'EMAIL_OTP'}
-					Enter the code we emailed you.
-				{:else}
-					Enter the 6-digit code from your authenticator app.
-				{/if}
-			</p>
-
-			{#if !useRecoveryCode && challengeMethod === 'EMAIL_OTP'}
-				<p class="osh-login-note">
-					<button
-						type="button"
-						class="btn btn-ghost"
-						disabled={emailSending || resendCooldown > 0}
-						onclick={sendChallengeEmail}
-					>
-						{resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
-					</button>
-				</p>
-			{/if}
-
-			<div class="osh-login-field">
-				<label class="osh-login-label" for="mfa-code">
-					{useRecoveryCode ? 'Recovery code' : 'Authentication code'}
-				</label>
-				<div class="osh-login-input">
-					<ShieldCheck size={16} stroke={1.6} />
-					<input
-						id="mfa-code"
-						type="text"
-						bind:value={mfaCode}
-						placeholder={useRecoveryCode ? 'xxxx-xxxx' : '123456'}
-						inputmode={useRecoveryCode ? 'text' : 'numeric'}
-						autocomplete="one-time-code"
-						required
-					/>
-				</div>
-			</div>
+			<MfaPanel
+				kind="challenge"
+				method={challengeMethod}
+				methods={challengeMethods}
+				onchoose={chooseChallenge}
+				{email}
+				bind:code={mfaCode}
+				bind:useRecovery={useRecoveryCode}
+				cooldown={resendCooldown}
+				sending={emailSending}
+				{loading}
+				{error}
+				onresend={sendChallengeEmail}
+				onback={backToPassword}
+				onedit={() => (error = '')}
+			/>
 		{:else}
 			<h2 class="osh-login-title">
 				{hostKind === 'admin' ? 'Sign in to continue' : 'Sign in to manage your shop'}
@@ -416,49 +392,23 @@
 					</button>
 				</div>
 			</div>
-		{/if}
-
-		{#if error}
-			<p class="osh-login-alert" role="alert">
-				<TriangleAlert size={16} stroke={1.6} />
-				<span>{error}</span>
-			</p>
-		{/if}
-
-		<button
-			class="btn btn-primary osh-login-submit"
-			type="submit"
-			disabled={loading || hostKind === 'unknown'}
-		>
-			{#if enrollStep}
-				{loading ? 'Confirming…' : 'Confirm and sign in'}
-			{:else if mfaStep}
-				{loading ? 'Verifying…' : 'Verify and sign in'}
-			{:else}
-				{loading ? 'Signing in…' : 'Sign in'}
+			{#if error}
+				<p class="osh-login-alert" role="alert">
+					<TriangleAlert size={16} stroke={1.6} />
+					<span>{error}</span>
+				</p>
 			{/if}
-			{#if !loading}<ArrowRight size={16} stroke={1.6} />{/if}
-		</button>
 
-		{#if mfaStep && !enrollStep}
-			<div class="osh-login-install">
-				<button
-					type="button"
-					class="btn btn-ghost"
-					onclick={() => (useRecoveryCode = !useRecoveryCode)}
-				>
-					{useRecoveryCode
-						? challengeMethod === 'EMAIL_OTP'
-							? 'Use my email code instead'
-							: 'Use my authenticator app instead'
-						: 'Use a recovery code instead'}
-				</button>
-				<button type="button" class="btn btn-ghost" onclick={backToPassword}>Back</button>
-			</div>
-		{:else if enrollStep}
-			<div class="osh-login-install">
-				<button type="button" class="btn btn-ghost" onclick={backToPassword}>Back</button>
-			</div>
+			<button
+				class="btn btn-primary osh-login-submit"
+				type="submit"
+				disabled={loading || hostKind === 'unknown'}
+			>
+				{loading ? 'Signing in...' : 'Sign in'}
+				{#if !loading}<ArrowRight size={16} stroke={1.6} />{/if}
+			</button>
+
+			<p class="osh-login-forgot">Forgot your password? Ask the owner of this business to reset your access.</p>
 		{/if}
 
 		{#if !installed && (installable || isIosLike())}
@@ -476,6 +426,7 @@
 		{/if}
 	</form>
 </main>
+{/if}
 
 <style>
 	/*
@@ -595,6 +546,14 @@
 		font-size: var(--fs-body);
 		color: var(--text-2);
 		line-height: 1.55;
+	}
+
+	.osh-login-forgot {
+		margin: 0;
+		font-size: var(--fs-tab);
+		line-height: 1.5;
+		color: var(--text-3);
+		text-align: center;
 	}
 
 	.osh-login-note {

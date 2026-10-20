@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { experienceFor } from '$lib/storefront/experience';
 	import { goto } from '$app/navigation';
 	import ChevronLeft from '@tabler/icons-svelte/icons/chevron-left';
 	import Minus from '@tabler/icons-svelte/icons/minus';
@@ -14,6 +15,7 @@
 	const cart = useCart();
 	const product = $derived(data.product as StoreProduct | null);
 	const config = $derived(data.config);
+	const exp = $derived(experienceFor(config));
 	const currency = $derived(config?.store?.currency ?? 'INR');
 	const orderable = $derived(config?.ordering.enabled ?? false);
 
@@ -113,7 +115,7 @@
 		style="display:inline-flex;align-items:center;gap:4px;margin-left:var(--sf-gutter);padding:10px 0;font-size:var(--fs-body);font-weight:600;color:var(--sf-text-2);text-decoration:none;"
 	>
 		<ChevronLeft size={16} stroke={1.6} aria-hidden="true" />
-		Menu
+		{exp.words.catalog}
 	</a>
 </div>
 
@@ -134,7 +136,7 @@
 	<div class="sf-detail-body">
 		<h1 class="sf-detail-title">
 			{product.name}
-			{#if product.is_vegetarian}
+			{#if product.is_vegetarian && exp.features.dietMarks}
 				<span class="sf-veg-mark" style="vertical-align:middle;" title="Vegetarian" aria-label="Vegetarian">
 					<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" aria-hidden="true">
 						<path d="M20 6 9 17l-5-5" />
@@ -283,7 +285,7 @@
 			<strong>{money(lineTotal, currency)}</strong>
 			<span>
 				{#if resolvedAddons.length}
-					{money(unit, currency)} each · {resolvedAddons.length} extra{resolvedAddons.length === 1 ? '' : 's'}
+					{money(unit, currency)} each, with {resolvedAddons.length} extra{resolvedAddons.length === 1 ? '' : 's'}
 				{:else}
 					{quantity} × {money(product.price, currency)}
 				{/if}
@@ -314,7 +316,7 @@
 				type="button"
 				onclick={() => goto('/cart')}
 			>
-				{inCart} in cart · View cart
+				View cart ({inCart})
 			</button>
 		</div>
 	{/if}

@@ -34,5 +34,7 @@ jobs:
         run: npm run check
       - name: Navigation and breadcrumb checks
         run: npm run check:nav
+      - name: Storefront experience checks
+        run: npm run check:storefront
       - name: Production build
         run: npm run build

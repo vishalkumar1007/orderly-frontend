@@ -30,6 +30,10 @@ import IconCoffee from '@tabler/icons-svelte/icons/coffee';
 import IconScissors from '@tabler/icons-svelte/icons/scissors';
 import IconShoppingBasket from '@tabler/icons-svelte/icons/basket';
 import IconSoup from '@tabler/icons-svelte/icons/soup';
+import IconShirt from '@tabler/icons-svelte/icons/shirt';
+import IconDeviceMobile from '@tabler/icons-svelte/icons/device-mobile';
+import IconBrush from '@tabler/icons-svelte/icons/brush';
+import IconCar from '@tabler/icons-svelte/icons/car';
 import type { TenantType } from './types';
 
 /* ------------------------------------------------------------------ *
@@ -620,6 +624,74 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 		controls: [],
 		capabilityDriven: true
 	}
+};
+
+/*
+ * Four types that work like one above: fashion and electronics shops sell
+ * from a stocked catalogue like a grocer, salons and garages book time like a
+ * barber. Each keeps the base's operations and changes what people see.
+ */
+const BASE = BUSINESS_TYPE_TEMPLATES;
+
+BASE.FASHION = {
+	...BASE.GROCERY,
+	code: 'FASHION',
+	label: 'Fashion & apparel',
+	tagline: 'Sizes, colours and photos that sell',
+	description:
+		'Clothing, footwear and accessories. Customers browse by photo, pick a size and colour, and collect in store.',
+	icon: IconShirt,
+	brand: { preset_id: 'rose', color_mode: 'system' },
+	terminology: { ...RETAIL_TERMS, group: 'Collection', groups: 'Collections', catalog: 'Shop' },
+	storefront: { ...BASE.GROCERY.storefront, theme_preset: 'minimal', product_layout: 'grid' },
+	starterCategories: ['Men', 'Women', 'Kids', 'Accessories'],
+	modules: ['station', 'variants', 'catalog_search', 'stock', 'catalog']
+};
+
+BASE.ELECTRONICS = {
+	...BASE.GROCERY,
+	code: 'ELECTRONICS',
+	label: 'Electronics',
+	tagline: 'Models, variants and the details that decide',
+	description:
+		'Phones, laptops, audio and accessories. Customers compare a few key details, choose a variant and collect in store.',
+	icon: IconDeviceMobile,
+	brand: { preset_id: 'indigo-violet', color_mode: 'system' },
+	terminology: { ...RETAIL_TERMS, group: 'Category', groups: 'Categories' },
+	storefront: { ...BASE.GROCERY.storefront, theme_preset: 'modern', product_layout: 'list' },
+	starterCategories: ['Mobiles', 'Laptops', 'Audio', 'Accessories'],
+	modules: ['station', 'variants', 'catalog_search', 'stock', 'catalog']
+};
+
+BASE.SALON = {
+	...BASE.BARBER,
+	code: 'SALON',
+	label: 'Salon & spa',
+	tagline: 'Treatments booked by the minute',
+	description:
+		'Hair and beauty salons, spas and nail studios. A customer books a treatment with a stylist at a time that suits them.',
+	icon: IconBrush,
+	terminology: { ...BARBER_TERMS, staff: 'Stylists' },
+	quickActions: [
+		{ label: 'Appointments', href: '/shop/appointments' },
+		{ label: 'Edit services', href: '/shop/services' }
+	]
+};
+
+BASE.AUTOMOTIVE = {
+	...BASE.BARBER,
+	code: 'AUTOMOTIVE',
+	label: 'Car wash & garage',
+	tagline: 'Book a slot, bring the vehicle',
+	description:
+		'Car washes, detailing studios and garages. A customer books a service for their vehicle at a time slot and drops it off.',
+	icon: IconCar,
+	brand: { preset_id: 'cyan', color_mode: 'system' },
+	terminology: { ...BARBER_TERMS, staff: 'Technicians', handover: 'handed back' },
+	quickActions: [
+		{ label: 'Appointments', href: '/shop/appointments' },
+		{ label: 'Edit services', href: '/shop/services' }
+	]
 };
 
 /**

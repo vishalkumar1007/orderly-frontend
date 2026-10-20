@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { experienceFor } from '$lib/storefront/experience';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import Receipt from '@tabler/icons-svelte/icons/receipt';
@@ -17,6 +18,7 @@
 	let { data } = $props();
 
 	const config = $derived(data.config);
+	const exp = $derived(experienceFor(config));
 	const currency = $derived(config?.store?.currency ?? 'INR');
 
 	let orders = $state<OrderSummary[]>([]);
@@ -97,16 +99,18 @@
 						{looking ? 'Looking…' : 'Find my orders'}
 					</button>
 				</form>
-				<p style="margin:12px 0 0;font-size:var(--fs-body);color:var(--sf-text-2);line-height:1.45;">
-					Signing in shows your orders without typing anything.
-				</p>
-				<a
-					class="sf-btn sf-btn-ghost sf-btn-block"
-					style="margin-top:8px;"
-					href="/login?next=%2Forders"
-				>
-					Sign in with phone
-				</a>
+				{#if exp.features.signIn}
+					<p style="margin:12px 0 0;font-size:var(--fs-body);color:var(--sf-text-2);line-height:1.45;">
+						Signing in shows your orders without typing anything.
+					</p>
+					<a
+						class="sf-btn sf-btn-ghost sf-btn-block"
+						style="margin-top:8px;"
+						href="/login?next=%2Forders"
+					>
+						Sign in with phone
+					</a>
+				{/if}
 			</div>
 		{/if}
 
@@ -127,7 +131,7 @@
 						? 'Your orders will appear here once you place one.'
 						: 'We could not find an order for that number.'}
 				</p>
-				<a class="sf-btn sf-btn-primary" href="/menu">Browse the menu</a>
+				<a class="sf-btn sf-btn-primary" href="/menu">Browse the {exp.words.catalog.toLowerCase()}</a>
 			</div>
 		{:else}
 			<div style="display:grid;gap:10px;">
@@ -146,7 +150,7 @@
 							</strong>
 						</div>
 						<p style="margin:4px 0 0;font-size:var(--fs-body);color:var(--sf-text-2);">
-							{order.item_count} {order.item_count === 1 ? 'item' : 'items'} ·{' '}
+							{order.item_count} {order.item_count === 1 ? 'item' : 'items'}:
 							{order.items.slice(0, 2).map((i) => i.name).join(', ')}
 							{order.items.length > 2 ? ` +${order.items.length - 2} more` : ''}
 						</p>

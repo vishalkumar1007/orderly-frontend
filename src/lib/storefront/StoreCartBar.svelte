@@ -42,7 +42,7 @@
 					<div class="sf-cartbar-pricing">
 						<span class="sf-cartbar-total">{money(shown.subtotal, currency)}</span>
 						<span class="sf-cartbar-sublabel">
-							{count} {count === 1 ? 'item' : 'items'} · Plus taxes
+							{count} {count === 1 ? 'item' : 'items'}, plus taxes
 						</span>
 					</div>
 				</div>

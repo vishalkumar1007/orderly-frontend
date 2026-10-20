@@ -37,3 +37,28 @@ export async function updateService(id: string, payload: Partial<ServicePayload>
 export async function deleteService(id: string): Promise<void> {
 	await api(`/api/v1/tenant/services/${id}`, { method: 'DELETE' });
 }
+
+/** One weekly working range for a staff member. `weekday` is 0 for Sunday. */
+export type StaffHours = {
+	id: string;
+	staff_id: string;
+	weekday: number;
+	start_time: string;
+	end_time: string;
+};
+
+export async function listStaffHours(): Promise<StaffHours[]> {
+	const data = await api<{ availability: StaffHours[] }>('/api/v1/tenant/staff-availability');
+	return data.availability ?? [];
+}
+
+export async function addStaffHours(payload: Omit<StaffHours, 'id'>): Promise<StaffHours> {
+	return api<StaffHours>('/api/v1/tenant/staff-availability', {
+		method: 'POST',
+		body: JSON.stringify(payload)
+	});
+}
+
+export async function removeStaffHours(id: string): Promise<void> {
+	await api(`/api/v1/tenant/staff-availability/${id}`, { method: 'DELETE' });
+}

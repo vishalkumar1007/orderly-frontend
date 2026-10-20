@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
+import { configHref } from '$lib/tenant/configuration';
 
-/** Email lives in the Integrations section. */
+/** Integrations is a section of Configuration. */
 export function load() {
-	throw redirect(302, '/shop/settings?section=integrations&service=SMTP');
+	throw redirect(302, configHref('integrations', 'service=SMTP'));
 }

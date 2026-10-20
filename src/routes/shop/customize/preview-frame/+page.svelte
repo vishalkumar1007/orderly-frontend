@@ -27,6 +27,7 @@
 	import StoreTabBar from '$lib/storefront/StoreTabBar.svelte';
 	import StoreToast from '$lib/storefront/StoreToast.svelte';
 	import { fontImportFor, hasCompleteTokens, FALLBACK_THEME } from '$lib/storefront/theme';
+	import { cardShape, experienceFor } from '$lib/storefront/experience';
 
 	/**
 	 * Interactive Studio preview.
@@ -58,14 +59,12 @@
 	const config = $derived(draft ? adminToStoreConfig(draft) : null);
 	const theme = $derived(hasCompleteTokens(config?.theme) ? config!.theme : FALLBACK_THEME);
 	const fontImport = $derived(fontImportFor(theme.font));
-	const loginEnabled = $derived(
-		(config?.ordering?.customer_login_mode ??
-			(config?.ordering?.customer_login ? 'optional' : 'off')) !== 'off'
-	);
+	const loginEnabled = $derived(experienceFor(config).features.signIn);
 	const footerShowsHours = $derived(
 		!config?.homepage?.sections?.some((s) => s.enabled && s.type === 'OPENING_HOURS')
 	);
-	const layout = $derived(config?.theme?.product_layout ?? 'list');
+	const exp = $derived(experienceFor(config));
+	const layout = $derived(cardShape(exp, config?.theme?.product_layout ?? 'list'));
 	const currency = $derived(config?.store?.currency ?? 'INR');
 	const orderable = $derived(config?.ordering?.enabled ?? false);
 	const showsCartBar = $derived(
@@ -333,7 +332,7 @@
 										{currency}
 										inCart={cart.quantityOf(item.id)}
 										{orderable}
-										businessType={config.store.business_type}
+										{exp}
 										onadd={add}
 										onstep={step}
 									/>
@@ -342,7 +341,7 @@
 						{/if}
 					</div>
 				{:else if view === 'home' && menu}
-					<StoreHome {config} {menu} lines={cart.lines} onadd={add} onstep={step} />
+					<StoreHome {config} {menu} {exp} lines={cart.lines} onadd={add} onstep={step} />
 				{:else if view === 'menu' && menu}
 					<div class="sf-wrap" style="padding-top:14px;">
 						<div class="sf-section-head" style="padding-inline:0;margin-bottom:10px;">
@@ -387,7 +386,7 @@
 										{currency}
 										inCart={cart.quantityOf(item.id)}
 										{orderable}
-										businessType={config.store.business_type}
+										{exp}
 										onadd={add}
 										onstep={step}
 									/>
@@ -576,7 +575,7 @@
 				totals={cartTotals}
 				visible={showsCartBar}
 			/>
-			<StoreTabBar {loginEnabled} signedIn={false} cartBarVisible={showsCartBar} {activePath} />
+			<StoreTabBar {exp} {loginEnabled} signedIn={false} cartBarVisible={showsCartBar} {activePath} />
 			<StoreToast message={cart.notice} />
 		</div>
 	</StoreRoot>

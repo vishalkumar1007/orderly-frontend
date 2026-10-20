@@ -85,11 +85,55 @@
 		}
 	}
 
+	/**
+	 * The list is placed against the window (position: fixed) from the
+	 * trigger's position, not inside the row. An absolutely placed list was cut
+	 * off by any container that hides overflow, such as a table card. It opens
+	 * upward when there is no room below, and follows its button on scroll or
+	 * resize (closing on scroll made it shut itself the moment focusing the
+	 * first item scrolled the page).
+	 */
+	let placement = $state('');
+
+	function place() {
+		const t = triggerEl?.getBoundingClientRect();
+		if (!t) return;
+		const listH = itemsEl?.offsetHeight ?? 0;
+		const gap = 5;
+		const below = window.innerHeight - t.bottom - gap;
+		const up = listH > 0 && below < listH && t.top - gap > below;
+		// Every edge is set, so the stylesheet's absolute top/right never mixes in.
+		const vertical = up
+			? `top:auto;bottom:${window.innerHeight - t.top + gap}px;`
+			: `top:${t.bottom + gap}px;bottom:auto;`;
+		const horizontal =
+			align === 'left'
+				? `left:${Math.max(8, t.left)}px;right:auto;`
+				: `right:${Math.max(8, window.innerWidth - t.right)}px;left:auto;`;
+		placement = `position:fixed;${vertical}${horizontal}`;
+	}
+
 	$effect(() => {
-		if (open) {
-			activeIndex = enabledIndexes[0] ?? -1;
-			queueMicrotask(() => focusItem(0));
-		}
+		if (!open) return;
+		place();
+		activeIndex = enabledIndexes[0] ?? -1;
+		// Measure again once the list exists, so it can flip upward if needed.
+		requestAnimationFrame(() => {
+			place();
+			focusItem(0);
+		});
+		let frame = 0;
+		const follow = () => {
+			cancelAnimationFrame(frame);
+			frame = requestAnimationFrame(place);
+		};
+		window.addEventListener('scroll', follow, { capture: true, passive: true });
+		window.addEventListener('resize', follow);
+		return () => {
+			cancelAnimationFrame(frame);
+			window.removeEventListener('scroll', follow, { capture: true });
+			window.removeEventListener('resize', follow);
+		};
 	});
 
 	onMount(() => {
@@ -129,6 +173,7 @@
 			role="menu"
 			tabindex="-1"
 			aria-label={label}
+			style={placement}
 			bind:this={itemsEl}
 			onkeydown={onListKeydown}
 		>

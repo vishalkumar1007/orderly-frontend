@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { experienceFor } from '$lib/storefront/experience';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import LogOut from '@tabler/icons-svelte/icons/logout';
@@ -16,6 +17,8 @@
 	let { data } = $props();
 
 	const config = $derived(data.config);
+	const exp = $derived(experienceFor(config));
+	const historyHref = $derived(exp.family === 'book' ? '/bookings' : exp.family === 'stay' ? '/reservations' : '/orders');
 	const currency = $derived(config?.store?.currency ?? 'INR');
 
 	let profile = $state<CustomerProfile | null>(null);
@@ -79,7 +82,7 @@
 		customerSession.signOut(data.tenantSlug ?? '');
 		signedIn = false;
 		profile = null;
-		void goto('/menu');
+		void goto('/');
 	}
 
 	const activeOrders = $derived(profile?.active_orders ?? []);
@@ -100,9 +103,14 @@
 					<path d="M4 21a8 8 0 0 1 16 0" />
 				</svg>
 			</span>
-			<h3>Sign in to see your profile</h3>
-			<p>Your name, order history and live order tracking in one place.</p>
-			<a class="sf-btn sf-btn-primary" href="/login?next=%2Fprofile">Sign in with phone</a>
+			{#if exp.features.signIn}
+				<h3>Sign in to see your profile</h3>
+				<p>Your name, order history and live order tracking in one place.</p>
+				<a class="sf-btn sf-btn-primary" href="/login?next=%2Fprofile">Sign in with phone</a>
+			{:else}
+				<h3>No sign-in needed here</h3>
+				<p>Order as a guest. You can find an order again with the phone number you used.</p>
+			{/if}
 			<a class="sf-btn sf-btn-ghost" style="margin-top:8px;" href="/orders">Find my orders</a>
 		</div>
 	{:else}
@@ -155,6 +163,9 @@
 			{/if}
 		</div>
 
+		{#if exp.family !== 'order'}
+			<a class="sf-btn sf-btn-primary sf-btn-block" style="margin-top:16px;" href={historyHref}>Your {exp.words.history.toLowerCase()}</a>
+		{:else}
 		<h2 class="sf-group-title">What signing in gives you</h2>
 		<div class="sf-panel">
 			<ul style="margin:0;padding-left:18px;display:grid;gap:6px;">
@@ -192,15 +203,18 @@
 							<strong style="font-size:0.9375rem;">{money(order.total, currency)}</strong>
 						</div>
 						<p style="margin:4px 0 0;font-size:var(--fs-body);color:var(--sf-text-2);">
-							{order.item_count} {order.item_count === 1 ? 'item' : 'items'} · {relativeTime(order.created_at)}
+							{order.item_count} {order.item_count === 1 ? 'item' : 'items'}, {relativeTime(order.created_at)}
 						</p>
 					</a>
 				{/each}
 			</div>
 		{/if}
+		{/if}
 
 		<div style="margin-top:20px;display:grid;gap:10px;">
-			<a class="sf-btn sf-btn-primary sf-btn-block" href="/menu">Order again</a>
+			{#if exp.family === 'order'}
+				<a class="sf-btn sf-btn-primary sf-btn-block" href="/menu">Order again</a>
+			{/if}
 			<button class="sf-btn sf-btn-secondary sf-btn-block" type="button" onclick={signOut}>
 				<LogOut size={16} stroke={1.6} aria-hidden="true" />
 				Sign out

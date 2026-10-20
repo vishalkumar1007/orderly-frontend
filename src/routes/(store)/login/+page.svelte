@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { experienceFor } from '$lib/storefront/experience';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
@@ -18,12 +19,15 @@
 	let { data } = $props();
 
 	const config = $derived(data.config);
-	const enabled = $derived(
-		(config?.ordering?.customer_login_mode ??
-			(config?.ordering?.customer_login ? 'optional' : 'off')) !== 'off'
-	);
+	const exp = $derived(experienceFor(config));
+	const enabled = $derived(exp.features.signIn);
+	/** Only the methods this shop set up; a choice only when there are two. */
+	const methods = $derived(exp.features.signInMethods);
+	let picked = $state<'PHONE' | 'EMAIL' | null>(null);
+	const method = $derived(picked && methods.includes(picked) ? picked : (methods[0] ?? 'PHONE'));
 
 	let phone = $state('');
+	let email = $state('');
 	let sending = $state(false);
 	let error = $state('');
 	let fieldError = $state('');
@@ -39,28 +43,41 @@
 	onMount(() => {
 		const preset = $page.url.searchParams.get('phone');
 		if (preset) phone = preset;
+		const presetEmail = $page.url.searchParams.get('email');
+		if (presetEmail) {
+			email = presetEmail;
+			picked = 'EMAIL';
+		}
 	});
 
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
 		error = '';
 		fieldError = '';
-		const digits = phone.replace(/[^\d]/g, '');
-		if (digits.length < 8) {
+		if (method === 'EMAIL') {
+			if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+				fieldError = 'Enter a valid email address';
+				return;
+			}
+		} else if (phone.replace(/[^\d]/g, '').length < 8) {
 			fieldError = 'Enter a valid phone number';
 			return;
 		}
 		sending = true;
 		try {
-			const result = await storefrontApi.sendOtp(phone.trim());
+			const to = method === 'EMAIL' ? { email: email.trim() } : { phone: phone.trim() };
+			const result = await storefrontApi.sendOtp(to);
 			// The countdown comes from the server so a reload cannot skip the wait,
-			// and the masked number means this screen never has to hold the raw one.
+			// and the masked address means this screen never has to hold the raw one.
 			const query = new URLSearchParams({
-				phone: phone.trim(),
 				next: safeNext,
 				resend_in: String(result.otp.resend_in)
 			});
-			if (result.phone) query.set('masked', result.phone);
+			if ('email' in to && to.email) query.set('email', to.email);
+			else query.set('phone', phone.trim());
+			const masked = result.email ?? result.phone;
+			if (masked) query.set('masked', masked);
+			if (result.otp.dev_code) query.set('dev', result.otp.dev_code);
 			await goto(`/verify-otp?${query.toString()}`);
 		} catch (err) {
 			error = friendlyError(err, 'We could not send a code. Try again shortly.');
@@ -84,12 +101,12 @@
 			Sign in
 		</h1>
 		<p style="margin:0 0 20px;font-size:var(--fs-title);color:var(--sf-text-2);line-height:1.5;">
-			We'll text you a code. No password, no email.
+			{method === 'EMAIL' ? "We'll email you a code." : "We'll text you a code."} No password needed.
 		</p>
 
 		{#if !enabled}
 			<div class="sf-alert" data-tone="warn" role="status">
-				<span>Phone sign-in is switched off at this store. You can still order as a guest.</span>
+				<span>This store does not offer sign-in right now. You can still order as a guest.</span>
 			</div>
 			<div style="margin-top:14px;">
 				<a class="sf-btn sf-btn-primary sf-btn-block" href="/menu">Browse the menu</a>
@@ -101,7 +118,32 @@
 				</div>
 			{/if}
 
+			{#if methods.length > 1}
+				<div class="sf-signin-tabs" role="tablist" aria-label="Sign in with">
+					<button type="button" role="tab" aria-selected={method === 'PHONE'} onclick={() => ((picked = 'PHONE'), (fieldError = ''))}>Phone</button>
+					<button type="button" role="tab" aria-selected={method === 'EMAIL'} onclick={() => ((picked = 'EMAIL'), (fieldError = ''))}>Email</button>
+				</div>
+			{/if}
+
 			<form onsubmit={submit} novalidate>
+				{#if method === 'EMAIL'}
+				<label class="sf-field">
+					<span class="sf-label">Email address</span>
+					<input
+						class="sf-input"
+						type="email"
+						inputmode="email"
+						bind:value={email}
+						autocomplete="email"
+						enterkeyhint="go"
+						aria-invalid={Boolean(fieldError)}
+						placeholder="you@example.com"
+					/>
+					{#if fieldError}
+						<span class="sf-field-error">{fieldError}</span>
+					{/if}
+				</label>
+				{:else}
 				<label class="sf-field">
 					<span class="sf-label">Phone number</span>
 					<input
@@ -118,6 +160,7 @@
 						<span class="sf-field-error">{fieldError}</span>
 					{/if}
 				</label>
+				{/if}
 				<button
 					class="sf-btn sf-btn-primary sf-btn-lg sf-btn-block"
 					type="submit"
@@ -146,8 +189,38 @@
 				style="display:flex;align-items:center;justify-content:center;gap:5px;margin:16px 0 0;font-size:var(--fs-code);color:var(--sf-text-3);"
 			>
 				<Lock size={13} stroke={1.6} aria-hidden="true" />
-				We only use your number for sign-in and order updates.
+				We only use your {method === 'EMAIL' ? 'email' : 'number'} for sign-in and order updates.
 			</p>
 		{/if}
 	</div>
 </div>
+
+<style>
+	.sf-signin-tabs {
+		display: flex;
+		padding: 3px;
+		margin-bottom: 16px;
+		border-radius: var(--sf-radius-sm);
+		background: var(--sf-surface-2);
+	}
+	.sf-signin-tabs button {
+		flex: 1;
+		height: 38px;
+		border: 0;
+		border-radius: calc(var(--sf-radius-sm) - 2px);
+		background: transparent;
+		color: var(--sf-text-2);
+		font: inherit;
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.sf-signin-tabs button[aria-selected='true'] {
+		background: var(--sf-surface);
+		color: var(--sf-text);
+		box-shadow: var(--sf-shadow-xs);
+	}
+	.sf-signin-tabs button:focus-visible {
+		outline: 2px solid var(--sf-primary);
+		outline-offset: 2px;
+	}
+</style>

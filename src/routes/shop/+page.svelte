@@ -710,7 +710,12 @@
 
 		<div class="dash-charts">
 			<StatusDonut data={analytics?.status_breakdown ?? []} loading={analyticsLoading} />
-			<HourlyBarsChart data={analytics?.orders_by_hour ?? []} loading={analyticsLoading} />
+			<HourlyBarsChart
+				data={analytics?.orders_by_hour ?? []}
+				grid={analytics?.orders_by_weekday_hour ?? []}
+				days={analytics?.days ?? 30}
+				loading={analyticsLoading}
+			/>
 		</div>
 
 		<div class="dash-charts">

@@ -5,6 +5,8 @@
 		storefrontAdminApi
 	} from '$lib/storefront/admin';
 	import { toast } from '$lib/components/admin/toast';
+	import SignInMethods from '$lib/components/studio/SignInMethods.svelte';
+	import type { SignInMethod } from '$lib/storefront/api';
 
 	let props: Partial<StorefrontContext> = $props();
 	const ctx = useStorefront(() => props);
@@ -18,6 +20,7 @@
 	}
 
 	let mode = $state<'off' | 'optional' | 'required'>(seed(() => initialMode()));
+	let methods = $state<SignInMethod[]>(seed(() => ctx.config.behaviour.customer_login_methods ?? ['PHONE', 'EMAIL']));
 	let saving = $state(false);
 
 	let dirty = false;
@@ -32,7 +35,7 @@
 		event.preventDefault();
 		saving = true;
 		const ok = await save(() =>
-			storefrontAdminApi.saveBehaviour({ customer_login_mode: mode })
+			storefrontAdminApi.saveBehaviour({ customer_login_mode: mode, customer_login_methods: methods })
 		);
 		saving = false;
 		if (ok) {
@@ -48,8 +51,8 @@
 	<div class="sfctl-section">
 		<h2>Customer sign-in</h2>
 		<p class="sfctl-note">
-			Phone OTP sign-in: no password, no email. Choose whether it is hidden, available, or
-			required before checkout.
+			Customers sign in with a one-time code, no password. Choose whether sign-in is hidden,
+			available, or required before checkout.
 		</p>
 
 		<div style="display:grid;gap:0.4rem;">
@@ -70,29 +73,32 @@
 		</div>
 	</div>
 
+	{#if mode !== 'off'}
+		<div class="sfctl-section">
+			<h2>Sign-in methods</h2>
+			<p class="sfctl-note">Only methods set up under Configuration, Integrations can be switched on.</p>
+			<SignInMethods {methods} channels={ctx.config.sign_in_channels} {mode} onchange={(m) => (methods = m)} />
+		</div>
+	{/if}
+
 	<div class="sfctl-section">
 		<h2>What a customer gets</h2>
 		<p class="sfctl-note">This is the list your customers read on the sign-in screen.</p>
 		<ul style="margin:0;padding-left:1.1rem;display:grid;gap:0.35rem;color:var(--text-2);font-size:var(--fs-body);">
 			<li>Their name and phone are filled in next time, so checkout is one tap shorter.</li>
 			<li>Every order they have placed, with live tracking from the profile screen.</li>
-			<li>Later: offers, coupons and loyalty: the plumbing is per-customer already.</li>
+
 		</ul>
 	</div>
 
 	<div class="sfctl-section">
 		<h2>How it works</h2>
-		<p class="sfctl-note">There is no email and no password anywhere in this flow.</p>
+		<p class="sfctl-note">There is no password anywhere in this flow.</p>
 		<ol style="margin:0;padding-left:1.1rem;display:grid;gap:0.35rem;color:var(--text-2);font-size:var(--fs-body);line-height:1.5;">
-			<li>The customer types a phone number.</li>
-			<li>They receive a six-digit code that expires in five minutes.</li>
+			<li>The customer enters a phone number or email, whichever you offer.</li>
+			<li>They receive a six-digit code by text or email that expires in five minutes.</li>
 			<li>They enter it once and are signed in on that device.</li>
 		</ol>
-		<div class="alert alert-info" style="margin-top:0.9rem;">
-			No SMS provider is wired up in this build, so the code is shown on screen and written to
-			the server log instead of being texted. The endpoints and the limits are already the real
-			ones.
-		</div>
 	</div>
 
 	<div class="sfctl-foot">

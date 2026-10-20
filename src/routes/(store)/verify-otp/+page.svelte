@@ -20,6 +20,10 @@
 	let { data } = $props();
 
 	const phone = $derived($page.url.searchParams.get('phone') ?? '');
+	const email = $derived($page.url.searchParams.get('email') ?? '');
+	/** Who the code goes to: an email address or a phone number. */
+	const target = $derived(email ? { email } : { phone });
+	const byEmail = $derived(Boolean(email));
 	const masked = $derived($page.url.searchParams.get('masked') ?? '');
 	/** The countdown the previous screen was told about, if any. */
 	const initialResend = $derived(Number($page.url.searchParams.get('resend_in') ?? 0));
@@ -41,9 +45,15 @@
 	let sent = $state(false);
 
 	onMount(() => {
-		if (!phone) {
+		if (!phone && !email) {
 			void goto('/login', { replaceState: true });
 			return;
+		}
+		// Development only: the server echoed the code, so fill it in.
+		const dev = $page.url.searchParams.get('dev') ?? '';
+		if (/^\d{6}$/.test(dev)) {
+			devCode = dev;
+			digits = dev.split('');
 		}
 		// A normal arrival means /login already sent the code; the timer carries
 		// over. A direct arrival does not, so offer to send one.
@@ -60,11 +70,11 @@
 		sending = true;
 		error = '';
 		try {
-			const result = await storefrontApi.sendOtp(phone);
+			const result = await storefrontApi.sendOtp(target);
 			sent = true;
 			resendIn = result.otp.resend_in;
-			// Outside production no SMS provider is wired, so the code comes back
-			// with the response. Autofilling it keeps the flow testable end to end.
+			// Outside production the code also comes back with the response.
+			// Autofilling it keeps the flow testable end to end.
 			devCode = result.otp.dev_code ?? '';
 			if (devCode) {
 				digits = devCode.split('').slice(0, length);
@@ -87,7 +97,7 @@
 		verifying = true;
 		error = '';
 		try {
-			await customerSession.signIn(data.tenantSlug ?? '', phone, code);
+			await customerSession.signIn(data.tenantSlug ?? '', target, code);
 			await goto(next, { replaceState: true });
 		} catch (err) {
 			error = friendlyError(err, 'That code did not work.');
@@ -126,13 +136,13 @@
 <div class="sf-wrap" style="padding-top:16px;">
 	<div style="max-width:420px;margin:8px auto 0;text-align:center;">
 		<h1 style="margin:0 0 6px;font-size:var(--fs-stat);font-weight:800;letter-spacing:-0.02em;">
-			{sent ? 'Enter the code' : 'Confirm your number'}
+			{sent ? 'Enter the code' : byEmail ? 'Confirm your email' : 'Confirm your number'}
 		</h1>
 		<p class="sf-otp-note" style="margin-bottom:20px;">
 			{#if sent}
-				Sent to {masked || formatPhone(phone)}
+				Sent to {masked || (byEmail ? email : formatPhone(phone))}
 			{:else}
-				We will text a code to {formatPhone(phone)}
+				We will {byEmail ? 'email' : 'text'} a code to {byEmail ? email : formatPhone(phone)}
 			{/if}
 		</p>
 
@@ -191,17 +201,17 @@
 
 			{#if devCode}
 				<div class="sf-alert" data-tone="info" style="margin-top:14px;text-align:left;">
-					<span>Development mode: the code is {devCode}: no SMS provider is configured.</span>
+					<span>Development build: your code is {devCode}.</span>
 				</div>
 			{/if}
 		{/if}
 
 		<p style="margin:20px 0 0;">
 			<a
-				href={'/login?phone=' + encodeURIComponent(phone)}
+				href={byEmail ? '/login?email=' + encodeURIComponent(email) : '/login?phone=' + encodeURIComponent(phone)}
 				style="font-size:0.8125rem;color:var(--sf-text-2);text-decoration:underline;text-underline-offset:2px;"
 			>
-				Use a different number
+				{byEmail ? 'Use a different email' : 'Use a different number'}
 			</a>
 		</p>
 

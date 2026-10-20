@@ -5,7 +5,7 @@ import CalendarCheck from '@tabler/icons-svelte/icons/calendar-check';
 import CalendarClock from '@tabler/icons-svelte/icons/calendar-clock';
 import ChefHat from '@tabler/icons-svelte/icons/chef-hat';
 import ClipboardList from '@tabler/icons-svelte/icons/clipboard-list';
-import CreditCard from '@tabler/icons-svelte/icons/credit-card';
+import SlidersHorizontal from '@tabler/icons-svelte/icons/adjustments-horizontal';
 import History from '@tabler/icons-svelte/icons/history';
 import LayoutDashboard from '@tabler/icons-svelte/icons/layout-dashboard';
 import LayoutTemplate from '@tabler/icons-svelte/icons/layout';
@@ -386,20 +386,19 @@ export const TENANT_NAV: ShopNavGroup[] = [
 		/*
 		 * Three destinations, not eight.
 		 *
-		 * Everything else that used to sit here: business profile, order
-		 * workflow, notifications, integrations, console appearance: is
-		 * configuration you open to change one thing and leave, so it lives as
-		 * a section inside Settings rather than as a permanent entry in the
-		 * rail. Payments and IAM stay out because they are the two an owner
-		 * checks on their own, not as part of a settings pass.
+		 * Configuration holds what connects the business to the outside world
+		 * (payments, notifications, email templates, integrations), each a
+		 * section behind one entry with an overview of what still needs doing.
+		 * Settings holds how the business and the console behave. IAM stays on
+		 * its own because an owner checks who has access as a task in itself.
 		 */
 		label: 'Organization',
 		items: [
 			{
-				href: '/shop/payments',
-				label: 'Payments',
-				icon: CreditCard,
-				exact: true,
+				href: '/shop/configuration',
+				label: 'Configuration',
+				icon: SlidersHorizontal,
+				nested: true,
 				permission: 'organization'
 			},
 			{
@@ -460,6 +459,7 @@ const TENANT_SEGMENT_LABELS: Record<string, string> = {
 	ai: 'AI',
 	hours: 'Operating Hours',
 	payments: 'Payments',
+	configuration: 'Configuration',
 	workflow: 'Order Workflow',
 	'business-profile': 'Business Profile',
 	'order-history': 'Order History',

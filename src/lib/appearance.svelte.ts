@@ -284,7 +284,14 @@ export function forgetAppearance(scope: string): void {
  * served by an older API renders instead of erroring: the personal layer is an
  * enhancement, not a prerequisite for signing in.
  */
-export async function loadAppearance(kind: ConsoleKind): Promise<ConsoleAppearance> {
+export function loadAppearance(kind: ConsoleKind): Promise<ConsoleAppearance> {
+	// The root layout and the console shell both ask on first paint: share one request.
+	return (inflight[kind] ??= fetchAppearance(kind).finally(() => delete inflight[kind]));
+}
+
+const inflight: Partial<Record<ConsoleKind, Promise<ConsoleAppearance>>> = {};
+
+async function fetchAppearance(kind: ConsoleKind): Promise<ConsoleAppearance> {
 	try {
 		return await api<ConsoleAppearance>(endpoint(kind));
 	} catch (err) {

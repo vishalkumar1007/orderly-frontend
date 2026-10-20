@@ -6,7 +6,7 @@
 	} from '$lib/storefront/admin';
 	import { seed, useStorefront, type StorefrontContext } from '$lib/storefront/admin-context';
 	import { toast } from '$lib/components/admin/toast';
-	import { settingsHref } from '$lib/tenant/settings';
+	import { configHref } from '$lib/tenant/configuration';
 
 	/**
 	 * Order workflow.
@@ -134,7 +134,7 @@
 			</div>
 		{/if}
 		<p class="field-hint" style="margin-top:0.7rem;">
-			Which methods you accept is set under <a href="/shop/payments">Payments</a>.
+			Which methods you accept is set under <a href={configHref('payments')}>Configuration → Payments</a>.
 		</p>
 	</div>
 
@@ -169,7 +169,7 @@
 		{/if}
 		<p class="field-hint" style="margin-top:0.7rem;">
 			What the customer is told as their order moves is set under
-			<a href={settingsHref('notifications')}>Notifications</a>.
+			<a href={configHref('notifications')}>Configuration → Notifications</a>.
 		</p>
 	</div>
 

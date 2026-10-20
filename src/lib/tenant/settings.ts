@@ -1,8 +1,6 @@
 import Bell from '@tabler/icons-svelte/icons/bell';
 import ListOrdered from '@tabler/icons-svelte/icons/list-numbers';
-import Mail from '@tabler/icons-svelte/icons/mail';
 import Palette from '@tabler/icons-svelte/icons/palette';
-import Plug from '@tabler/icons-svelte/icons/plug';
 import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
 import Store from '@tabler/icons-svelte/icons/building-store';
 import type { ShopPermission } from './nav';
@@ -54,30 +52,6 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
 		group: 'Business',
 		permission: 'organization',
 		lede: 'How an order moves from placed to collected. The stages themselves are fixed; these settings tune what happens around them.'
-	},
-	{
-		id: 'notifications',
-		label: 'Notifications',
-		icon: Bell,
-		group: 'Business',
-		permission: 'organization',
-		lede: 'What your customers hear from you as their order progresses, and where staff alerts are sent.'
-	},
-	{
-		id: 'email-templates',
-		label: 'Email templates',
-		icon: Mail,
-		group: 'Business',
-		permission: 'organization',
-		lede: 'Your logo, colour and the wording of every email your business sends. Anything you leave alone uses the standard email.'
-	},
-	{
-		id: 'integrations',
-		label: 'Integrations',
-		icon: Plug,
-		group: 'Business',
-		permission: 'integrations',
-		lede: 'Email, storage and AI. Each one runs on the platform’s configuration until you supply your own.'
 	},
 	{
 		id: 'appearance',

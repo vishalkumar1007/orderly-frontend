@@ -29,6 +29,8 @@ export type HeaderStyleId = 'sticky' | 'solid' | 'transparent';
 export type HeroStyleId = 'image' | 'gradient' | 'compact' | 'none';
 export type ProductLayoutId = 'list' | 'grid' | 'compact';
 export type FilterStyleId = 'chips' | 'pills' | 'rail';
+/** Background template: the neutral palette (light and dark) under the brand colours. */
+export type SurfaceStyleId = 'clean' | 'paper' | 'mist' | 'stone' | 'tinted' | 'contrast';
 export type CustomerLoginMode = 'off' | 'optional' | 'required';
 
 /** The theme as the public API returns it. */
@@ -43,6 +45,7 @@ export type StoreTheme = {
 	hero: HeroStyleId;
 	product_layout: ProductLayoutId;
 	filter_style: FilterStyleId;
+	surface?: SurfaceStyleId;
 	primary: string;
 	secondary: string;
 	accent: string;
@@ -84,6 +87,7 @@ export const FALLBACK_THEME: StoreTheme = {
 	hero: 'gradient',
 	product_layout: 'list',
 	filter_style: 'chips',
+	surface: 'clean',
 	primary: '#5b4bdb',
 	secondary: '#8b5cf6',
 	accent: '#06b6d4',
@@ -267,3 +271,48 @@ export function computeClientThemeVars(theme: StoreTheme): Record<string, string
 	};
 }
 
+
+function channel(v: number): number {
+	const s = v / 255;
+	return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+}
+
+function luminance({ r, g, b }: { r: number; g: number; b: number }): number {
+	return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+}
+
+function contrastRatio(a: { r: number; g: number; b: number }, b: { r: number; g: number; b: number }): number {
+	const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+	return (hi + 0.05) / (lo + 0.05);
+}
+
+const toHex = ({ r, g, b }: { r: number; g: number; b: number }) =>
+	'#' + [r, g, b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+
+/**
+ * The brand colour as it should be drawn in this colour mode.
+ *
+ * A near-black brand on the dark page, or a pale one on white, would make
+ * every button, tab and link vanish. The hue stays; the colour moves toward
+ * white (dark mode) or black (light mode) until it reaches 3:1 against the
+ * page, the minimum for buttons and large text. Most brands need no change.
+ */
+export function readablePrimary(hex: string, mode: 'light' | 'dark'): string {
+	const page = mode === 'dark' ? { r: 12, g: 13, b: 19 } : { r: 255, g: 255, b: 255 };
+	const toward = mode === 'dark' ? 255 : 0;
+	let c = hexToRgb(hex);
+	for (let i = 0; i < 20 && contrastRatio(c, page) < 3; i++) {
+		c = { r: c.r + (toward - c.r) * 0.12, g: c.g + (toward - c.g) * 0.12, b: c.b + (toward - c.b) * 0.12 };
+	}
+	return toHex(c);
+}
+
+/** Extra inline tokens for the resolved mode, or '' when the brand already reads. */
+export function modeVars(theme: StoreTheme | null | undefined, mode: 'light' | 'dark'): string {
+	const brand = theme?.primary;
+	if (!brand || !/^#?[0-9a-f]{3,6}$/i.test(brand.trim())) return '';
+	const fixed = readablePrimary(brand, mode);
+	if (fixed.toLowerCase() === toHex(hexToRgb(brand)).toLowerCase()) return '';
+	const { r, g, b } = hexToRgb(fixed);
+	return `--sf-primary:${fixed};--sf-primary-rgb:${r}, ${g}, ${b};--sf-primary-ink:${contrastInk(fixed)}`;
+}

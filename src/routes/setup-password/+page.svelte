@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
 	import ArrowRight from '@tabler/icons-svelte/icons/arrow-right';
 	import Eye from '@tabler/icons-svelte/icons/eye';
 	import EyeOff from '@tabler/icons-svelte/icons/eye-off';
@@ -16,8 +15,9 @@
 		homeForRole,
 		setupPassword
 	} from '$lib/auth';
-	import { api } from '$lib/api/client';
-	import { applyBrandTheme, clearBrandTheme, type BrandTheme } from '$lib/brandTheme';
+	import { brandVars, type BrandTheme } from '$lib/brandTheme';
+	import ServiceError from '$lib/components/ServiceError.svelte';
+	import type { LoadError } from '$lib/storefront/server';
 	import type { MfaSetup } from '$lib/mfaApi';
 
 	let password = $state('');
@@ -25,9 +25,6 @@
 	let error = $state('');
 	let loading = $state(false);
 	let showPassword = $state(false);
-	let brandTheme = $state<BrandTheme | null>(null);
-	let storeName = $state('');
-	let storeLogo = $state('');
 
 	// Forced enrollment: the account has zero MFA methods and the business
 	// requires one before a normal session is issued.
@@ -82,11 +79,13 @@
 
 	const token = $derived($page.url.searchParams.get('token') || '');
 
-	const hostKind = $derived($page.data.hostKind as 'admin' | 'tenant' | 'unknown');
 	const tenantSlug = $derived(($page.data.tenantSlug as string | null) ?? null);
 
-	const displayName = $derived(storeName || tenantSlug || 'Orderly');
-	const displayLogo = $derived(storeLogo);
+	const shop = $derived(($page.data.shop as { name: string; logoUrl: string } | null) ?? null);
+	const brandStyle = $derived(brandVars($page.data.brand as BrandTheme | null));
+	const loadError = $derived(($page.data.loadError as LoadError | null) ?? null);
+	const displayName = $derived(shop?.name || tenantSlug || 'Orderly');
+	const displayLogo = $derived(shop?.logoUrl || '');
 
 	const passwordStrength = $derived.by(() => {
 		if (!password) return { level: 0, label: '', color: '' };
@@ -100,41 +99,6 @@
 		if (score <= 3) return { level: 2, label: 'Fair', color: 'var(--warn)' };
 		if (score <= 4) return { level: 3, label: 'Good', color: 'var(--info)' };
 		return { level: 4, label: 'Strong', color: 'var(--success)' };
-	});
-
-	onMount(() => {
-		/*
-		 * The business's brand, on the very first page its owner ever opens.
-		 *
-		 * `/api/v1/public/theme` and not `/api/v1/tenant/theme`: whoever is
-		 * setting a password has no token yet by definition, so the
-		 * authenticated route answered 401 and this page fell back to the
-		 * built-in indigo: the one screen where the brand matters most was the
-		 * one screen that never showed it. The public route is the same handler
-		 * on the same host-resolved tenant, and the payload is presentation
-		 * only.
-		 */
-		if (hostKind === 'tenant') {
-			const storeConfig = ($page.data as {
-				config?: { store?: { name?: string; logo_url?: string } };
-			}).config;
-			if (storeConfig?.store?.name) storeName = storeConfig.store.name;
-			if (storeConfig?.store?.logo_url) storeLogo = storeConfig.store.logo_url;
-
-			api<BrandTheme>('/api/v1/public/theme')
-				.then((theme) => {
-					brandTheme = theme;
-					applyBrandTheme(theme);
-				})
-				.catch(() => {
-					// Unreachable or unthemed: the storefront name and logo above
-					// still identify the shop, which is the point of this page.
-				});
-		}
-
-		return () => {
-			clearBrandTheme();
-		};
 	});
 
 	async function submit(e: Event) {
@@ -175,7 +139,10 @@
 	}
 </script>
 
-<main class="setup-page">
+{#if loadError}
+	<ServiceError {...loadError} />
+{:else}
+<main class="setup-page" style={brandStyle}>
 	<div class="setup-content">
 		<div class="setup-brand">
 			{#if displayLogo}
@@ -336,6 +303,7 @@
 		</p>
 	</div>
 </main>
+{/if}
 
 <style>
 	.setup-page {

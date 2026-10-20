@@ -87,6 +87,7 @@ const itemsOf = (nav) =>
 try {
 	const nav = await vite.ssrLoadModule('/src/lib/tenant/nav.ts');
 	const tenantSettings = await vite.ssrLoadModule('/src/lib/tenant/settings.ts');
+	const tenantConfig = await vite.ssrLoadModule('/src/lib/tenant/configuration.ts');
 	const consoleTheme = await vite.ssrLoadModule('/src/lib/admin/consoleTheme.ts');
 	const studio = await vite.ssrLoadModule('/src/lib/storefront/studioSections.ts');
 	const sf = await vite.ssrLoadModule('/src/lib/storefront/admin-nav.ts');
@@ -152,7 +153,7 @@ try {
 	eq('/shop/storefront/actions', nav.tenantTitle('/shop/storefront/actions'), 'Action');
 	eq('/shop/storefront/promote', nav.tenantTitle('/shop/storefront/promote'), 'Publish & Marketing');
 	eq('/shop/storefront/launch', nav.tenantTitle('/shop/storefront/launch'), 'Publish & Marketing');
-	eq('/shop/payments', nav.tenantTitle('/shop/payments'), 'Payments');
+	eq('/shop/configuration', nav.tenantTitle('/shop/configuration'), 'Configuration');
 	eq('/shop/customers', nav.tenantTitle('/shop/customers'), 'Customers');
 	eq('/shop/iam', nav.tenantTitle('/shop/iam'), 'IAM');
 
@@ -211,11 +212,11 @@ try {
 	);
 
 	eq(
-		'payments trail',
-		nav.tenantCrumbs('/shop/payments'),
+		'configuration trail',
+		nav.tenantCrumbs('/shop/configuration'),
 		[
 			{ label: 'Overview', href: '/shop' },
-			{ label: 'Payments', href: null }
+			{ label: 'Configuration', href: null }
 		]
 	);
 
@@ -238,14 +239,16 @@ try {
 	);
 
 	// The point of the reorganisation: Organization offers three destinations,
-	// not the eight it accumulated. Everything else became a Settings section,
-	// and a rail entry creeping back is exactly what this catches.
+	// not the eight it accumulated. Payments, notifications, email templates
+	// and integrations are Configuration sections; profile, workflow,
+	// appearance and security are Settings sections. A rail entry creeping
+	// back is exactly what this catches.
 	{
 		const org = nav.TENANT_NAV.find((g) => g.label === 'Organization');
 		eq(
 			'Organization destinations',
 			org?.items.map((i) => i.label),
-			['Payments', 'IAM', 'Settings']
+			['Configuration', 'IAM', 'Settings']
 		);
 
 		const storefront = nav.TENANT_NAV.find((g) => g.label === 'Storefront');
@@ -275,7 +278,7 @@ try {
 
 	{
 		const ids = tenantSettings.SETTINGS_SECTIONS.map((s) => s.id);
-		eq('section ids', ids, ['business', 'workflow', 'notifications', 'email-templates', 'integrations', 'appearance', 'security']);
+		eq('section ids', ids, ['business', 'workflow', 'appearance', 'security']);
 		eq('no duplicate section id', ids.length, new Set(ids).size);
 
 		// Every section names a capability the API actually grants, or none at
@@ -317,6 +320,37 @@ try {
 			'a section link points at the settings screen',
 			tenantSettings.settingsHref('workflow'),
 			'/shop/settings?section=workflow'
+		);
+	}
+
+	/* ---------------------------------------------------------------- */
+	group('Configuration sections');
+
+	{
+		const ids = tenantConfig.CONFIG_SECTIONS.map((s) => s.id);
+		eq('section ids', ids, ['overview', 'payments', 'notifications', 'email-templates', 'integrations']);
+		eq('no duplicate section id', ids.length, new Set(ids).size);
+		eq(
+			'no section in both Configuration and Settings',
+			ids.filter((id) => tenantSettings.SETTINGS_SECTIONS.some((s) => s.id === id)),
+			[]
+		);
+		eq('the overview opens first', tenantConfig.configSectionFor(null, ['organization', 'integrations']).id, 'overview');
+		eq(
+			'an owner without the integrations capability does not see it',
+			tenantConfig.visibleConfigSections(['organization']).map((s) => s.id),
+			['overview', 'payments', 'notifications', 'email-templates']
+		);
+		eq('staff see no configuration', tenantConfig.visibleConfigSections(['selling', 'kitchen']).length, 0);
+		eq(
+			'a section link carries extra parameters',
+			tenantConfig.configHref('integrations', 'service=SMTP'),
+			'/shop/configuration?section=integrations&service=SMTP'
+		);
+		eq(
+			'old Settings links are forwarded for every moved section',
+			['notifications', 'email-templates', 'integrations'].every((id) => tenantConfig.MOVED_FROM_SETTINGS.has(id)),
+			true
 		);
 	}
 
@@ -558,7 +592,7 @@ try {
 
 	// The catalogue is data, so a code with no template must still produce one.
 	// This is the guarantee that lets an operator add a type without a release.
-	for (const code of ['FOOD_SHOP', 'GROCERY', 'CAFE', 'RESTAURANT', 'HOTEL']) {
+	for (const code of ['FOOD_SHOP', 'GROCERY', 'CAFE', 'RESTAURANT', 'HOTEL', 'BARBER', 'GENERAL', 'FASHION', 'ELECTRONICS', 'SALON', 'AUTOMOTIVE']) {
 		const tpl = types.templateFor(code);
 		eq(`${code} has its own template`, tpl.code, code);
 	}

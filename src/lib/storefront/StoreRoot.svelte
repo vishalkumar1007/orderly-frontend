@@ -14,7 +14,7 @@
 	 *    mode-independent; only the neutral surfaces change, and those are keyed
 	 *    off `data-sf-theme` in the stylesheet.
 	 */
-	import { hasCompleteTokens, resolveThemeMode, themeVars, FALLBACK_THEME } from './theme';
+	import { hasCompleteTokens, modeVars, resolveThemeMode, themeVars, FALLBACK_THEME } from './theme';
 	import { STOREFRONT_THEME_TOGGLE_KEY, type StorefrontThemeToggle } from './themeToggle.svelte';
 	import { onMount, setContext } from 'svelte';
 
@@ -86,6 +86,6 @@
 	setContext(STOREFRONT_THEME_TOGGLE_KEY, toggleApi);
 </script>
 
-<div class="sf-root" data-sf-theme={resolved} data-sf-tenant={tenantSlug || undefined} style={vars}>
+<div class="sf-root" data-sf-theme={resolved} data-sf-surface={theme.surface ?? 'clean'} data-sf-tenant={tenantSlug || undefined} style={[vars, modeVars(theme, resolved)].filter(Boolean).join(';')}>
 	{@render children()}
 </div>

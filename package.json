@@ -11,6 +11,7 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"check:nav": "node scripts/check_nav.mjs",
+		"check:storefront": "node scripts/check_storefront.mjs",
 		"check:ci": "node scripts/check_ci.mjs"
 	},
 	"devDependencies": {
@@ -30,6 +31,7 @@
 		"@lucide/svelte": "^1.48.0",
 		"@tabler/icons-svelte": "^3.48.0",
 		"d3-scale": "^4.0.2",
+		"echarts": "^5.6.0",
 		"layerchart": "^2.5.0"
 	}
 }

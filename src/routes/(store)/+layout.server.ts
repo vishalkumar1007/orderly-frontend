@@ -17,10 +17,10 @@ import type { LayoutServerLoad } from './$types';
  * colours, with no flash of a default: and so moving between storefront pages
  * does not re-fetch it.
  *
- * A failure here is not fatal. Browsing degrades to the default theme and an
- * error banner rather than a dead page, because a menu in the wrong accent
- * colour is much better than a shop that will not open. Unpublished shops
- * (404 not_found) stay on the unpublished screen: that is intentional.
+ * A failure here blocks the page with an error screen: a storefront in the
+ * default theme with a placeholder name looks like a different shop, so it is
+ * never rendered as if it worked. Unpublished shops (404 not_found) stay on
+ * the unpublished screen: that is intentional.
  */
 export const load: LayoutServerLoad = async ({ locals }) => {
 	if (locals.hostKind !== 'tenant' || !locals.tenantSlug) {
@@ -33,7 +33,8 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 				tenantSlug: null,
 				config: null,
 				configError: '',
-				configErrorCode: ''
+				configErrorCode: '',
+				configErrorStatus: 0
 			};
 		}
 		throw redirect(302, '/shop/login');
@@ -46,7 +47,8 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 			tenantSlug: locals.tenantSlug,
 			config,
 			configError: '',
-			configErrorCode: ''
+			configErrorCode: '',
+			configErrorStatus: 0
 		};
 	} catch (error) {
 		const message =
@@ -60,7 +62,8 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 			tenantSlug: locals.tenantSlug,
 			config: null,
 			configError: message,
-			configErrorCode: code
+			configErrorCode: code,
+			configErrorStatus: error instanceof ApiClientError ? error.status : 0
 		};
 	}
 };

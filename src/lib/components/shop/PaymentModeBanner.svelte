@@ -48,7 +48,7 @@
 				<p>
 					Your shop is set to real payments, but the gateway is not ready, so customers can only
 					pay at pickup. Check your keys under
-					<a href="/shop/settings?section=integrations&service=PAYMENTS">Settings → Integrations → Payments</a>,
+					<a href="/shop/configuration?section=payments">Configuration → Payments</a>,
 					or contact support.
 				</p>
 			</div>

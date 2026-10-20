@@ -24,7 +24,8 @@
 	import VolumeOff from '@tabler/icons-svelte/icons/volume-off';
 	import { playSound, soundState, unlockSound } from '$lib/sound.svelte';
 	import { clearBrandTheme, invalidateBrandThemeCache } from '$lib/brandTheme';
-	import { forgetAppearance } from '$lib/appearance.svelte';
+	import { adoptAppearance, forgetAppearance, loadAppearance } from '$lib/appearance.svelte';
+	import ServiceError from '$lib/components/ServiceError.svelte';
 	import { activateUpdate, onUpdateAvailable } from '$lib/pwa.svelte';
 	import AdminShellSkeleton from '$lib/components/admin/AdminShellSkeleton.svelte';
 	import Toaster from '$lib/components/admin/Toaster.svelte';
@@ -57,9 +58,10 @@
 	 * otherwise the rail and account menu flash for the wrong person. Mirrors the
 	 * Super Admin layout.
 	 */
-	type Status = 'loading' | 'ready' | 'anon' | 'blocked';
+	type Status = 'loading' | 'ready' | 'anon' | 'blocked' | 'error';
 
 	let status = $state<Status>('loading');
+	let loadError = $state<{ code: string; status: number; message: string } | null>(null);
 	let user = $state<User | null>(null);
 	let shopName = $state('');
 	let storefrontUrl = $state('');
@@ -164,7 +166,12 @@
 			// One call for both: the rail's labels come from the business type,
 			// so the shell must not render before it knows what kind of
 			// business this is.
-			const resolved = await meWithTenant();
+			// The theme is awaited with identity so the shell never paints in the
+			// built-in accent and then switches to the business's own.
+			const [resolved, appearance] = await Promise.all([
+				meWithTenant(),
+				loadAppearance('tenant')
+			]);
 			if (gen !== authGen) return;
 			// Every business role, including manager. What each may reach is
 			// decided by their permissions, not by this list.
@@ -178,6 +185,7 @@
 			// Publish it before the first child renders, so no screen has to
 			// paint generic wording and then correct itself.
 			setBusinessType(resolved.tenant?.business_type);
+			adoptAppearance('tenant', data.tenantSlug || 'tenant', appearance);
 			status = 'ready';
 		} catch (err) {
 			if (gen !== authGen) return;
@@ -188,8 +196,18 @@
 				status = 'blocked';
 				return;
 			}
-			status = 'anon';
-			goto('/shop/login', { replaceState: true });
+			// Only a rejected session goes back to sign-in. A down or failing API
+			// is not the person's fault and must not look like being signed out.
+			if (err instanceof ApiClientError && (err.status === 401 || err.status === 403)) {
+				status = 'anon';
+				goto('/shop/login', { replaceState: true });
+				return;
+			}
+			loadError =
+				err instanceof ApiClientError
+					? { code: err.code, status: err.status, message: err.message }
+					: { code: 'error', status: 0, message: err instanceof Error ? err.message : String(err) };
+			status = 'error';
 		}
 	}
 
@@ -390,6 +408,8 @@
 		<p>{blockedMessage}</p>
 		<button type="button" class="btn btn-ghost" onclick={signOut}>Sign out</button>
 	</main>
+{:else if status === 'error' && loadError}
+	<ServiceError {...loadError} onRetry={() => resolve('protected')} />
 {:else if status === 'loading'}
 	<!-- Shell-shaped so the frame doesn't jump when identity resolves. -->
 	<AdminShellSkeleton />

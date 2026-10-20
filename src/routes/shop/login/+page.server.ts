@@ -1,7 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import type { BrandTheme } from '$lib/brandTheme';
-import type { StoreConfig } from '$lib/storefront/api';
-import { serverApi } from '$lib/storefront/server';
+import { loadShopBrand } from '$lib/storefront/server';
 import type { PageServerLoad } from './$types';
 
 /**
@@ -15,39 +13,19 @@ import type { PageServerLoad } from './$types';
  * Everything on this screen comes from the two public endpoints, and that is not
  * a convenience: it is forced. A sign-in page renders precisely when nobody is
  * signed in, so it has no token, so the authenticated tenant APIs are all 401.
- * Both reads degrade to null rather than failing: a login page that shows the
- * wrong accent, or no logo, is still a login page, and one that errors instead
- * is the one screen that must never fail.
+ * A 404 on either read just means nothing is published yet and degrades to
+ * null. Any other failure blocks the page with an error screen rather than a
+ * sign-in in the wrong colours that then cannot sign anybody in anyway.
  */
 export const load: PageServerLoad = async ({ locals }) => {
 	if (locals.hostKind !== 'tenant' || !locals.tenantSlug) {
 		// The platform host has its own console entry point.
 		if (locals.hostKind === 'unknown') {
-			return { hostKind: locals.hostKind, tenantSlug: null, shop: null, brand: null };
+			return { hostKind: locals.hostKind, tenantSlug: null, shop: null, brand: null, loadError: null };
 		}
 		throw redirect(302, '/superadmin/login');
 	}
 
-	const [storeResult, brandResult] = await Promise.allSettled([
-		serverApi<StoreConfig>('/api/v1/public/store', locals),
-		serverApi<BrandTheme>('/api/v1/public/theme', locals)
-	]);
-
-	let shop: { name: string; logoUrl: string } | null = null;
-	if (storeResult.status === 'fulfilled') {
-		const config = storeResult.value;
-		if (config?.store) {
-			shop = {
-				// The slug is a better answer than an empty string, and a better
-				// answer than the hostname a human typed.
-				name: config.store.name?.trim() || locals.tenantSlug,
-				logoUrl: config.store.logo_url?.trim() || ''
-			};
-		}
-	}
-
-	const brand =
-		brandResult.status === 'fulfilled' && brandResult.value?.tokens ? brandResult.value : null;
-
-	return { hostKind: locals.hostKind, tenantSlug: locals.tenantSlug, shop, brand };
+	const { shop, brand, loadError } = await loadShopBrand(locals);
+	return { hostKind: locals.hostKind, tenantSlug: locals.tenantSlug, shop, brand, loadError };
 };

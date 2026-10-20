@@ -8,6 +8,7 @@
 	import { useCart } from '$lib/storefront/cart-state.svelte';
 	import { lineKey } from '$lib/storefront/cart.svelte';
 	import type { StoreProduct } from '$lib/storefront/api';
+	import { cardShape, experienceFor } from '$lib/storefront/experience';
 
 	/**
 	 * Full menu with sticky filters.
@@ -21,7 +22,8 @@
 	const config = $derived(data.config);
 	const menu = $derived(data.menu);
 	const query = $derived($page.url.searchParams.get('q')?.trim() ?? '');
-	const layout = $derived(config?.theme?.product_layout ?? 'list');
+	const exp = $derived(experienceFor(config));
+	const layout = $derived(cardShape(exp, config?.theme?.product_layout ?? 'list'));
 	const filterStyle = $derived(config?.theme?.filter_style ?? 'chips');
 
 	type DietFilter = 'all' | 'veg' | 'nonveg';
@@ -58,7 +60,7 @@
 	const grouped = $derived.by(() => {
 		if (!menu) return [];
 		if (categoryId !== 'all' || query) {
-			return [{ id: 'results', name: query ? `Results for “${query}”` : 'Menu', products: filtered }];
+			return [{ id: 'results', name: query ? `Results for “${query}”` : exp.words.catalog, products: filtered }];
 		}
 		return menu.categories
 			.map((c) => ({
@@ -105,7 +107,7 @@
 			<span class="sf-empty-icon" aria-hidden="true">
 				<UtensilsCrossed size={26} stroke={1.6} />
 			</span>
-			<h3>Menu unavailable</h3>
+			<h3>{exp.words.catalog} unavailable</h3>
 			<p>{data.menuError || 'This store has not published its menu yet.'}</p>
 		</div>
 	</div>
@@ -138,6 +140,7 @@
 						{/each}
 					</div>
 				</div>
+				{#if exp.features.dietMarks}
 				<div class="sf-filter-group">
 					<span class="sf-filter-label">Diet</span>
 					<div class="sf-filter-bar" data-style={filterStyle} data-wrap="true">
@@ -146,6 +149,7 @@
 						<button class="sf-filter-chip" type="button" data-active={String(diet === 'nonveg')} onclick={() => (diet = 'nonveg')}>Non-veg</button>
 					</div>
 				</div>
+				{/if}
 				<div class="sf-filter-group">
 					<span class="sf-filter-label">Highlights</span>
 					<div class="sf-filter-bar" data-style={filterStyle} data-wrap="true">
@@ -174,8 +178,10 @@
 						>
 					{/each}
 					<span class="sf-filter-sep" aria-hidden="true"></span>
+					{#if exp.features.dietMarks}
 					<button class="sf-filter-chip" type="button" data-active={String(diet === 'veg')} onclick={() => (diet = diet === 'veg' ? 'all' : 'veg')}>Veg</button>
 					<button class="sf-filter-chip" type="button" data-active={String(diet === 'nonveg')} onclick={() => (diet = diet === 'nonveg' ? 'all' : 'nonveg')}>Non-veg</button>
+					{/if}
 					<button class="sf-filter-chip" type="button" data-active={String(flag === 'popular')} onclick={() => (flag = flag === 'popular' ? 'all' : 'popular')}>Popular</button>
 					<button class="sf-filter-chip" type="button" data-active={String(flag === 'featured')} onclick={() => (flag = flag === 'featured' ? 'all' : 'featured')}>Featured</button>
 					<button
@@ -242,11 +248,12 @@
 							{#if 'description' in group && group.description}
 								<p class="sf-menu-section-desc">{group.description}</p>
 							{/if}
-							<div class="sf-products" data-layout={layout}>
+							<div class="sf-products menu-items" data-layout={layout}>
 								{#each group.products as product (product.id)}
 									<ProductCard
 										{product}
 										{layout}
+										{exp}
 										currency={config?.store?.currency ?? 'INR'}
 										inCart={cart.quantityOf(product.id)}
 										orderable={config?.ordering.enabled ?? false}
@@ -262,3 +269,14 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	.menu-items[data-layout='tile'] {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+		gap: 24px 14px;
+	}
+	.menu-items[data-layout='spec'] > :global(.pc) {
+		border-bottom: 1px solid var(--sf-border);
+	}
+</style>

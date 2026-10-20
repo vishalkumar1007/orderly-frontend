@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { StoreConfig, StoreHours } from '$lib/storefront/api';
 	import { DayLabels } from '$lib/storefront/hours';
-	import { money } from '$lib/storefront/format';
 	import { formatPhone } from '$lib/storefront/format';
+	import { experienceFor } from '$lib/storefront/experience';
 
 	/**
 	 * The footer.
@@ -23,6 +23,18 @@
 	const store = $derived(config?.store ?? null);
 	const hours = $derived(config?.hours ?? null);
 	const currency = $derived(config?.store?.currency ?? 'INR');
+	const exp = $derived(experienceFor(config));
+	/** Where the customer's history lives and what this business does. */
+	const links = $derived(
+		exp.family === 'order'
+			? [{ href: '/menu', label: exp.words.catalog }, { href: '/orders', label: 'Your orders' }]
+			: [{ href: exp.family === 'book' ? '/bookings' : '/reservations', label: `Your ${exp.words.history.toLowerCase()}` }]
+	);
+	const note = $derived(
+		exp.family === 'order'
+			? `${exp.words.fulfilment} only. Prices in ${currency}.`
+			: `Prices in ${currency}. ${exp.words.payAtVenue}.`
+	);
 </script>
 
 <footer class="sf-footer">
@@ -40,15 +52,14 @@
 
 	{#if showHours && hours && !hours.always_open}
 		<p class="sf-footer-note" style="margin-top:8px;">
-			{hours.is_open ? hours.detail : hours.detail}
+			{hours.detail}
 		</p>
 	{/if}
 
 	<nav class="sf-footer-links" aria-label="More">
-		<a href="/menu">Menu</a>
-		<a href="/orders">Your orders</a>
-		<a href="/login">Sign in</a>
+		{#each links as l (l.href)}<a href={l.href}>{l.label}</a>{/each}
+		{#if exp.features.signIn}<a href="/login">Sign in</a>{/if}
 	</nav>
 
-	<p class="sf-footer-note" style="margin-top:14px;">Pickup only · Prices in {currency}</p>
+	<p class="sf-footer-note" style="margin-top:14px;">{note}</p>
 </footer>

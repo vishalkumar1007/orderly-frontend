@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
+import { configHref } from '$lib/tenant/configuration';
 
-/** Payments has its own destination in the rail. */
+/** Payments is a section of Configuration. */
 export function load() {
-	throw redirect(302, '/shop/payments');
+	throw redirect(302, configHref('payments'));
 }

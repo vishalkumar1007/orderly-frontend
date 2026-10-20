@@ -110,6 +110,8 @@ export type StoreOrdering = {
 	prep_time_minutes: number;
 	customer_login: boolean;
 	customer_login_mode: 'off' | 'optional' | 'required';
+	/** Sign-in methods customers can use here: chosen by the owner and set up in Configuration. */
+	customer_login_methods?: SignInMethod[];
 	payment_requirement: string;
 	auto_accept: boolean;
 	ready_notification: boolean;
@@ -136,7 +138,77 @@ export type StoreConfig = {
 	ordering: StoreOrdering;
 	hours: StoreHours;
 	preview: boolean;
+	/** Enabled capability codes. Older servers omit it. */
+	capabilities?: string[];
+	booking?: BookingSettings;
 };
+
+export type BookingSettings = {
+	slot_step_minutes: number;
+	lead_time_minutes: number;
+	horizon_days: number;
+	cancel_window_minutes: number;
+	max_nights: number;
+	requires_sign_in: boolean;
+	payment: 'PAY_AT_VENUE';
+};
+
+export type StoreService = {
+	id: string;
+	name: string;
+	duration_minutes: number;
+	price: number;
+};
+
+export type StoreStaff = { id: string; name: string };
+
+/** A bookable start time. `start` is an RFC 3339 instant. */
+export type StoreSlot = { start: string; staff_id: string };
+
+export type CustomerAppointment = {
+	id: string;
+	service_id: string;
+	service_name: string;
+	price: number;
+	duration_minutes: number;
+	staff_id: string;
+	staff_name: string;
+	scheduled_at: string;
+	ends_at: string;
+	status: string;
+	notes: string;
+	can_cancel: boolean;
+	can_reschedule: boolean;
+};
+
+export type StoreRoomType = {
+	id: string;
+	name: string;
+	description: string;
+	image_url: string;
+	base_price: number;
+	max_guests: number;
+	/** Only present when the request named dates. */
+	available?: number;
+	nights?: number;
+	total?: number;
+};
+
+export type CustomerReservation = {
+	id: string;
+	room_type_id: string;
+	room_type_name: string;
+	image_url: string;
+	check_in: string;
+	check_out: string;
+	guests: number;
+	status: string;
+	total_amount: number | null;
+	notes: string;
+	can_cancel: boolean;
+};
+
+export type StaySearch = { check_in: string; check_out: string; guests: number };
 
 export type CartTotals = {
 	subtotal: number;
@@ -360,17 +432,16 @@ export const storefrontApi = {
 		);
 	},
 
-	sendOtp: (phone: string) =>
-		api<{ phone: string; otp: OtpState; expires_in: number }>('/api/v1/auth/customer/send-otp', {
-			...guest,
-			method: 'POST',
-			body: JSON.stringify({ phone })
-		}),
+	sendOtp: (to: OtpTarget) =>
+		api<{ method: SignInMethod; phone?: string; email?: string; otp: OtpState; expires_in: number }>(
+			'/api/v1/auth/customer/send-otp',
+			{ ...guest, method: 'POST', body: JSON.stringify(to) }
+		),
 
-	verifyOtp: (phone: string, code: string) =>
+	verifyOtp: (to: OtpTarget, code: string) =>
 		api<{ tokens: CustomerTokens; customer: SessionCustomer; store_name: string }>(
 			'/api/v1/auth/customer/verify-otp',
-			{ ...guest, method: 'POST', body: JSON.stringify({ phone, code }) }
+			{ ...guest, method: 'POST', body: JSON.stringify({ ...to, code }) }
 		),
 
 	profile: (token: string | null) => api<CustomerProfile>('/api/v1/customer/profile', asCustomer(token)),
@@ -386,7 +457,68 @@ export const storefrontApi = {
 		api<{ orders: OrderSummary[] }>('/api/v1/customer/orders', asCustomer(token)),
 
 	order: (orderNumber: number, token: string | null) =>
-		api<OrderDetail>(`/api/v1/customer/orders/${orderNumber}`, asCustomer(token))
+		api<OrderDetail>(`/api/v1/customer/orders/${orderNumber}`, asCustomer(token)),
+
+	services: () =>
+		api<{ services: StoreService[]; staff: StoreStaff[] }>('/api/v1/public/services', guest),
+
+	slots: (serviceId: string, date: string, staffId = '') => {
+		const q = new URLSearchParams({ service_id: serviceId, date });
+		if (staffId) q.set('staff_id', staffId);
+		return api<{ slots: StoreSlot[] }>(`/api/v1/public/slots?${q}`, guest);
+	},
+
+	book: (
+		payload: { service_id: string; staff_id: string; start: string; notes: string; client_token: string },
+		token: string | null
+	) =>
+		api<CustomerAppointment>('/api/v1/public/appointments', {
+			...asCustomer(token),
+			method: 'POST',
+			body: JSON.stringify(payload)
+		}),
+
+	appointments: (token: string | null) =>
+		api<{ appointments: CustomerAppointment[] }>('/api/v1/customer/appointments', asCustomer(token)),
+
+	cancelAppointment: (id: string, token: string | null) =>
+		api<CustomerAppointment>(`/api/v1/customer/appointments/${encodeURIComponent(id)}/cancel`, {
+			...asCustomer(token),
+			method: 'POST'
+		}),
+
+	rescheduleAppointment: (id: string, payload: { start: string; staff_id: string }, token: string | null) =>
+		api<CustomerAppointment>(`/api/v1/customer/appointments/${encodeURIComponent(id)}/reschedule`, {
+			...asCustomer(token),
+			method: 'POST',
+			body: JSON.stringify(payload)
+		}),
+
+	roomTypes: (search?: StaySearch) => {
+		const q = search
+			? `?${new URLSearchParams({ check_in: search.check_in, check_out: search.check_out, guests: String(search.guests) })}`
+			: '';
+		return api<{ room_types: StoreRoomType[] }>(`/api/v1/public/room-types${q}`, guest);
+	},
+
+	reserve: (
+		payload: StaySearch & { room_type_id: string; notes: string; client_token: string },
+		token: string | null
+	) =>
+		api<CustomerReservation>('/api/v1/public/reservations', {
+			...asCustomer(token),
+			method: 'POST',
+			body: JSON.stringify(payload)
+		}),
+
+	reservations: (token: string | null) =>
+		api<{ reservations: CustomerReservation[] }>('/api/v1/customer/reservations', asCustomer(token)),
+
+	cancelReservation: (id: string, token: string | null) =>
+		api<CustomerReservation>(`/api/v1/customer/reservations/${encodeURIComponent(id)}/cancel`, {
+			...asCustomer(token),
+			method: 'POST'
+		})
 };
 
 export type OtpState = {
@@ -411,8 +543,14 @@ export type SessionCustomer = {
 	name: string;
 	phone: string;
 	phone_full: string;
+	email?: string;
 	is_new: boolean;
 };
+
+export type SignInMethod = 'PHONE' | 'EMAIL';
+
+/** Who a sign-in code goes to. */
+export type OtpTarget = { phone: string; email?: never } | { email: string; phone?: never };
 
 export type QuoteRequest = {
 	product_id: string;

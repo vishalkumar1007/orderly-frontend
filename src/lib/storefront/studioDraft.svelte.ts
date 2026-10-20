@@ -71,6 +71,7 @@ const FIELDS: FieldSpec[] = [
 	// Look
 	{ category: 'Look', label: 'Theme preset', path: 'theme.preset' },
 	{ category: 'Look', label: 'Default theme', path: 'theme.mode' },
+	{ category: 'Look', label: 'Background style', path: 'theme.surface' },
 	{
 		category: 'Look',
 		label: 'Customer theme switch',
@@ -494,6 +495,7 @@ export class StudioDraftStore {
 				hero: d.theme.hero,
 				product_layout: d.theme.product_layout,
 				filter_style: d.theme.filter_style,
+				surface: d.theme.surface,
 				primary: d.theme.primary,
 				secondary: d.theme.secondary,
 				accent: d.theme.accent,
@@ -504,6 +506,7 @@ export class StudioDraftStore {
 				ordering_enabled: d.behaviour.ordering_enabled,
 				closed_message: d.behaviour.closed_message,
 				customer_login_mode: d.behaviour.customer_login_mode,
+				customer_login_methods: d.behaviour.customer_login_methods,
 				prep_time_minutes: d.behaviour.prep_time_minutes,
 				tax_percent: d.behaviour.tax_percent,
 				packaging_fee: d.behaviour.packaging_fee,

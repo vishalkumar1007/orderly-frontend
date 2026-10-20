@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { experienceFor } from '$lib/storefront/experience';
+	import { isSignedIn } from '$lib/storefront/session.svelte';
 	import { onMount } from 'svelte';
 	import ArrowLeft from '@tabler/icons-svelte/icons/arrow-left';
 	import Minus from '@tabler/icons-svelte/icons/minus';
@@ -23,6 +25,11 @@
 
 	const cart = useCart();
 	const config = $derived(data.config);
+	const exp = $derived(experienceFor(config));
+	let signedIn = $state(true);
+	onMount(() => (signedIn = isSignedIn(data.tenantSlug ?? '')));
+	/** The shop asks customers to sign in before ordering, so say so here, not at the last step. */
+	const mustSignIn = $derived(exp.features.signInRequired && !signedIn);
 	const currency = $derived(config?.store?.currency ?? 'INR');
 	const orderable = $derived(config?.ordering.enabled ?? false);
 
@@ -89,8 +96,8 @@
 				<ShoppingBag size={26} stroke={1.6} />
 			</span>
 			<h3>Your cart is empty</h3>
-			<p>Add something from the menu and it will show up here.</p>
-			<a class="sf-btn sf-btn-primary" href="/menu">Browse the menu</a>
+			<p>Add something from the {exp.words.catalog.toLowerCase()} and it will show up here.</p>
+			<a class="sf-btn sf-btn-primary" href="/menu">Browse the {exp.words.catalog.toLowerCase()}</a>
 		</div>
 	{:else}
 		<div class="sf-panel">
@@ -192,8 +199,13 @@
 		</div>
 
 		<div style="margin-top:16px;display:grid;gap:10px;">
-			<a class="sf-btn sf-btn-primary sf-btn-lg sf-btn-block" href="/checkout">
-				Checkout · {money(totals.total, currency)}
+			{#if mustSignIn}
+				<p style="margin:0;font-size:var(--fs-body);color:var(--sf-text-2);line-height:1.45;">
+					{config?.store?.name ?? 'This shop'} asks you to sign in with your phone before ordering. It takes one code.
+				</p>
+			{/if}
+			<a class="sf-btn sf-btn-primary sf-btn-lg sf-btn-block" href={mustSignIn ? '/login?next=%2Fcheckout' : '/checkout'}>
+				{mustSignIn ? 'Sign in to check out' : `Checkout, ${money(totals.total, currency)}`}
 			</a>
 			<a class="sf-btn sf-btn-secondary sf-btn-block" href="/menu">
 				<ArrowLeft size={17} stroke={1.6} aria-hidden="true" />

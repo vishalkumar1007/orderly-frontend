@@ -8,7 +8,7 @@
  */
 
 import { api, ApiClientError } from '$lib/api/client';
-import type { StoreConfig } from './api';
+import type { SignInMethod, StoreConfig } from './api';
 import type { StoreTheme } from './theme';
 
 /** A homepage section as the admin editor holds it. */
@@ -64,6 +64,8 @@ export type AdminStorefront = {
 		currency: string;
 		timezone: string;
 	};
+	/** Sent with the live config: which sign-in channels are set up. */
+	sign_in_channels?: Partial<Record<SignInMethod, SignInChannel>>;
 	theme: StoreTheme & {
 		hero_image_url: string;
 		customer_mode_switch_enabled?: boolean;
@@ -74,6 +76,8 @@ export type AdminStorefront = {
 		closed_message: string;
 		customer_login_enabled: boolean;
 		customer_login_mode: 'off' | 'optional' | 'required';
+		/** Methods the owner offers. Customers only see those whose channel is ready. */
+		customer_login_methods?: SignInMethod[];
 		prep_time_minutes: number;
 		tax_percent: number;
 		packaging_fee: number;
@@ -177,6 +181,7 @@ export const storefrontAdminApi = {
 		closed_message?: string;
 		customer_login_enabled?: boolean;
 		customer_login_mode?: 'off' | 'optional' | 'required';
+		customer_login_methods?: SignInMethod[];
 		prep_time_minutes?: number;
 		tax_percent?: number | string;
 		packaging_fee?: number | string;
@@ -208,6 +213,7 @@ export const storefrontAdminApi = {
 		hero?: string;
 		product_layout?: string;
 		filter_style?: string;
+		surface?: string;
 		primary?: string;
 		secondary?: string;
 		accent?: string;
@@ -480,6 +486,16 @@ export const LOGIN_MODE_OPTIONS = [
 	}
 ];
 
+/** Background templates. Each pairs a light and a dark palette, so mode still applies. */
+export const SURFACE_OPTIONS: Array<{ value: string; label: string; hint: string; light: string; dark: string }> = [
+	{ value: 'clean', label: 'Clean', hint: 'Bright white, navy dark', light: '#ffffff', dark: '#0c0d13' },
+	{ value: 'paper', label: 'Paper', hint: 'Warm cream, espresso dark', light: '#f6f2ea', dark: '#14110d' },
+	{ value: 'mist', label: 'Mist', hint: 'Cool blue grey, midnight slate', light: '#f2f5f9', dark: '#0f172a' },
+	{ value: 'stone', label: 'Stone', hint: 'Neutral grey, flat graphite', light: '#f4f4f5', dark: '#141416' },
+	{ value: 'tinted', label: 'Tinted', hint: 'Washed in your brand colour', light: '', dark: '' },
+	{ value: 'contrast', label: 'Contrast', hint: 'Pure white, OLED black', light: '#ffffff', dark: '#000000' }
+];
+
 export const MODE_OPTIONS = [
 	{ value: 'light', label: 'Light' },
 	{ value: 'dark', label: 'Dark' },
@@ -559,6 +575,7 @@ export function createDefaultStorefront(slug = 'your-shop', name = 'Your Store')
 			hero: 'image',
 			product_layout: 'list',
 			filter_style: 'chips',
+			surface: 'clean',
 			primary: '#5b4bdb',
 			secondary: '#8b5cf6',
 			accent: '#06b6d4',
@@ -576,6 +593,7 @@ export function createDefaultStorefront(slug = 'your-shop', name = 'Your Store')
 			closed_message: '',
 			customer_login_enabled: true,
 			customer_login_mode: 'optional',
+			customer_login_methods: ['PHONE', 'EMAIL'],
 			prep_time_minutes: 20,
 			tax_percent: 0,
 			packaging_fee: 0,
@@ -681,6 +699,16 @@ export const STORE_STATUS_OPTIONS = [
 	{ value: 'CLOSED' as const, label: 'Closed', desc: 'Checkout is stopped.' }
 ];
 
+/** Whether each sign-in method's channel (SMS, email) is set up in Configuration. */
+export type SignInChannel = { ready: boolean; source?: string; reason?: string };
+
+/** The owner's chosen methods whose channel works: what customers will see. */
+export function offeredMethods(admin: AdminStorefront): SignInMethod[] {
+	const chosen = admin.behaviour.customer_login_methods ?? ['PHONE', 'EMAIL'];
+	const channels = admin.sign_in_channels;
+	return channels ? chosen.filter((m) => channels[m]?.ready) : chosen;
+}
+
 /**
  * Map an admin draft document into the public StoreConfig shape used by
  * StoreHome / StoreHeader so Studio preview matches the live customer UI.
@@ -722,6 +750,7 @@ export function adminToStoreConfig(admin: AdminStorefront): StoreConfig {
 			prep_time_minutes: admin.behaviour.prep_time_minutes,
 			customer_login: loginMode !== 'off',
 			customer_login_mode: loginMode,
+			customer_login_methods: offeredMethods(admin),
 			payment_requirement: admin.workflow?.payment_requirement ?? 'NONE',
 			auto_accept: admin.workflow?.acceptance_mode === 'AUTO',
 			ready_notification: admin.workflow?.ready_notification ?? true,

@@ -65,7 +65,7 @@ export function platformApiOrigin(): string {
 	if (isPublicAPIHost(hostname, base)) {
 		return buildOrigin(`api.${base}`, scheme, port);
 	}
-	// Internal Docker upstream — keep as configured; caller sets X-Forwarded-Host.
+	// Internal Docker upstream: keep as configured; caller sets X-Forwarded-Host.
 	if (hostname !== '127.0.0.1' && hostname !== 'localhost') {
 		return configured;
 	}

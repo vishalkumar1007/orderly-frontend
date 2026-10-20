@@ -7,6 +7,8 @@ export type Granularity = 'day' | 'week' | 'month';
 
 export type DayPoint = { day: string; order_count: number; revenue: number };
 export type HourPoint = { hour: number; order_count: number };
+/** Orders in one weekday (0 = Monday) and hour cell, on the shop's clock. */
+export type WeekHourPoint = { weekday: number; hour: number; order_count: number };
 export type ProductPoint = { name: string; units: number; revenue: number };
 export type CategoryPoint = { name: string; units: number; revenue: number };
 export type StatusPoint = { status: string; count: number };
@@ -68,6 +70,10 @@ export type TenantAnalytics = {
 	/** The same data grouped by `granularity`; `day` is the first day of each bucket. */
 	orders_by_period: DayPoint[];
 	orders_by_hour: HourPoint[];
+	/** Older servers omit it. */
+	orders_by_weekday_hour?: WeekHourPoint[];
+	/** The shop's timezone, which every day and hour is in. */
+	timezone?: string;
 	top_products: ProductPoint[];
 	/** The same sales ranked by revenue instead of volume. */
 	top_products_by_revenue: ProductPoint[];

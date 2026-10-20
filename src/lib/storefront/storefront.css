@@ -106,6 +106,132 @@
 	--sf-shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.6);
 }
 
+/*
+ * Background templates (`theme.surface`). Each overrides only the neutral
+ * surface and text tokens, once per colour mode, so the brand colours and the
+ * light/dark choice are untouched. `clean` is the base palette above.
+ */
+
+.sf-root[data-sf-surface='paper'][data-sf-theme='light'] {
+	--sf-bg: #f6f2ea;
+	--sf-surface: #fffdf8;
+	--sf-surface-2: #f1ebe0;
+	--sf-surface-3: #e8e0d2;
+	--sf-border: #e6ddcd;
+	--sf-border-strong: #d6cab5;
+	--sf-text: #231d14;
+	--sf-text-2: #625848;
+	--sf-text-3: #948a78;
+}
+
+.sf-root[data-sf-surface='paper'][data-sf-theme='dark'] {
+	--sf-bg: #14110d;
+	--sf-surface: #1d1914;
+	--sf-surface-2: #26211a;
+	--sf-surface-3: #302921;
+	--sf-border: #352e25;
+	--sf-border-strong: #463d31;
+	--sf-text: #f4efe6;
+	--sf-text-2: #b9ae9c;
+	--sf-text-3: #8a8072;
+}
+
+.sf-root[data-sf-surface='mist'][data-sf-theme='light'] {
+	--sf-bg: #f2f5f9;
+	--sf-surface: #ffffff;
+	--sf-surface-2: #eef2f7;
+	--sf-surface-3: #e3e9f1;
+	--sf-border: #dfe5ee;
+	--sf-border-strong: #cbd4e1;
+	--sf-text: #111827;
+	--sf-text-2: #4b5565;
+	--sf-text-3: #7c8697;
+}
+
+.sf-root[data-sf-surface='mist'][data-sf-theme='dark'] {
+	--sf-bg: #0f172a;
+	--sf-surface: #172036;
+	--sf-surface-2: #1e2942;
+	--sf-surface-3: #27344f;
+	--sf-border: #2a3753;
+	--sf-border-strong: #3a4867;
+	--sf-text: #f1f5f9;
+	--sf-text-2: #a7b2c4;
+	--sf-text-3: #77839a;
+}
+
+.sf-root[data-sf-surface='stone'][data-sf-theme='light'] {
+	--sf-bg: #f4f4f5;
+	--sf-surface: #ffffff;
+	--sf-surface-2: #f0f0f1;
+	--sf-surface-3: #e4e4e7;
+	--sf-border: #e4e4e7;
+	--sf-border-strong: #d4d4d8;
+	--sf-text: #18181b;
+	--sf-text-2: #52525b;
+	--sf-text-3: #858589;
+}
+
+.sf-root[data-sf-surface='stone'][data-sf-theme='dark'] {
+	--sf-bg: #141416;
+	--sf-surface: #1c1c1f;
+	--sf-surface-2: #232327;
+	--sf-surface-3: #2c2c31;
+	--sf-border: #2e2e33;
+	--sf-border-strong: #3f3f46;
+	--sf-text: #f4f4f5;
+	--sf-text-2: #a1a1aa;
+	--sf-text-3: #76767e;
+}
+
+.sf-root[data-sf-surface='tinted'][data-sf-theme='light'] {
+	--sf-bg: color-mix(in srgb, var(--sf-primary) 7%, #ffffff);
+	--sf-surface: color-mix(in srgb, var(--sf-primary) 2%, #ffffff);
+	--sf-surface-2: color-mix(in srgb, var(--sf-primary) 6%, #f7f7fa);
+	--sf-surface-3: color-mix(in srgb, var(--sf-primary) 10%, #efeff4);
+	--sf-border: color-mix(in srgb, var(--sf-primary) 12%, #e7e7ee);
+	--sf-border-strong: color-mix(in srgb, var(--sf-primary) 18%, #d6d6e0);
+	--sf-text: #14151a;
+	--sf-text-2: #55596a;
+	--sf-text-3: #878b9c;
+}
+
+.sf-root[data-sf-surface='tinted'][data-sf-theme='dark'] {
+	--sf-bg: color-mix(in srgb, var(--sf-primary) 12%, #0c0d13);
+	--sf-surface: color-mix(in srgb, var(--sf-primary) 8%, #15161f);
+	--sf-surface-2: color-mix(in srgb, var(--sf-primary) 10%, #1c1d28);
+	--sf-surface-3: color-mix(in srgb, var(--sf-primary) 12%, #252734);
+	--sf-border: color-mix(in srgb, var(--sf-primary) 14%, #2a2c39);
+	--sf-border-strong: color-mix(in srgb, var(--sf-primary) 18%, #3a3d4d);
+	--sf-text: #f2f3f8;
+	--sf-text-2: #a8acbd;
+	--sf-text-3: #7b7f92;
+}
+
+.sf-root[data-sf-surface='contrast'][data-sf-theme='light'] {
+	--sf-bg: #ffffff;
+	--sf-surface: #ffffff;
+	--sf-surface-2: #f5f5f5;
+	--sf-surface-3: #ebebeb;
+	--sf-border: #d9d9d9;
+	--sf-border-strong: #bdbdbd;
+	--sf-text: #000000;
+	--sf-text-2: #3d3d3d;
+	--sf-text-3: #6b6b6b;
+}
+
+.sf-root[data-sf-surface='contrast'][data-sf-theme='dark'] {
+	--sf-bg: #000000;
+	--sf-surface: #0a0a0a;
+	--sf-surface-2: #141414;
+	--sf-surface-3: #1f1f1f;
+	--sf-border: #262626;
+	--sf-border-strong: #3a3a3a;
+	--sf-text: #ffffff;
+	--sf-text-2: #b3b3b3;
+	--sf-text-3: #858585;
+}
+
 /* Every interactive element in the storefront uses this, so focus is always
    visible without each component restating it. */
 .sf-root :focus-visible {

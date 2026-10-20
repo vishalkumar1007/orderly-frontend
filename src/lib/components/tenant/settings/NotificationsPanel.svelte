@@ -26,7 +26,10 @@
 	import { fetchTenantConfigs } from '$lib/admin/configApi';
 	import { errorMessage } from '$lib/admin/errors';
 	import { formatRelative } from '$lib/admin/format';
-	import { settingsHref } from '$lib/tenant/settings';
+	import { configHref } from '$lib/tenant/configuration';
+	import ConfigCard from '$lib/components/config/ConfigCard.svelte';
+	import ConfigRow from '$lib/components/config/ConfigRow.svelte';
+	import Segmented from '$lib/components/config/Segmented.svelte';
 	import { featureAccess } from '$lib/tenant/entitlements.svelte';
 	import { playSound, SOUND_OPTIONS } from '$lib/sound.svelte';
 	import {
@@ -147,6 +150,11 @@
 	];
 
 	type Tone = 'ok' | 'warn' | 'neutral';
+	const CHANNEL_NOTE: Record<string, string> = {
+		app: 'The bell in this console, for your team.',
+		email: 'Order emails to customers and alerts to your team.',
+		sms: 'Text messages to customers.'
+	};
 	type Chip = { id: string; name: string; icon: typeof Bell; tone: Tone; state: string; href?: string };
 
 	let providers = $state<{ email: boolean; sms: boolean } | null>(null);
@@ -174,7 +182,7 @@
 			icon: Mail,
 			tone: providers === null ? 'neutral' : providers.email ? 'ok' : 'warn',
 			state: providers === null ? 'Status unknown' : providers.email ? 'Ready to send' : 'Set up email',
-			href: providers && !providers.email ? settingsHref('integrations') : undefined
+			href: providers && !providers.email ? configHref('integrations') : undefined
 		},
 		{
 			id: 'sms',
@@ -188,7 +196,7 @@
 					: providers.sms
 						? 'Ready to send'
 						: 'Set up SMS',
-			href: sms.enabled && providers && !providers.sms ? settingsHref('integrations') : undefined
+			href: sms.enabled && providers && !providers.sms ? configHref('integrations') : undefined
 		}
 	]);
 
@@ -196,7 +204,7 @@
 
 	// Wording and branding live on their own Settings page, the template studio.
 	function editWording(ev?: NotificationEventDef) {
-		void goto(settingsHref('email-templates') + (ev ? `&event=${encodeURIComponent(ev.code)}` : ''));
+		void goto(configHref('email-templates', ev ? `event=${encodeURIComponent(ev.code)}` : ''));
 	}
 
 	/* ---------- drawer: delivery log ---------- */
@@ -314,38 +322,69 @@
 </script>
 
 <div class="np">
-	<div class="chips" aria-label="Where notifications can go">
+	<ConfigCard
+		id="np-channels"
+		title="Delivery channels"
+		description="Where notifications can go. A channel has to be connected before anything is sent through it."
+		flush
+	>
 		{#each chips as chip (chip.id)}
-			<div class={['chip', chip.tone].join(' ')}>
-				<span class="chip-icon"><chip.icon size={15} stroke={1.6} /></span>
-				<span class="chip-text">
-					<strong>{chip.name}</strong>
-					{#if chip.href}
-						<a href={chip.href}>{chip.state} →</a>
-					{:else}
-						<span>{chip.state}</span>
-					{/if}
-				</span>
-				{#if chip.id === 'sms' && !sms.enabled}<Lock size={13} stroke={1.6} aria-hidden="true" />{/if}
-			</div>
+			<ConfigRow icon={chip.icon} label={chip.name} description={CHANNEL_NOTE[chip.id]}>
+				<StatusBadge status={chip.state} kind={chip.tone === 'warn' ? 'warn' : chip.tone === 'ok' ? 'ok' : 'neutral'} />
+				{#if chip.href}
+					<a class="btn btn-ghost btn-sm" href={chip.href}>Set up</a>
+				{/if}
+				{#if chip.id === 'sms' && !sms.enabled}<Lock size={13} stroke={1.6} aria-label="Not in your plan" />{/if}
+			</ConfigRow>
 		{/each}
-	</div>
+	</ConfigCard>
 
-	<div class="toolbar">
-		<div class="seg" role="radiogroup" aria-label="Who is notified">
-			<button type="button" role="radio" aria-checked={audience === 'team'} onclick={() => (audience = 'team')}>
-				Your team
-			</button>
-			<button
-				type="button"
-				role="radio"
-				aria-checked={audience === 'customers'}
-				onclick={() => (audience = 'customers')}
-			>
-				Customers
-			</button>
+	<ConfigCard
+		id="np-alerts"
+		title={audience === 'team' ? 'Team alerts' : 'Customer messages'}
+		description={audience === 'team'
+			? 'Which events alert the people who work here.'
+			: 'What customers hear from you. They can always follow their order on the tracking screen.'}
+		flush
+		footnote="Changes save as you make them."
+	>
+		{#snippet aside()}
+			<Segmented
+				label="Who is notified"
+				value={audience}
+				options={[
+					{ value: 'team', label: 'Your team' },
+					{ value: 'customers', label: 'Customers' }
+				]}
+				onchange={(v) => (audience = v)}
+			/>
+		{/snippet}
+
+		{#if audience === 'customers' && !sms.enabled}
+			<div class="np-upgrade"><UpgradeNote feature="SMS messages" requiredPlan={sms.requiredPlan} /></div>
+		{/if}
+
+		<div class="np-grid">
+			{#if error}
+				<ErrorState message={error} onretry={loadRules} />
+			{:else if loading}
+				<Skeleton height="14rem" />
+			{:else}
+				<EventChannelGrid
+					{events}
+					rules={shownRules}
+					channels={audience === 'team' ? TEAM_CHANNELS : CUSTOMER_CHANNELS}
+					locked={lockedChannels}
+					busyKey={busyRuleKey}
+					onchange={onRuleChange}
+					onrevert={onRuleRevert}
+					onedit={editWording}
+					editLocked={!templatesAccess.enabled}
+				/>
+			{/if}
 		</div>
-		<div class="actions">
+
+		{#snippet footer()}
 			<button type="button" class="btn btn-ghost btn-sm" onclick={() => editWording()}>
 				<Mail size={14} stroke={1.6} /> Email templates
 			</button>
@@ -355,39 +394,8 @@
 			<button type="button" class="btn btn-ghost btn-sm" onclick={() => (settingsOpen = true)}>
 				<SlidersHorizontal size={14} stroke={1.6} /> Alert settings
 			</button>
-		</div>
-	</div>
-
-	<p class="lede">
-		{#if audience === 'team'}
-			Choose which events alert the people who work here. Changes save as you make them.
-		{:else}
-			Messages that leave the building. Customers can always follow their order on the tracking
-			screen. Changes save as you make them.
-		{/if}
-	</p>
-
-	{#if audience === 'customers' && !sms.enabled}
-		<UpgradeNote feature="SMS messages" requiredPlan={sms.requiredPlan} />
-	{/if}
-
-	{#if error}
-		<ErrorState message={error} onretry={loadRules} />
-	{:else if loading}
-		<Skeleton height="14rem" />
-	{:else}
-		<EventChannelGrid
-			{events}
-			rules={shownRules}
-			channels={audience === 'team' ? TEAM_CHANNELS : CUSTOMER_CHANNELS}
-			locked={lockedChannels}
-			busyKey={busyRuleKey}
-			onchange={onRuleChange}
-			onrevert={onRuleRevert}
-			onedit={editWording}
-			editLocked={!templatesAccess.enabled}
-		/>
-	{/if}
+		{/snippet}
+	</ConfigCard>
 </div>
 
 <SlideOver bind:open={logOpen} title="Delivery log">
@@ -468,109 +476,35 @@
 	.np {
 		display: flex;
 		flex-direction: column;
-		gap: 0.9rem;
+		gap: var(--sp-9);
 	}
 
-	.chips {
-		display: flex;
-		flex-wrap: wrap;
-		overflow: hidden;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-lg);
-		background: var(--card-bg);
+
+
+
+	.np-upgrade {
+		padding: 0 var(--sp-10) var(--sp-6);
 	}
 
-	.chip {
-		display: flex;
-		flex: 1 1 11rem;
-		align-items: center;
-		gap: var(--sp-5);
-		padding: var(--sp-5) var(--sp-7);
-		border: 0;
-		border-left: 1px solid var(--border-subtle);
-		background: none;
-		color: var(--text-3);
+	.np-grid {
+		padding: 0 var(--sp-6) var(--sp-6);
+		overflow-x: auto;
 	}
 
-	.chip:first-child {
-		border-left: 0;
-	}
 
-	.chip-icon {
-		display: inline-flex;
-		color: var(--text-3);
-		flex-shrink: 0;
-	}
 
-	.chip.ok .chip-text span {
-		color: var(--success);
-	}
 
-	.chip.warn .chip-text span,
-	.chip.warn .chip-text a {
-		color: var(--warn);
-	}
 
-	.chip-text {
-		display: flex;
-		flex-direction: column;
-		min-width: 0;
-		font-size: var(--fs-code);
-	}
 
-	.chip-text strong {
-		color: var(--text-2);
-		font-size: 0.875rem;
-	}
 
-	.toolbar {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.6rem;
-		align-items: center;
-		justify-content: space-between;
-	}
 
-	.actions {
-		display: flex;
-		gap: 0.4rem;
-		flex-wrap: wrap;
-	}
 
-	.seg {
-		display: inline-flex;
-		gap: var(--sp-1);
-	}
 
-	.seg button {
-		padding: var(--sp-2) var(--sp-5);
-		border: 0;
-		border-radius: var(--radius-sm);
-		background: transparent;
-		font: inherit;
-		font-size: var(--fs-tab);
-		font-weight: 500;
-		color: var(--text-3);
-		cursor: default;
-	}
 
-	.seg button:hover {
-		color: var(--text);
-		background: var(--surface-hover);
-	}
 
-	.seg button[aria-checked='true'] {
-		color: var(--accent);
-		background: color-mix(in srgb, var(--accent) 14%, transparent);
-		font-weight: 500;
-		box-shadow: none;
-	}
 
-	.lede {
-		margin: 0;
-		font-size: 0.875rem;
-		color: var(--text-3);
-	}
+
+
 
 	.drawer-note {
 		margin: 0 0 0.9rem;

@@ -5,22 +5,25 @@
 	import ShoppingBag from '@tabler/icons-svelte/icons/shopping-bag';
 	import User from '@tabler/icons-svelte/icons/user';
 	import UtensilsCrossed from '@tabler/icons-svelte/icons/tools-kitchen-2';
+	import BuildingStore from '@tabler/icons-svelte/icons/building-store';
+	import Calendar from '@tabler/icons-svelte/icons/calendar';
+	import Bed from '@tabler/icons-svelte/icons/bed';
 	import X from '@tabler/icons-svelte/icons/x';
 	import Moon from '@tabler/icons-svelte/icons/moon';
 	import Sun from '@tabler/icons-svelte/icons/sun';
 	import { useStorefrontThemeToggle } from '$lib/storefront/themeToggle.svelte';
 	import type { StoreConfig } from '$lib/storefront/api';
 	import { cartCount, type CartLine } from '$lib/storefront/cart.svelte';
+	import { experienceFor, type Experience } from '$lib/storefront/experience';
 
 	/**
-	 * Professional Food Order App Storefront Header.
-	 *
-	 * Includes restaurant brand avatar, live opening status badge with animated radar,
-	 * prominent search bar with instant clear, quick menu link, user account button,
-	 * and an interactive cart counter.
+	 * The storefront header: brand and live status, search where the
+	 * catalogue has one, the main section link, account, and the bag when the
+	 * business sells things. What it links to comes from the experience.
 	 */
 	let {
 		config,
+		exp = undefined as Experience | undefined,
 		lines,
 		/** Show the search field. Home and menu do; checkout does not. */
 		search = false,
@@ -38,6 +41,7 @@
 		activePath = undefined as string | undefined
 	}: {
 		config: StoreConfig | null;
+		exp?: Experience;
 		lines: CartLine[];
 		search?: boolean;
 		searchTerm?: string;
@@ -47,6 +51,15 @@
 		activePath?: string;
 	} = $props();
 
+	const x = $derived(exp ?? experienceFor(config));
+	/** The one section link: the catalogue to shop, or your bookings. */
+	const section = $derived(
+		x.family === 'order'
+			? { href: '/menu', label: x.words.catalog, icon: x.variant === 'food' ? UtensilsCrossed : BuildingStore }
+			: x.family === 'book'
+				? { href: '/bookings', label: x.words.history, icon: Calendar }
+				: { href: '/reservations', label: x.words.history, icon: Bed }
+	);
 	const store = $derived(config?.store ?? null);
 	const hours = $derived(config?.hours ?? null);
 	const ordering = $derived(config?.ordering ?? null);
@@ -128,9 +141,8 @@
 								aria-hidden="true"
 							></span>
 							<span class="sf-status-text">{statusLabel}</span>
-							{#if ordering?.prep_time_minutes}
-								<span class="sf-status-sep">·</span>
-								<span class="sf-prep-time">~{ordering.prep_time_minutes}m</span>
+							{#if x.family === 'order' && ordering?.prep_time_minutes}
+								<span class="sf-prep-time">{ordering.prep_time_minutes} min</span>
 							{/if}
 						</div>
 					{/if}
@@ -147,8 +159,8 @@
 								type="search"
 								name="q"
 								bind:value={searchTerm}
-								placeholder="Search dishes, drinks, or categories..."
-								aria-label="Search dishes"
+								placeholder={x.words.search}
+								aria-label={x.words.search}
 								enterkeyhint="search"
 								autocomplete="off"
 							/>
@@ -166,11 +178,11 @@
 			<div class="sf-header-actions">
 				<a
 					class="sf-header-link sf-desktop-only"
-					href="/menu"
-					aria-current={pathname.startsWith('/menu') ? 'page' : undefined}
+					href={section.href}
+					aria-current={pathname.startsWith(section.href) ? 'page' : undefined}
 				>
-					<UtensilsCrossed size={16} stroke={1.6} aria-hidden="true" />
-					<span>Menu</span>
+					<section.icon size={16} stroke={1.6} aria-hidden="true" />
+					<span>{section.label}</span>
 				</a>
 
 				{#if themeToggle?.enabled}
@@ -200,6 +212,7 @@
 					</a>
 				{/if}
 
+				{#if x.features.cart}
 				<a
 					class="sf-cart-btn"
 					href="/cart"
@@ -217,6 +230,7 @@
 						<span class="sf-cart-label sf-desktop-only">Cart ({count})</span>
 					{/if}
 				</a>
+				{/if}
 			</div>
 		</div>
 
@@ -230,8 +244,8 @@
 							type="search"
 							name="q"
 							bind:value={searchTerm}
-							placeholder="Search dishes, drinks, or categories..."
-							aria-label="Search dishes"
+							placeholder={x.words.search}
+							aria-label={x.words.search}
 							enterkeyhint="search"
 							autocomplete="off"
 						/>

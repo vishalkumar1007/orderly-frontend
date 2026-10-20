@@ -1,4 +1,5 @@
 <script lang="ts">
+	import EChart, { type ChartTokens } from '$lib/components/charts/EChart.svelte';
 	import Skeleton from './Skeleton.svelte';
 	import type { StatusPoint } from '$lib/tenant/analytics';
 
@@ -55,40 +56,49 @@
 			.reduce((sum, p) => sum + p.value, 0)
 	);
 
-	/**
-	 * Donut segments are drawn as stroked circles rather than SVG arc paths.
-	 * `stroke-dasharray` gives a gap between segments and rounded ends for free,
-	 * and the maths stays a single dash offset per segment.
-	 */
-	const RADIUS = 42;
-	const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-	/** Gap between segments, in units of the circumference. */
-	const GAP = 2.5;
+	const cancelled = $derived(points.find((p) => p.status === 'CANCELLED')?.value ?? 0);
+	const takeaway = $derived(
+		inFlight > 0
+			? `${inFlight} ${inFlight === 1 ? 'order is' : 'orders are'} still in progress.`
+			: cancelled > 0
+				? `All caught up. ${Math.round((cancelled / total) * 100)}% of orders were cancelled.`
+				: 'All caught up. Nothing is waiting.'
+	);
 
-	const segments = $derived.by(() => {
-		if (total <= 0) return [];
-		let consumed = 0;
-		return points.map((p) => {
-			const share = p.value / total;
-			const length = share * CIRCUMFERENCE;
-			const segment = {
-				...p,
-				share,
-				// Leave a gap on every segment except a full-circle one.
-				dash: Math.max(length - GAP, 0.5),
-				offset: -consumed * CIRCUMFERENCE
-			};
-			consumed += share;
-			return segment;
-		});
-	});
+	function build(t: ChartTokens) {
+		return {
+			textStyle: { fontFamily: t.font },
+			tooltip: {
+				trigger: 'item',
+				backgroundColor: t.surface,
+				borderColor: t.border,
+				padding: [8, 12],
+				textStyle: { color: t.text, fontSize: 12 },
+				extraCssText: 'box-shadow:0 8px 24px rgba(0,0,0,.18);border-radius:8px;',
+				formatter: (p: { name: string; value: number; percent: number }) =>
+					`${p.name}<br/><b>${p.value}</b> ${p.value === 1 ? 'order' : 'orders'}, ${Math.round(p.percent)}%`
+			},
+			series: [
+				{
+					type: 'pie',
+					radius: ['68%', '92%'],
+					avoidLabelOverlap: false,
+					padAngle: points.length > 1 ? 2 : 0,
+					itemStyle: { borderRadius: 4 },
+					label: { show: false },
+					emphasis: { scale: true, scaleSize: 4 },
+					data: points.map((p) => ({ name: p.label, value: p.value, itemStyle: { color: p.color } }))
+				}
+			]
+		};
+	}
 </script>
 
 <section class="panel">
 	<div class="head">
 		<h3 class="panel-h" style="margin:0;">{title}</h3>
 		{#if total > 0}
-			<p class="sub">{inFlight} open · {total} total</p>
+			<p class="sub">{total} {total === 1 ? 'order' : 'orders'} in this period</p>
 		{/if}
 	</div>
 
@@ -99,21 +109,7 @@
 	{:else}
 		<div class="body">
 			<div class="donut">
-				<svg viewBox="0 0 120 120" role="img" aria-label="Orders by status">
-					{#each segments as seg (seg.status)}
-						<circle
-							cx="60"
-							cy="60"
-							r={RADIUS}
-							fill="none"
-							stroke={seg.color}
-							stroke-width="18"
-							stroke-dasharray={`${seg.dash} ${CIRCUMFERENCE - seg.dash}`}
-							stroke-dashoffset={seg.offset}
-							transform="rotate(-90 60 60)"
-						/>
-					{/each}
-				</svg>
+				<EChart {build} height={124} label="Orders by status: {inFlight} open of {total}" />
 				<div class="centre">
 					<strong>{inFlight}</strong>
 					<span>open</span>
@@ -128,6 +124,7 @@
 						<span class="lg-val">{p.value}</span>
 					</li>
 				{/each}
+				<li class="takeaway">{takeaway}</li>
 			</ul>
 		</div>
 	{/if}
@@ -175,10 +172,6 @@
 		height: 124px;
 	}
 
-	.donut svg {
-		width: 100%;
-		height: 100%;
-	}
 
 	.centre {
 		position: absolute;
@@ -200,10 +193,14 @@
 	}
 
 	.centre span {
-		font-size: var(--fs-label);
+		font-size: var(--fs-code);
 		color: var(--text-3);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
+	}
+
+	.takeaway {
+		margin-top: 0.35rem;
+		color: var(--text-2);
+		font-size: var(--fs-code);
 	}
 
 	.legend {

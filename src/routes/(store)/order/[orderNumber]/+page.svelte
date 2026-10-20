@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { experienceFor } from '$lib/storefront/experience';
 	import { goto } from '$app/navigation';
 	import { onDestroy, onMount } from 'svelte';
 	import Check from '@tabler/icons-svelte/icons/check';
@@ -28,6 +29,7 @@
 	let { data } = $props();
 
 	const config = $derived(data.config);
+	const exp = $derived(experienceFor(config));
 	const currency = $derived(config?.store?.currency ?? 'INR');
 	const orderNumber = $derived(Number(data.orderNumber));
 
@@ -193,7 +195,7 @@
 					: isCompleted
 						? 'Collected. Thank you!'
 						: isReady
-							? 'Ready for pickup'
+							? `Ready for ${exp.words.fulfilment.toLowerCase()}`
 							: 'Order placed'}
 			</h1>
 			<p>
@@ -306,7 +308,7 @@
 		<!-- Pickup -->
 		<div class="sf-panel" style="margin-top:12px;">
 			<div class="sf-section-head" style="padding:0;margin-bottom:8px;">
-				<h2 style="font-size:0.9375rem;">Pickup</h2>
+				<h2 style="font-size:0.9375rem;">{exp.words.fulfilment}</h2>
 			</div>
 			<div class="sf-info-list">
 				<div class="sf-info-row">
@@ -342,7 +344,7 @@
 						{/if}
 					</span>
 					<span>
-						{order.payment.method === 'CASH' ? 'Cash at pickup' : 'Online'} ·{' '}
+						{order.payment.method === 'CASH' ? exp.words.cash : 'Online'}:
 						{money(order.payment.amount, currency)}
 					</span>
 				</div>

@@ -1,140 +1,190 @@
 <script lang="ts">
-	import CreditCard from '@tabler/icons-svelte/icons/credit-card';
-	import HardDrive from '@tabler/icons-svelte/icons/device-floppy';
+	/**
+	 * Integrations: the services your business connects to.
+	 *
+	 * A list first, each service with its status in plain words, because the
+	 * question on arrival is "what is connected?". Picking one opens its
+	 * details in place, with a way back. The payment provider is not here: it
+	 * lives under Configuration → Payments, beside the methods it powers.
+	 *
+	 * The service lives in the query string, so a link can point at Storage and
+	 * a reload stays there.
+	 */
+	import { onMount } from 'svelte';
+	import ArrowLeft from '@tabler/icons-svelte/icons/arrow-left';
+	import ChevronRight from '@tabler/icons-svelte/icons/chevron-right';
+	import HardDrive from '@tabler/icons-svelte/icons/database';
 	import Mail from '@tabler/icons-svelte/icons/mail';
 	import MessageSquare from '@tabler/icons-svelte/icons/message';
 	import Sparkles from '@tabler/icons-svelte/icons/sparkles';
 	import type { IconComponent as Component } from '$lib/icons';
-	import type { ConfigService } from '$lib/admin/configTypes';
+	import type { ConfigService, EffectiveConfig } from '$lib/admin/configTypes';
+	import { loadTenantConfig } from '$lib/admin/tenantConfigCache.svelte';
+	import StatusBadge from '$lib/components/admin/StatusBadge.svelte';
+	import Skeleton from '$lib/components/admin/Skeleton.svelte';
+	import ConfigCard from '$lib/components/config/ConfigCard.svelte';
 	import ServiceConfigPanel from './ServiceConfigPanel.svelte';
 
-	/**
-	 * Integrations.
-	 *
-	 * Five services, one screen. They were separate routes reached
-	 * through an index page, which meant four navigations to compare two of
-	 * them; a service switcher is one.
-	 *
-	 * The service lives in the query string beside the section, so a link can
-	 * point at Storage and a reload stays there.
-	 */
 	let {
-		service = 'SMTP',
+		service = '',
 		onselect
 	}: {
-		service?: ConfigService;
-		/** The screen owns the URL, so selecting a service is reported upwards. */
-		onselect?: (service: ConfigService) => void;
+		/** The open service, or empty for the list. */
+		service?: ConfigService | '';
+		/** The screen owns the URL, so opening a service is reported upwards. */
+		onselect?: (service: ConfigService | '') => void;
 	} = $props();
 
 	const SERVICES: Array<{ id: ConfigService; label: string; hint: string; icon: Component }> = [
-		{ id: 'SMTP', label: 'Email', hint: 'Order mail and invites', icon: Mail },
-		{ id: 'SMS', label: 'SMS', hint: 'Order and booking texts', icon: MessageSquare },
-		{ id: 'STORAGE', label: 'Storage', hint: 'Menu images and uploads', icon: HardDrive },
-		{ id: 'AI', label: 'AI', hint: 'Assistive generation', icon: Sparkles },
-		{ id: 'PAYMENTS', label: 'Payments', hint: 'Your payment gateway keys', icon: CreditCard }
+		{ id: 'SMTP', label: 'Email', hint: 'Order emails, receipts and staff invitations', icon: Mail },
+		{ id: 'SMS', label: 'SMS', hint: 'Order and booking text messages', icon: MessageSquare },
+		{ id: 'STORAGE', label: 'Storage', hint: 'Menu photos, logos and other uploads', icon: HardDrive },
+		{ id: 'AI', label: 'AI', hint: 'Writing help for menus and descriptions', icon: Sparkles }
 	];
+
+	let status = $state<Partial<Record<ConfigService, EffectiveConfig | null>>>({});
+
+	onMount(() => {
+		for (const s of SERVICES) {
+			loadTenantConfig(s.id)
+				.then((entry) => (status = { ...status, [s.id]: entry.effective }))
+				.catch(() => (status = { ...status, [s.id]: null }));
+		}
+	});
+
+	const open = $derived(SERVICES.find((s) => s.id === service));
+
+	function badge(e: EffectiveConfig | null | undefined): { text: string; kind: 'ok' | 'warn' | 'neutral' } {
+		if (e === null) return { text: 'Not checked', kind: 'neutral' };
+		if (!e?.available) return { text: 'Not connected', kind: 'warn' };
+		return { text: e.source === 'ORGANIZATION' ? 'Your account' : 'Via platform', kind: 'ok' };
+	}
 </script>
 
-<div class="int-switch" role="tablist" aria-label="Integration">
-	{#each SERVICES as option (option.id)}
-		{@const active = service === option.id}
-		<button
-			type="button"
-			role="tab"
-			aria-selected={active}
-			class="int-tab"
-			class:active
-			onclick={() => onselect?.(option.id)}
-		>
-			<span class="int-tab-icon" aria-hidden="true">
-				<option.icon size={16} stroke={1.6} />
-			</span>
-			<span class="int-tab-text">
-				<span class="int-tab-label">{option.label}</span>
-				<span class="int-tab-hint">{option.hint}</span>
-			</span>
+{#if open}
+	<div class="ip-detail">
+		<button type="button" class="ip-back" onclick={() => onselect?.('')}>
+			<ArrowLeft size={14} stroke={1.6} /> All integrations
 		</button>
-	{/each}
-</div>
-
-<!-- Keyed so switching service remounts the form rather than leaving one
-     service's draft credentials sitting in another's fields. -->
-{#key service}
-	<ServiceConfigPanel {service} />
-{/key}
+		<!-- Keyed so switching service remounts the form rather than leaving one
+		     service's draft credentials sitting in another's fields. -->
+		{#key open.id}
+			<ServiceConfigPanel service={open.id} title={open.label} />
+		{/key}
+	</div>
+{:else}
+	<ConfigCard
+		id="ip-list"
+		title="Services"
+		description="Each one runs on the platform's service until you connect an account of your own."
+		flush
+	>
+		<ul class="ip-list">
+			{#each SERVICES as s (s.id)}
+				{@const b = badge(status[s.id])}
+				<li>
+					<button type="button" class="ip-row" onclick={() => onselect?.(s.id)}>
+						<span class="ip-icon" aria-hidden="true"><s.icon size={16} stroke={1.6} /></span>
+						<span class="ip-text">
+							<span class="ip-label">{s.label}</span>
+							<span class="ip-hint">{s.hint}</span>
+						</span>
+						{#if s.id in status}
+							<StatusBadge status={b.text} kind={b.kind} />
+						{:else}
+							<Skeleton height="1.1rem" width="5.5rem" />
+						{/if}
+						<ChevronRight size={16} stroke={1.6} class="ip-chev" />
+					</button>
+				</li>
+			{/each}
+		</ul>
+	</ConfigCard>
+{/if}
 
 <style>
-	.int-switch {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-		gap: 0.5rem;
-		margin-bottom: 1.25rem;
+	.ip-list {
+		margin: 0;
+		padding: 0;
+		list-style: none;
 	}
 
-	.int-tab {
+	.ip-list li + li {
+		border-top: 1px solid var(--border-subtle);
+	}
+
+	.ip-row {
 		display: flex;
 		align-items: center;
-		gap: 0.6rem;
-		padding: 0.65rem 0.75rem;
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		background: var(--surface);
-		color: var(--text-2);
-		font-family: inherit;
+		gap: var(--sp-7);
+		width: 100%;
+		padding: var(--sp-8) var(--sp-10);
+		border: 0;
+		background: transparent;
+		color: var(--text-3);
+		font: inherit;
 		text-align: left;
 		cursor: pointer;
-		transition:
-			border-color var(--tr),
-			background var(--tr),
-			color var(--tr);
+		transition: background var(--tr, 0.15s);
 	}
 
-	.int-tab:hover {
-		border-color: var(--border-strong, var(--border));
-		color: var(--text);
+	.ip-row:hover,
+	.ip-row:focus-visible {
+		background: var(--surface-hover);
 	}
 
-	.int-tab.active {
-		border-color: var(--accent);
-		background: var(--accent-soft);
-		color: var(--accent-dark);
-	}
-
-	.int-tab-icon {
+	.ip-icon {
 		display: grid;
 		place-items: center;
-		width: 2rem;
-		height: 2rem;
 		flex: none;
-		border-radius: 8px;
-		background: var(--surface-2);
-		color: inherit;
+		width: 34px;
+		height: 34px;
+		border-radius: var(--radius-md, 8px);
+		background: var(--icon-bg, var(--surface-2));
+		color: var(--icon-fg, var(--text-2));
 	}
 
-	.int-tab.active .int-tab-icon {
-		background: color-mix(in srgb, var(--accent) 18%, transparent);
-	}
-
-	.int-tab-text {
+	.ip-text {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-1);
+		flex: 1;
 		min-width: 0;
 	}
 
-	.int-tab-label {
-		display: block;
+	.ip-label {
 		font-size: var(--fs-body);
 		font-weight: 600;
 		color: var(--text);
 	}
 
-	.int-tab.active .int-tab-label {
-		color: var(--accent-dark);
+	.ip-hint {
+		font-size: var(--fs-tab);
+		color: var(--text-3);
 	}
 
-	.int-tab-hint {
-		display: block;
-		font-size: var(--fs-code);
-		color: var(--text-3);
-		line-height: 1.35;
+	.ip-detail {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-8);
+	}
+
+	.ip-back {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--sp-3);
+		align-self: flex-start;
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--text-2);
+		font: inherit;
+		font-size: var(--fs-tab);
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.ip-back:hover {
+		color: var(--text);
 	}
 </style>

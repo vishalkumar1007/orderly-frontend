@@ -13,12 +13,17 @@ export type RoomType = {
 	name: string;
 	base_price: number;
 	max_guests: number;
+	description?: string;
+	image_url?: string;
 };
 
 export type RoomTypePayload = {
 	name: string;
 	base_price: number;
 	max_guests?: number;
+	/** What guests read on the booking page. */
+	description?: string;
+	image_url?: string;
 };
 
 export type Room = {

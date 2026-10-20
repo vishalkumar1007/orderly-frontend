@@ -13,7 +13,7 @@
 
 import { browser } from '$app/environment';
 import { writable } from 'svelte/store';
-import { storefrontApi, type SessionCustomer } from './api';
+import { storefrontApi, type OtpTarget, type SessionCustomer } from './api';
 
 const ACCESS_KEY = 'orderly_customer_access';
 const REFRESH_KEY = 'orderly_customer_refresh';
@@ -83,8 +83,8 @@ function createSessionStore() {
 	}
 
 	/** `signIn` exchanges a verified code for a session. */
-	async function signIn(slug: string, phone: string, code: string): Promise<CustomerSession> {
-		const data = await storefrontApi.verifyOtp(phone, code);
+	async function signIn(slug: string, to: OtpTarget, code: string): Promise<CustomerSession> {
+		const data = await storefrontApi.verifyOtp(to, code);
 		const session: CustomerSession = { customer: data.customer, tokens: data.tokens };
 		write(key(slug, ACCESS_KEY), session.tokens.access_token);
 		write(key(slug, REFRESH_KEY), session.tokens.refresh_token);

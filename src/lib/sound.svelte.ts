@@ -18,7 +18,7 @@
  *   someone who only watches the page can still opt in with one tap.
  */
 
-const KINDS = ['NONE', 'CHIME', 'BELL', 'PING'] as const;
+const KINDS = ['NONE', 'CHIME', 'BELL', 'PING', 'DINGDONG', 'MARIMBA', 'RISE', 'REGISTER', 'URGENT'] as const;
 export type SoundKind = (typeof KINDS)[number];
 
 /** Reactive: `locked` is true while the browser is blocking audio. */
@@ -102,18 +102,77 @@ if (typeof window !== 'undefined') {
 	});
 }
 
-function tone(context: AudioContext, freq: number, startAt: number, duration: number, peak = 0.18) {
-	const osc = context.createOscillator();
-	const gain = context.createGain();
-	osc.type = 'sine';
-	osc.frequency.value = freq;
-	gain.gain.setValueAtTime(0, startAt);
-	gain.gain.linearRampToValueAtTime(peak, startAt + 0.015);
-	gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
-	osc.connect(gain).connect(context.destination);
-	osc.start(startAt);
-	osc.stop(startAt + duration + 0.05);
+// Everything plays through one output stage: a compressor that lets the
+// sounds be loud enough for a busy kitchen or a phone in a pocket without
+// clipping. The first version peaked at 18% volume and was easy to miss.
+let out: AudioNode | null = null;
+function output(context: AudioContext): AudioNode {
+	if (out) return out;
+	const comp = context.createDynamicsCompressor();
+	comp.threshold.value = -14;
+	comp.knee.value = 8;
+	comp.ratio.value = 4;
+	comp.attack.value = 0.003;
+	comp.release.value = 0.2;
+	const master = context.createGain();
+	master.gain.value = 0.9;
+	comp.connect(master).connect(context.destination);
+	out = comp;
+	return out;
 }
+
+/**
+ * One struck note: a fundamental plus a few quieter partials, rising in a few
+ * milliseconds and fading naturally. Partials are what make a note sound like
+ * a bell or a marimba rather than a test tone.
+ */
+function note(
+	context: AudioContext,
+	freq: number,
+	at: number,
+	duration: number,
+	{ peak = 0.6, type = 'sine' as OscillatorType, partials = [] as Array<[number, number]> } = {}
+) {
+	const dest = output(context);
+	for (const [ratio, level] of [[1, 1], ...partials] as Array<[number, number]>) {
+		const osc = context.createOscillator();
+		const gain = context.createGain();
+		osc.type = type;
+		osc.frequency.value = freq * ratio;
+		// Higher partials die away faster, as on a real instrument.
+		const life = duration / Math.max(1, ratio * 0.8);
+		gain.gain.setValueAtTime(0, at);
+		gain.gain.linearRampToValueAtTime(peak * level, at + 0.006);
+		gain.gain.exponentialRampToValueAtTime(0.0001, at + life);
+		osc.connect(gain).connect(dest);
+		osc.start(at);
+		osc.stop(at + life + 0.05);
+	}
+}
+
+/** A short burst of noise, for the "ka" of a cash register. */
+function click(context: AudioContext, at: number, duration = 0.05, peak = 0.35) {
+	const frames = Math.floor(context.sampleRate * duration);
+	const buffer = context.createBuffer(1, frames, context.sampleRate);
+	const data = buffer.getChannelData(0);
+	for (let i = 0; i < frames; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / frames);
+	const src = context.createBufferSource();
+	const gain = context.createGain();
+	const band = context.createBiquadFilter();
+	band.type = 'bandpass';
+	band.frequency.value = 3200;
+	gain.gain.value = peak;
+	src.buffer = buffer;
+	src.connect(band).connect(gain).connect(output(context));
+	src.start(at);
+}
+
+const BELLISH: Array<[number, number]> = [
+	[2, 0.45],
+	[3, 0.2],
+	[4.2, 0.12]
+];
+const WARM: Array<[number, number]> = [[2, 0.3]];
 
 /**
  * Play a configured notification sound. Does nothing for NONE or an unknown
@@ -129,20 +188,43 @@ export function playSound(kind: string | null | undefined): void {
 		void context.resume().then(syncState, () => {});
 		return;
 	}
-	const now = context.currentTime + 0.02;
+	const t = context.currentTime + 0.03;
 	switch (k) {
-		case 'CHIME':
-			tone(context, 880, now, 0.22);
-			tone(context, 1320, now + 0.12, 0.28);
-			break;
 		case 'BELL':
-			tone(context, 660, now, 0.55, 0.22);
+			note(context, 659.25, t, 1.8, { peak: 0.55, partials: BELLISH });
 			break;
 		case 'PING':
-			tone(context, 1760, now, 0.12, 0.16);
+			note(context, 1567.98, t, 0.5, { peak: 0.55, partials: [[2, 0.2]] });
 			break;
+		case 'DINGDONG':
+			note(context, 659.25, t, 1.0, { peak: 0.6, partials: BELLISH });
+			note(context, 523.25, t + 0.42, 1.4, { peak: 0.6, partials: BELLISH });
+			break;
+		case 'MARIMBA':
+			[523.25, 659.25, 783.99].forEach((f, i) =>
+				note(context, f, t + i * 0.11, 0.45, { peak: 0.6, type: 'triangle', partials: [[4, 0.15]] })
+			);
+			break;
+		case 'RISE':
+			[523.25, 659.25, 783.99, 1046.5].forEach((f, i) =>
+				note(context, f, t + i * 0.09, 0.6, { peak: 0.5, partials: WARM })
+			);
+			break;
+		case 'REGISTER':
+			click(context, t);
+			note(context, 2093, t + 0.06, 0.9, { peak: 0.45, partials: BELLISH });
+			note(context, 2637, t + 0.12, 1.0, { peak: 0.4, partials: BELLISH });
+			break;
+		case 'URGENT':
+			// Two groups of three quick beeps: hard to miss over kitchen noise.
+			for (let g = 0; g < 2; g++)
+				for (let i = 0; i < 3; i++)
+					note(context, 1046.5, t + g * 0.6 + i * 0.16, 0.12, { peak: 0.45, type: 'triangle' });
+			break;
+		case 'CHIME':
 		default:
-			tone(context, 880, now, 0.2);
+			note(context, 880, t, 0.7, { peak: 0.6, partials: WARM });
+			note(context, 1318.51, t + 0.14, 0.9, { peak: 0.6, partials: WARM });
 	}
 }
 
@@ -156,8 +238,13 @@ export function vibrate(pattern: number | number[] = [180, 80, 180]): void {
 }
 
 export const SOUND_OPTIONS: { value: SoundKind; label: string }[] = [
-	{ value: 'NONE', label: 'No sound' },
 	{ value: 'CHIME', label: 'Chime' },
+	{ value: 'DINGDONG', label: 'Ding-dong' },
 	{ value: 'BELL', label: 'Bell' },
-	{ value: 'PING', label: 'Ping' }
+	{ value: 'MARIMBA', label: 'Marimba' },
+	{ value: 'RISE', label: 'Rising notes' },
+	{ value: 'PING', label: 'Ping' },
+	{ value: 'REGISTER', label: 'Cash register' },
+	{ value: 'URGENT', label: 'Urgent beeps (loud kitchens)' },
+	{ value: 'NONE', label: 'No sound' }
 ];

@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
+import { configHref } from '$lib/tenant/configuration';
 
-/** AI lives in the Integrations section. */
+/** Integrations is a section of Configuration. */
 export function load() {
-	throw redirect(302, '/shop/settings?section=integrations&service=AI');
+	throw redirect(302, configHref('integrations', 'service=AI'));
 }

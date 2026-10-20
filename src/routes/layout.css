@@ -961,29 +961,19 @@ select.input {
 	flex-shrink: 0;
 	display: flex;
 	flex-direction: column;
-	/* Blur-transparent background: keeps background clear while blurring content underneath */
+	/* Transparent, without a backdrop blur: the rail sits beside the content,
+	   not over it, so the blur showed almost nothing, yet re-blurring a
+	   full-height panel on every frame of the width animation made
+	   collapsing and expanding stutter. */
 	background: transparent;
-	backdrop-filter: blur(20px) saturate(150%);
 	border-right: 1px solid var(--rail-border);
 	position: sticky;
 	top: 0;
 	height: 100vh;
 	overflow: hidden;
-	transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-	.rail {
-		background: transparent;
-	}
-}
-
-@media (prefers-reduced-transparency: reduce) {
-	.rail {
-		background: transparent;
-		backdrop-filter: none;
-		-webkit-backdrop-filter: none;
-	}
+	contain: paint;
+	will-change: width;
+	transition: width 0.24s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .shell.rail-collapsed {
@@ -1174,13 +1164,34 @@ select.input {
 	flex: none;
 }
 
-/* -- Collapsed (icon rail) state -- */
+/* -- Collapsed (icon rail) state --
+   Text fades and folds to zero width instead of vanishing, so the rail
+   narrows in one continuous motion rather than snapping its icons to the
+   centre before the width has moved. */
+.rail-name,
+.rail-group-label,
+.rail-link-label,
+.rail-user-txt,
+.rail-user-caret {
+	transition: opacity 0.16s ease;
+}
+
 .shell.rail-collapsed .rail-name,
 .shell.rail-collapsed .rail-group-label,
 .shell.rail-collapsed .rail-link-label,
 .shell.rail-collapsed .rail-user-txt,
 .shell.rail-collapsed .rail-user-caret {
-	display: none;
+	opacity: 0;
+	width: 0;
+	min-width: 0;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.shell.rail-collapsed .rail-group-label {
+	height: 0;
+	margin: 0;
+	padding: 0;
 }
 
 .shell.rail-collapsed .rail-link,
@@ -1528,8 +1539,9 @@ select.input {
 .rail-overlay {
 	position: fixed;
 	inset: 0;
-	background: rgba(8, 9, 15, 0.5);
-	backdrop-filter: blur(2px);
+	/* A dim, no blur: blurring the whole page while the drawer slides in
+	   dropped frames on phones. */
+	background: rgba(8, 9, 15, 0.55);
 	z-index: 35;
 	border: none;
 	padding: 0;
@@ -1578,11 +1590,19 @@ select.input {
 }
 
 @media (max-width: 900px) {
+	/* As a drawer the rail must sit above its own backdrop (.rail-overlay,
+	   z-index 35) and be solid: the desktop rail's see-through blur put the
+	   menu under the dimmed page and made it unreadable over the content. */
 	.rail {
 		position: fixed;
 		left: 0;
 		top: 0;
+		z-index: 40;
 		width: min(280px, 84vw);
+		height: 100dvh;
+		background: var(--surface);
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
 		transform: translateX(-100%);
 		transition: transform 0.24s cubic-bezier(0.32, 0.72, 0, 1);
 		box-shadow: var(--shadow-lg);
@@ -3900,6 +3920,14 @@ select.input {
 
 .auth-submit:hover:not(:disabled) {
 	box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 38%, transparent);
+}
+
+.auth-forgot {
+	margin: var(--sp-6) 0 0;
+	font-size: var(--fs-tab);
+	line-height: 1.5;
+	color: var(--text-3);
+	text-align: center;
 }
 
 .auth-foot {

@@ -17,7 +17,8 @@ process.env.CI = 'true';
 
 const steps = [
 	{ name: 'Typecheck', command: 'npm', args: ['run', 'check'] },
-	{ name: 'Navigation', command: 'npm', args: ['run', 'check:nav'] }
+	{ name: 'Navigation', command: 'npm', args: ['run', 'check:nav'] },
+	{ name: 'Storefront', command: 'npm', args: ['run', 'check:storefront'] }
 ];
 
 const results = [];

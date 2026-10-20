@@ -8,6 +8,7 @@
 	import Megaphone from '@tabler/icons-svelte/icons/speakerphone';
 	import Info from '@tabler/icons-svelte/icons/info-circle';
 	import SuperAdminLogin from '$lib/components/admin/SuperAdminLogin.svelte';
+	import ServiceError from '$lib/components/ServiceError.svelte';
 	import '$lib/storefront/storefront-app.css';
 	import { createCart, loadInitialCart, provideCart } from '$lib/storefront/cart-state.svelte';
 	import { customerSession } from '$lib/storefront/session.svelte';
@@ -19,6 +20,7 @@
 	import StoreRoot from '$lib/storefront/StoreRoot.svelte';
 	import StoreTabBar from '$lib/storefront/StoreTabBar.svelte';
 	import StoreToast from '$lib/storefront/StoreToast.svelte';
+	import { experienceFor } from '$lib/storefront/experience';
 
 	let { data, children } = $props();
 
@@ -37,19 +39,15 @@
 
 	const isTenant = $derived(data.hostKind === 'tenant');
 	/** API said the shop is unpublished / not found: intentional empty state. */
-	const isUnpublished = $derived(isTenant && !config && data.configErrorCode === 'not_found');
-	/**
-	 * Config failed for a transient reason (network, 5xx, timeout). Show a
-	 * degraded shell with FALLBACK_THEME: never confuse this with unpublished.
-	 */
-	const isConfigError = $derived(
-		isTenant && !config && Boolean(data.configError) && data.configErrorCode !== 'not_found'
+	const isUnpublished = $derived(
+		isTenant && !config && (data.configErrorCode === 'not_found' || data.configErrorStatus === 404)
 	);
-	const canBrowse = $derived(isTenant && (config !== null || isConfigError));
+	const isUnknownShop = $derived(data.configErrorCode === 'tenant_not_found');
+	/** Only a loaded config is browsable; any other failure blocks with ServiceError. */
+	const canBrowse = $derived(isTenant && config !== null);
 
 	let signedIn = $state(false);
 	let online = $state(true);
-	let retrying = $state(false);
 
 	onMount(() => {
 		signedIn = Boolean(customerSession.load(slug));
@@ -67,17 +65,15 @@
 	const theme = $derived(hasCompleteTokens(config?.theme) ? config!.theme : FALLBACK_THEME);
 	const fontImport = $derived(fontImportFor(theme.font));
 	const currency = $derived(config?.store?.currency ?? 'INR');
-	const loginEnabled = $derived(
-		(config?.ordering?.customer_login_mode ?? (config?.ordering?.customer_login ? 'optional' : 'off')) !==
-			'off'
-	);
+	const exp = $derived(experienceFor(config));
+	const loginEnabled = $derived(exp.features.signIn);
 	const pathname = $derived($page.url.pathname);
 
 	const storeStatus = $derived(config?.ordering?.store_status ?? 'OPEN');
 	const statusMessage = $derived(config?.ordering?.status_message_display ?? '');
 	const showStatusBanner = $derived(storeStatus === 'BUSY' || storeStatus === 'AWAY');
 
-	const showSearch = $derived(pathname === '/' || pathname.startsWith('/menu'));
+	const showSearch = $derived(exp.features.search && (pathname === '/' || pathname.startsWith('/menu')));
 
 	let searchTerm = $state('');
 	$effect(() => {
@@ -93,7 +89,9 @@
 			pathname.startsWith('/verify-otp')
 	);
 
-	const showsCartBar = $derived(canBrowse && config !== null && !hidesCartBar && cart.count > 0);
+	const showsCartBar = $derived(
+		canBrowse && config !== null && exp.features.cart && !hidesCartBar && cart.count > 0
+	);
 
 	const footerShowsHours = $derived(
 		!config?.homepage?.sections?.some((section) => section.enabled && section.type === 'OPENING_HOURS')
@@ -109,18 +107,13 @@
 		cart.add(product, 1);
 	}
 
-	async function retryConfig() {
-		retrying = true;
-		try {
-			await invalidateAll();
-		} finally {
-			retrying = false;
-		}
+	function retryConfig() {
+		return invalidateAll();
 	}
 </script>
 
 <svelte:head>
-	<title>{config?.store?.name ? `${config.store.name} · Order pickup` : 'Order pickup'}</title>
+	<title>{config?.store?.name ? `${config.store.name} | ${exp.words.title}` : exp.words.title}</title>
 	{#if config?.store?.description}
 		<meta name="description" content={config.store.description} />
 	{/if}
@@ -136,7 +129,7 @@
 
 {#if !isTenant}
 	<SuperAdminLogin />
-{:else if isUnpublished && !isConfigError}
+{:else if isUnpublished}
 	<div class="sf-unpublished">
 		<div class="sf-unpublished-inner">
 			<div class="sf-unpublished-icon" aria-hidden="true">
@@ -145,36 +138,20 @@
 					<path d="M8 12h8" />
 				</svg>
 			</div>
-			<h1>Shopfront not yet published</h1>
-			<p>This store hasn't been set up yet. Please check back later.</p>
+			{#if isUnknownShop}
+				<h1>Shop not found</h1>
+				<p>There is no shop at this address. Check the link and try again.</p>
+			{:else}
+				<h1>Shopfront not yet published</h1>
+				<p>This store hasn't been set up yet. Please check back later.</p>
+			{/if}
 		</div>
 	</div>
 {:else if canBrowse}
 	<StoreRoot {config} tenantSlug={slug}>
 		<div class="sf-shell">
-			<StoreHeader {config} lines={cart.lines} search={showSearch} signedIn={signedIn} loginEnabled={loginEnabled} bind:searchTerm />
+			<StoreHeader {config} {exp} lines={cart.lines} search={showSearch} signedIn={signedIn} loginEnabled={loginEnabled} bind:searchTerm />
 			<main class="sf-main" data-has-cart={showsCartBar}>
-				{#if isConfigError || data.configError}
-					<div class="sf-wrap sf-notice">
-						<div
-							class="sf-alert"
-							data-tone="error"
-							role="alert"
-							style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;"
-						>
-							<span>{data.configError || 'Could not load this store right now.'}</span>
-							<button
-								class="sf-btn sf-btn-secondary"
-								type="button"
-								style="min-height:32px;font-size:var(--fs-code);padding:0 0.75rem;"
-								disabled={retrying}
-								onclick={() => void retryConfig()}
-							>
-								{retrying ? 'Retrying…' : 'Try again'}
-							</button>
-						</div>
-					</div>
-				{/if}
 				{#if !online}
 					<div class="sf-wrap sf-notice">
 						<div class="sf-alert" data-tone="warn" role="status">
@@ -197,11 +174,6 @@
 								<Info size={17} stroke={1.6} />
 							{/if}
 							<div class="sf-broadcast-text">
-								{#if broadcast.type === 'offer'}
-									<span class="sf-broadcast-badge offer">Special Offer</span>
-								{:else if broadcast.type === 'alert'}
-									<span class="sf-broadcast-badge alert">Store Notice</span>
-								{/if}
 								<span>{broadcast.text}</span>
 							</div>
 						</div>
@@ -209,15 +181,16 @@
 				{:else if showStatusBanner && (storeStatus === 'BUSY' || storeStatus === 'AWAY')}
 					<div class="sf-wrap sf-notice">
 						<div class="sf-alert" data-tone="warn" role="status">
-							<span>{storeStatus === 'BUSY' ? 'Kitchen is currently experiencing high order volume.' : 'Orders are temporarily paused.'}</span>
+							<span>{storeStatus === 'BUSY' ? exp.words.busy : exp.family === 'order' ? 'Orders are paused for now.' : 'Online booking is paused for now.'}</span>
 						</div>
 					</div>
 				{/if}
 				{@render children()}
 			</main>
-			<StoreFooter {config} showHours={!footerShowsHours} />
+			<StoreFooter {config} showHours={footerShowsHours} />
 			<StoreCartBar lines={cart.lines} {config} totals={cart.totals} visible={showsCartBar} />
 			<StoreTabBar
+				{exp}
 				{loginEnabled}
 				{signedIn}
 				cartBarVisible={showsCartBar}
@@ -226,15 +199,12 @@
 		</div>
 	</StoreRoot>
 {:else}
-	<div class="sf-unpublished">
-		<div class="sf-unpublished-inner">
-			<h1>Shopfront unavailable</h1>
-			<p>{data.configError || 'Please try again in a moment.'}</p>
-			<button class="sf-btn sf-btn-primary" type="button" style="margin-top:1rem;" disabled={retrying} onclick={() => void retryConfig()}>
-				{retrying ? 'Retrying…' : 'Try again'}
-			</button>
-		</div>
-	</div>
+	<ServiceError
+		code={data.configErrorCode}
+		status={data.configErrorStatus}
+		message={data.configError}
+		onRetry={retryConfig}
+	/>
 {/if}
 
 <style>
@@ -249,27 +219,34 @@
 	}
 
 	.sf-broadcast-alert[data-tone='alert'] {
-		background: rgba(239, 68, 68, 0.1);
-		border: 1px solid rgba(239, 68, 68, 0.3);
-		color: #ef4444;
+		background: var(--sf-danger-soft);
+		border: 1px solid color-mix(in srgb, var(--sf-danger) 28%, transparent);
+		color: var(--sf-danger);
 	}
 
+	/* Offers wear the shop's own colour. */
 	.sf-broadcast-alert[data-tone='offer'] {
-		background: rgba(139, 92, 246, 0.12);
-		border: 1px solid rgba(139, 92, 246, 0.3);
-		color: #7c3aed;
+		background: color-mix(in srgb, var(--sf-primary) 14%, var(--sf-surface));
+		border: 1px solid color-mix(in srgb, var(--sf-primary) 30%, transparent);
+		color: var(--sf-text);
+		font-weight: 500;
+	}
+
+	.sf-broadcast-alert[data-tone='offer'] :global(svg) {
+		color: var(--sf-primary);
+		flex: none;
 	}
 
 	.sf-broadcast-alert[data-tone='msg'] {
-		background: var(--sf-info-soft, rgba(59, 130, 246, 0.1));
-		border: 1px solid color-mix(in srgb, var(--sf-info, #1d4ed8) 28%, transparent);
-		color: var(--sf-info, #1d4ed8);
+		background: var(--sf-info-soft);
+		border: 1px solid color-mix(in srgb, var(--sf-info) 28%, transparent);
+		color: var(--sf-info);
 	}
 
 	.sf-broadcast-alert[data-tone='others'] {
-		background: var(--sf-warn-soft, rgba(245, 158, 11, 0.1));
-		border: 1px solid color-mix(in srgb, var(--sf-warn, #9a5b00) 28%, transparent);
-		color: var(--sf-warn, #9a5b00);
+		background: var(--sf-warn-soft);
+		border: 1px solid color-mix(in srgb, var(--sf-warn) 28%, transparent);
+		color: var(--sf-warn);
 	}
 
 	.sf-broadcast-text {
@@ -279,24 +256,6 @@
 		flex-wrap: wrap;
 	}
 
-	.sf-broadcast-badge {
-		font-size: 0.68rem;
-		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		padding: 2px 7px;
-		border-radius: 4px;
-	}
-
-	.sf-broadcast-badge.offer {
-		background: #8b5cf6;
-		color: #ffffff;
-	}
-
-	.sf-broadcast-badge.alert {
-		background: #ef4444;
-		color: #ffffff;
-	}
 	.sf-unpublished {
 		min-height: 100dvh;
 		display: flex;

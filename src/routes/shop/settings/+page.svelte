@@ -1,12 +1,10 @@
 <script lang="ts">
-	import EmailTemplateStudio from '$lib/components/admin/email/EmailTemplateStudio.svelte';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
 	import SettingsShell from '$lib/components/admin/SettingsShell.svelte';
 	import { me, type User } from '$lib/auth';
-	import type { ConfigService } from '$lib/admin/configTypes';
 	import {
 		ensureLiveStorefrontAdmin,
 		getStorefrontAdminOrDefault,
@@ -15,6 +13,7 @@
 		type AdminStorefront
 	} from '$lib/storefront/adminCache.svelte';
 	import { setStorefrontContext } from '$lib/storefront/admin-context';
+	import { MOVED_FROM_SETTINGS, configHref } from '$lib/tenant/configuration';
 	import {
 		SETTINGS_GROUPS,
 		settingsSectionFor,
@@ -22,10 +21,8 @@
 	} from '$lib/tenant/settings';
 	import AppearancePanel from '$lib/components/tenant/settings/AppearancePanel.svelte';
 	import BusinessProfilePanel from '$lib/components/tenant/settings/BusinessProfilePanel.svelte';
-	import IntegrationsPanel from '$lib/components/tenant/settings/IntegrationsPanel.svelte';
 	import MfaPolicyPanel from '$lib/components/admin/MfaPolicyPanel.svelte';
 	import MfaSetupPanel from '$lib/components/admin/MfaSetupPanel.svelte';
-	import NotificationsPanel from '$lib/components/tenant/settings/NotificationsPanel.svelte';
 	import WorkflowPanel from '$lib/components/tenant/settings/WorkflowPanel.svelte';
 
 	/**
@@ -142,22 +139,22 @@
 		(user?.permissions ?? []).includes('organization') || user?.role === 'TENANT_ADMIN'
 	);
 
-	/** Integrations keeps its service in the URL too, beside the section. */
-	const service = $derived(
-		(($page.url.searchParams.get('service') ?? 'SMTP').toUpperCase() as ConfigService) ?? 'SMTP'
-	);
+	// Notifications, Email templates and Integrations moved to Configuration:
+	// forward old links and bookmarks there, keeping any extra parameters.
+	$effect(() => {
+		const params = $page.url.searchParams;
+		const requested = params.get('section');
+		if (requested && MOVED_FROM_SETTINGS.has(requested)) {
+			const rest = new URLSearchParams(params);
+			rest.delete('section');
+			goto(configHref(requested, rest.toString()), { replaceState: true });
+		}
+	});
 
 	function select(id: string) {
 		goto(`?section=${id}`, { replaceState: true, keepFocus: true, noScroll: true });
 	}
 
-	function selectService(next: ConfigService) {
-		goto(`?section=integrations&service=${next}`, {
-			replaceState: true,
-			keepFocus: true,
-			noScroll: true
-		});
-	}
 </script>
 
 {#snippet formSkeleton()}
@@ -179,7 +176,7 @@
 	onselect={select}
 >
 	{#snippet notice()}
-		{#if configError && active.id !== 'appearance' && active.id !== 'integrations'}
+		{#if configError && active.id !== 'appearance' && active.id !== 'security'}
 			<div class="alert alert-danger set-alert">
 				<div><strong>API notice:</strong> {configError}</div>
 				<button
@@ -194,11 +191,7 @@
 		{/if}
 	{/snippet}
 
-	{#if active.id === 'email-templates'}
-		<EmailTemplateStudio scope="tenant" initialEvent={$page.url.searchParams.get('event') ?? ''} />
-	{:else if active.id === 'integrations'}
-		<IntegrationsPanel {service} onselect={selectService} />
-	{:else if active.id === 'appearance'}
+	{#if active.id === 'appearance'}
 		<AppearancePanel {canSetBusinessDefault} />
 	{:else if active.id === 'security'}
 		{#if canEditMfaPolicy}
@@ -209,10 +202,8 @@
 		{@render formSkeleton()}
 	{:else if active.id === 'business'}
 		<BusinessProfilePanel {config} {save} {refresh} />
-	{:else if active.id === 'workflow'}
-		<WorkflowPanel {config} {save} {refresh} />
 	{:else}
-		<NotificationsPanel {config} {save} {refresh} />
+		<WorkflowPanel {config} {save} {refresh} />
 	{/if}
 </SettingsShell>
 

@@ -22,13 +22,14 @@
 	} from '$lib/admin/tenantConfigCache.svelte';
 	import CircleCheck from '@tabler/icons-svelte/icons/circle-check';
 	import CircleSlash from '@tabler/icons-svelte/icons/ban';
-	import Info from '@tabler/icons-svelte/icons/info-circle';
 	import Send from '@tabler/icons-svelte/icons/send';
 	import Trash2 from '@tabler/icons-svelte/icons/trash';
 	import Upload from '@tabler/icons-svelte/icons/upload';
 	import ConfigForm from '$lib/components/admin/ConfigForm.svelte';
-	import ConfigSourcePicker from '$lib/components/admin/ConfigSourcePicker.svelte';
-	import ConfigStatusBadge from '$lib/components/admin/ConfigStatusBadge.svelte';
+	import StatusBadge from '$lib/components/admin/StatusBadge.svelte';
+	import ConfigCard from '$lib/components/config/ConfigCard.svelte';
+	import ConfigRow from '$lib/components/config/ConfigRow.svelte';
+	import Segmented from '$lib/components/config/Segmented.svelte';
 	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
 	import FormField from '$lib/components/admin/FormField.svelte';
@@ -38,7 +39,14 @@
 	import TextInput from '$lib/components/admin/TextInput.svelte';
 	import { toast } from '$lib/components/admin/toast';
 
-	let { service = 'SMTP' }: { service?: ConfigService } = $props();
+	let {
+		service = 'SMTP',
+		title = ''
+	}: {
+		service?: ConfigService;
+		/** Heading for the connection card; defaults to "<Service> connection". */
+		title?: string;
+	} = $props();
 
 	let detail = $state<TenantServiceDetail | null>(null);
 	let effective = $state<EffectiveConfig | null>(null);
@@ -194,67 +202,83 @@
 	}
 </script>
 
-<section class="page">
-	<header class="head">
-		<div>
-			<h2 class="title">{CONFIG_SERVICE_LABEL[service]}</h2>
-			<p class="sub">Choose whether to use your organization's settings or your platform's.</p>
-		</div>
-		{#if effective}
-			<ConfigStatusBadge
-				status={effective.available ? (own?.status ?? 'UNCONFIGURED') : 'CONNECTION_FAILED'}
-				enabled={effective.available}
-			/>
-		{/if}
-	</header>
-
-	{#if loading}
-		<div class="stack">
-			<Skeleton height="6rem" />
-			<Skeleton height="9rem" />
-		</div>
-	{:else if error}
-		<ErrorState message={error} />
-	{:else if options && own}
-		<!-- Current configuration -->
-		<div class="current" class:unavailable={effective && !effective.available}>
-			<div class="current-top">
-				<span class="current-label">Current configuration</span>
-				<span class="current-source">
-					{usingPlatform ? 'Platform configuration' : 'Organization configuration'}
-				</span>
+{#snippet outcomeBox()}
+	{#if outcome}
+		<div class="sc-outcome" class:bad={!outcome.ok} role="status">
+			{#if outcome.ok}<CircleCheck size={15} stroke={1.8} />{:else}<CircleSlash size={15} stroke={1.8} />{/if}
+			<div>
+				<strong>{outcome.ok ? 'It works' : 'It did not work'}</strong>
+				<span>{outcome.message}</span>
+				{#if outcome.detail}<span class="sc-detail">{outcome.detail}</span>{/if}
 			</div>
-			<p class="current-note">
-				{#if usingPlatform}
-					Managed by your platform administrator. Your organization cannot see these credentials.
-				{:else}
-					Configured by your organization.
+		</div>
+	{/if}
+{/snippet}
+
+{#if loading}
+	<div class="sc">
+		<Skeleton height="10rem" />
+		<Skeleton height="12rem" />
+	</div>
+{:else if error}
+	<ErrorState message={error} />
+{:else if options && own}
+	{@const label = CONFIG_SERVICE_LABEL[service]}
+	<div class="sc">
+		<ConfigCard
+			id={`sc-${service}`}
+			title={title || `${label} connection`}
+			description="Use the platform's service, or connect an account of your own."
+			flush
+		>
+			{#snippet aside()}
+				{#if effective}
+					<StatusBadge
+						status={effective.available ? (usingPlatform ? 'Connected via platform' : 'Connected') : 'Not connected'}
+						kind={effective.available ? 'ok' : 'warn'}
+					/>
 				{/if}
-			</p>
+			{/snippet}
 
 			{#if effective && !effective.available}
-				<div class="alert alert-warn" role="status">
-					<CircleSlash size={16} stroke={1.6} />
+				<div class="sc-alert sc-alert-inset" role="status">
+					<CircleSlash size={15} stroke={1.6} />
 					<div>
-						<strong>Currently unavailable.</strong>
+						<strong>Not available right now.</strong>
 						{effective.reason}
-						{#if effective.hint}<div class="alert-hint">{effective.hint}</div>{/if}
+						{#if effective.hint}<span class="sc-detail">{effective.hint}</span>{/if}
 					</div>
 				</div>
 			{/if}
-		</div>
 
-		<ConfigSourcePicker {options} disabled={busy} onselect={chooseSource} />
+			<ConfigRow
+				label="Source"
+				description={usingPlatform
+					? 'Managed for you by the platform. No keys or passwords needed.'
+					: options.platform_available
+						? 'Your own provider account, with its keys.'
+						: `Your own provider account. The platform option is unavailable: ${options.platform_reason ?? 'not offered for your business'}.`}
+			>
+				<Segmented
+					label="Where this service comes from"
+					value={options.source}
+					disabled={busy}
+					options={[
+						{ value: 'PLATFORM', label: 'Platform', disabled: !options.platform_available },
+						{ value: 'ORGANIZATION', label: 'Your account' }
+					]}
+					onchange={(v) => chooseSource(v)}
+				/>
+			</ConfigRow>
+		</ConfigCard>
 
 		{#if !usingPlatform}
-			<div class="panel">
-				<div class="panel-head">
-					<h3 class="panel-h">Organization settings</h3>
-					<p class="panel-note">
-						Stored encrypted. Passwords and keys are never shown again after saving.
-					</p>
-				</div>
-				<div class="panel-body">
+			<ConfigCard
+				id={`sc-${service}-account`}
+				title="Account details"
+				description="Stored encrypted. Passwords and keys are never shown again after saving."
+			>
+				<div class="sc-form">
 					<FormField label="Provider" htmlFor={`tcfg-${service}-provider`}>
 						<SelectField
 							id={`tcfg-${service}-provider`}
@@ -262,91 +286,64 @@
 							options={(own.providers ?? []).map((p) => ({ value: p.value, label: p.label }))}
 						/>
 					</FormField>
-				</div>
-			</div>
-
-			<div class="panel">
-				<div class="panel-body">
 					<ConfigForm {service} view={own} onchange={(d) => (draft = d)} />
+					<Switch bind:checked={enabled} label="Use this account" hint="Turn off to keep these details without using them." />
 				</div>
-				<div class="panel-body">
-					<Switch
-						bind:checked={enabled}
-						label="Enabled"
-						hint="Turn off to keep these settings without using them."
-					/>
-				</div>
-			</div>
+				{@render outcomeBox()}
+				{#if own.last_error && !outcome}
+					<div class="sc-outcome bad" role="status">
+						<CircleSlash size={15} stroke={1.8} />
+						<div><strong>Last attempt failed</strong><span class="sc-detail">{own.last_error}</span></div>
+					</div>
+				{/if}
 
-			<div class="panel">
-				<div class="panel-body">
-					{#if service === 'SMTP'}
-						<div class="verify-row">
-							<FormField label="Send a test email to" htmlFor="tcfg-test-to">
-								<TextInput id="tcfg-test-to" type="email" bind:value={testTo} placeholder="you@example.com" />
-							</FormField>
-						</div>
-					{/if}
-
-					<div class="actions">
-						<button type="button" class="btn btn-ghost" disabled={testing || busy} onclick={testConnection}>
-							<CircleCheck size={14} stroke={1.6} />
-							{testing ? 'Testing…' : 'Test connection'}
+				{#snippet footer()}
+					{#if options.organization_configured}
+						<button type="button" class="btn btn-quiet btn-sm sc-remove" disabled={busy} onclick={() => (deleteOpen = true)}>
+							<Trash2 size={14} stroke={1.6} /> Remove
 						</button>
+					{/if}
+					<button type="button" class="btn btn-ghost btn-sm" disabled={testing || busy} onclick={testConnection}>
+						<CircleCheck size={14} stroke={1.6} />
+						{testing ? 'Testing...' : 'Test connection'}
+					</button>
+					<button type="button" class="btn btn-primary btn-sm" disabled={saving} onclick={save}>
+						{saving ? 'Saving...' : 'Save'}
+					</button>
+				{/snippet}
+			</ConfigCard>
+
+			{#if service === 'SMTP' || service === 'STORAGE' || service === 'AI'}
+				<ConfigCard
+					id={`sc-${service}-check`}
+					title="Check it works"
+					description={service === 'SMTP'
+						? 'Send a real email through this account.'
+						: service === 'STORAGE'
+							? 'Upload and remove a small test file.'
+							: 'Ask the model for a short reply.'}
+				>
+					<div class="sc-check">
 						{#if service === 'SMTP'}
-							<button type="button" class="btn btn-ghost" disabled={busy} onclick={() => testAction('send_email')}>
+							<TextInput id="tcfg-test-to" type="email" bind:value={testTo} placeholder="you@example.com" />
+							<button type="button" class="btn btn-ghost btn-sm" disabled={busy} onclick={() => testAction('send_email')}>
 								<Send size={14} stroke={1.6} /> Send test email
 							</button>
-						{/if}
-						{#if service === 'STORAGE'}
-							<button type="button" class="btn btn-ghost" disabled={busy} onclick={() => testAction('upload')}>
+						{:else if service === 'STORAGE'}
+							<button type="button" class="btn btn-ghost btn-sm" disabled={busy} onclick={() => testAction('upload')}>
 								<Upload size={14} stroke={1.6} /> Test upload
 							</button>
-						{/if}
-						{#if service === 'AI'}
-							<button type="button" class="btn btn-ghost" disabled={busy} onclick={() => testAction('test_model')}>
-								<CircleCheck size={14} stroke={1.6} /> Test model
-							</button>
-						{/if}
-						<button type="button" class="btn btn-primary" disabled={saving} onclick={save}>
-							{saving ? 'Saving…' : 'Save'}
-						</button>
-						{#if options.organization_configured}
-							<button type="button" class="btn btn-ghost btn-danger" disabled={busy} onclick={() => (deleteOpen = true)}>
-								<Trash2 size={14} stroke={1.6} /> Remove
+						{:else}
+							<button type="button" class="btn btn-ghost btn-sm" disabled={busy} onclick={() => testAction('test_model')}>
+								<CircleCheck size={14} stroke={1.6} /> Test the model
 							</button>
 						{/if}
 					</div>
-
-					{#if outcome}
-						<div class="outcome" class:bad={!outcome.ok} role="status">
-							<strong>{outcome.ok ? 'Passed' : 'Failed'}</strong>
-							<span>{outcome.message}</span>
-							{#if outcome.detail}<span class="detail">{outcome.detail}</span>{/if}
-						</div>
-					{/if}
-
-					{#if own.last_error}
-						<div class="outcome bad" role="status">
-							<strong>Last failure</strong>
-							<span class="detail">{own.last_error}</span>
-						</div>
-					{/if}
-				</div>
-			</div>
-		{:else}
-			<div class="panel">
-				<div class="panel-body read-only">
-					<Info size={15} stroke={1.6} />
-					<span>
-						Your organization is using the platform {CONFIG_SERVICE_LABEL[service].toLowerCase()}
-						configuration. Switch to your organization configuration above to manage your own settings.
-					</span>
-				</div>
-			</div>
+				</ConfigCard>
+			{/if}
 		{/if}
-	{/if}
-</section>
+	</div>
+{/if}
 
 <ConfirmDialog
 	bind:open={deleteOpen}
@@ -359,149 +356,88 @@
 />
 
 <style>
-	.page {
+	.sc {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: var(--sp-9);
 	}
 
-	.head {
+	.sc-alert,
+	.sc-outcome {
 		display: flex;
-		flex-wrap: wrap;
 		align-items: flex-start;
-		justify-content: space-between;
-		gap: 0.75rem;
-	}
-
-	.title {
-		margin: 0;
-		font-size: var(--fs-title);
-		font-weight: 650;
-		color: var(--text-1);
-	}
-
-	.sub {
-		margin: 0.2rem 0 0;
-		font-size: var(--fs-body);
-		color: var(--text-3);
-	}
-
-	.current {
-		padding: 0.85rem 1rem;
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		background: var(--surface-1);
-	}
-
-	.current.unavailable {
-		border-color: color-mix(in srgb, var(--warn, #d97706) 45%, transparent);
-	}
-
-	.current-top {
-		display: flex;
-		align-items: baseline;
-		gap: 0.5rem;
-		flex-wrap: wrap;
-	}
-
-	.current-label {
-		font-size: var(--fs-code);
-		font-weight: 600;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-		color: var(--text-3);
-	}
-
-	.current-source {
-		font-size: var(--fs-title);
-		font-weight: 600;
-		color: var(--text-1);
-	}
-
-	.current-note {
-		margin: 0.3rem 0 0;
-		font-size: var(--fs-body);
-		color: var(--text-3);
-	}
-
-	.alert-hint {
-		margin-top: 0.2rem;
+		gap: var(--sp-5);
+		margin-bottom: var(--sp-8);
+		padding: var(--sp-6) var(--sp-7);
+		border-radius: var(--radius-md, 8px);
+		background: var(--warn-bg);
+		color: var(--warn);
 		font-size: var(--fs-tab);
-		color: var(--text-3);
+		line-height: 1.5;
 	}
 
-	.panel {
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		background: var(--surface-1);
+	.sc-alert-inset {
+		margin: 0 var(--sp-10) var(--sp-4);
 	}
 
-	.panel-head {
-		padding: 0.85rem 1.1rem 0;
+	.sc-outcome {
+		margin: var(--sp-8) 0 0;
+		background: var(--success-bg, var(--ok-soft));
+		color: var(--success, var(--ok));
 	}
 
-	.panel-h {
-		margin: 0;
-		font-size: var(--fs-body);
-		font-weight: 600;
+	.sc-outcome.bad {
+		background: var(--danger-bg, rgba(220, 38, 38, 0.1));
+		color: var(--danger);
 	}
 
-	.panel-note {
-		margin: 0.2rem 0 0;
-		font-size: var(--fs-code);
-		color: var(--text-3);
-	}
-
-	.panel-body {
-		padding: 0.9rem 1.1rem;
-	}
-
-	.read-only {
-		display: flex;
-		align-items: flex-start;
-		gap: 0.5rem;
-		font-size: var(--fs-body);
-		color: var(--text-2);
-	}
-
-	.verify-row {
-		margin-bottom: 0.85rem;
-		max-width: 22rem;
-	}
-
-	.actions {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-	}
-
-	.outcome {
+	.sc-alert div,
+	.sc-outcome div {
 		display: flex;
 		flex-direction: column;
-		gap: 0.15rem;
-		margin-top: 0.85rem;
-		padding: 0.65rem 0.8rem;
-		border: 1px solid color-mix(in srgb, var(--ok, #059669) 35%, transparent);
-		border-radius: var(--radius-sm);
-		background: color-mix(in srgb, var(--ok, #059669) 8%, transparent);
-		font-size: var(--fs-body);
+		gap: var(--sp-1);
 	}
 
-	.outcome.bad {
-		border-color: color-mix(in srgb, var(--danger, #dc2626) 35%, transparent);
-		background: color-mix(in srgb, var(--danger, #dc2626) 8%, transparent);
-	}
-
-	.detail {
-		font-family: var(--font-mono);
-		font-size: var(--fs-meta);
-		color: var(--text-3);
+	.sc-detail {
+		display: block;
+		opacity: 0.85;
 		word-break: break-word;
 	}
 
-	.stack {
+
+
+
+
+
+
+
+
+
+
+
+	.sc-form {
 		display: flex;
 		flex-direction: column;
-		gap: 0.85rem;
+		gap: var(--sp-8);
+		max-width: 34rem;
 	}
+
+	.sc-remove {
+		margin-right: auto;
+		color: var(--danger);
+	}
+
+	.sc-check {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-5);
+		flex-wrap: wrap;
+		max-width: 34rem;
+	}
+
+	.sc-check :global(input) {
+		flex: 1;
+		min-width: 12rem;
+	}
+
 </style>

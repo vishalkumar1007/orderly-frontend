@@ -4,6 +4,10 @@
 	import Receipt from '@tabler/icons-svelte/icons/receipt';
 	import User from '@tabler/icons-svelte/icons/user';
 	import UtensilsCrossed from '@tabler/icons-svelte/icons/tools-kitchen-2';
+	import BuildingStore from '@tabler/icons-svelte/icons/building-store';
+	import Calendar from '@tabler/icons-svelte/icons/calendar';
+	import Bed from '@tabler/icons-svelte/icons/bed';
+	import type { Experience } from '$lib/storefront/experience';
 
 	/**
 	 * Bottom navigation for a phone.
@@ -16,11 +20,13 @@
 	 * without depending on the real browser URL.
 	 */
 	let {
+		exp = undefined as Experience | undefined,
 		loginEnabled = true,
 		signedIn = false,
 		cartBarVisible = false,
 		activePath = undefined as string | undefined
 	}: {
+		exp?: Experience;
 		loginEnabled?: boolean;
 		signedIn?: boolean;
 		cartBarVisible?: boolean;
@@ -29,20 +35,29 @@
 
 	const pathname = $derived(activePath ?? $page.url.pathname);
 
+	// A shop gets Home, its catalogue and its orders; a booking business
+	// gets Home and its bookings, because booking starts from the home page.
+	const family = $derived(exp?.family ?? 'order');
+	const history = $derived(
+		family === 'book'
+			? { href: '/bookings', label: 'Bookings', icon: Calendar }
+			: family === 'stay'
+				? { href: '/reservations', label: 'Stays', icon: Bed }
+				: { href: '/orders', label: 'Orders', icon: Receipt }
+	);
 	const tabs = $derived([
 		{ href: '/', label: 'Home', icon: House, current: pathname === '/' },
-		{
-			href: '/menu',
-			label: 'Menu',
-			icon: UtensilsCrossed,
-			current: pathname.startsWith('/menu')
-		},
-		{
-			href: '/orders',
-			label: 'Orders',
-			icon: Receipt,
-			current: pathname.startsWith('/orders')
-		},
+		...(family === 'order'
+			? [
+					{
+						href: '/menu',
+						label: exp?.words.catalog ?? 'Menu',
+						icon: exp && exp.variant !== 'food' ? BuildingStore : UtensilsCrossed,
+						current: pathname.startsWith('/menu')
+					}
+				]
+			: []),
+		{ ...history, current: pathname.startsWith(history.href) },
 		...(loginEnabled
 			? [
 					{

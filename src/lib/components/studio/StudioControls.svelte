@@ -1,4 +1,5 @@
 <script lang="ts">
+	import SignInMethods from './SignInMethods.svelte';
 	import Palette from '@tabler/icons-svelte/icons/palette';
 	import Image from '@tabler/icons-svelte/icons/photo';
 	import LayoutTemplate from '@tabler/icons-svelte/icons/layout';
@@ -28,6 +29,7 @@
 		FILTER_OPTIONS,
 		LOGIN_MODE_OPTIONS,
 		MODE_OPTIONS,
+		SURFACE_OPTIONS,
 		STORE_STATUS_OPTIONS,
 		ACCEPTANCE_MODES,
 		PAYMENT_TIMINGS
@@ -432,6 +434,41 @@
 							/>
 						</div>
 					</div>
+				</div>
+			</div>
+
+			<div class="studio-section">
+				<div class="studio-section-header">
+					<h3>Background style</h3>
+					<p>The page and card colours behind your brand. Each has a light and a dark version.</p>
+				</div>
+				<div class="studio-presets-grid">
+					{#each SURFACE_OPTIONS as opt (opt.value)}
+						{@const isSelected = (draft.theme.surface ?? 'clean') === opt.value}
+						{@const light = opt.light || `color-mix(in srgb, ${draft.theme.primary} 9%, #ffffff)`}
+						{@const dark = opt.dark || `color-mix(in srgb, ${draft.theme.primary} 14%, #0c0d13)`}
+						<button
+							type="button"
+							class="studio-preset-card"
+							class:selected={isSelected}
+							aria-pressed={isSelected}
+							onclick={() => store.mutate((d) => (d.theme.surface = opt.value as any))}
+						>
+							<div class="studio-preset-swatches">
+								<span class="studio-swatch studio-surface-swatch" style="background:{light};"></span>
+								<span class="studio-swatch studio-surface-swatch" style="background:{dark};"></span>
+							</div>
+							<div class="studio-preset-info">
+								<span class="studio-preset-name">{opt.label}</span>
+								<span class="studio-preset-desc">{opt.hint}</span>
+							</div>
+							{#if isSelected}
+								<span class="studio-preset-check">
+									<Check size={14} stroke={1.6} />
+								</span>
+							{/if}
+						</button>
+					{/each}
 				</div>
 			</div>
 
@@ -872,8 +909,8 @@
 		{#if section === 'customer'}
 			<div class="studio-section">
 				<div class="studio-section-header">
-					<h3>Phone sign-in (OTP)</h3>
-					<p>Phone OTP only today: email login is not available yet.</p>
+					<h3>Customer sign-in</h3>
+					<p>When customers sign in, and how. They get a one-time code: no password.</p>
 				</div>
 
 				<div class="studio-options-list">
@@ -897,6 +934,21 @@
 					{/each}
 				</div>
 			</div>
+
+			{#if draft.behaviour.customer_login_mode !== 'off'}
+				<div class="studio-section">
+					<div class="studio-section-header">
+						<h3>Sign-in methods</h3>
+						<p>Only methods set up under Configuration, Integrations can be switched on.</p>
+					</div>
+					<SignInMethods
+						methods={draft.behaviour.customer_login_methods ?? ['PHONE', 'EMAIL']}
+						channels={store.published?.sign_in_channels}
+						mode={draft.behaviour.customer_login_mode}
+						onchange={(m) => store.mutate((d) => (d.behaviour.customer_login_methods = m))}
+					/>
+				</div>
+			{/if}
 		{/if}
 
 		<!-- 6. CHECKOUT TAB -->
@@ -1126,6 +1178,11 @@
 		height: 14px;
 		border-radius: 50%;
 		border: 1px solid rgba(0, 0, 0, 0.1);
+	}
+
+	/* Light swatches can vanish on a white card. */
+	.studio-surface-swatch {
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
 	}
 
 	.studio-preset-name {

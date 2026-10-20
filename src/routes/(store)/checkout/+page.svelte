@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { experienceFor } from '$lib/storefront/experience';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import ArrowLeft from '@tabler/icons-svelte/icons/arrow-left';
@@ -25,6 +26,7 @@
 
 	const cart = useCart();
 	const config = $derived(data.config);
+	const exp = $derived(experienceFor(config));
 	const currency = $derived(config?.store?.currency ?? 'INR');
 	const methods = $derived(config?.payments.methods ?? []);
 	const orderable = $derived(config?.ordering.enabled ?? false);
@@ -44,10 +46,7 @@
 	onMount(() => {
 		const session = customerSession.load(data.tenantSlug ?? '');
 		signedIn = Boolean(session);
-		const loginMode =
-			config?.ordering?.customer_login_mode ??
-			(config?.ordering?.customer_login ? 'optional' : 'off');
-		if (loginMode === 'required' && !session) {
+		if (exp.features.signInRequired && !session) {
 			const next = encodeURIComponent('/checkout');
 			void goto(`/login?next=${next}`);
 			return;
@@ -149,10 +148,10 @@
 		}
 	}
 
-	const methodLabel: Record<string, string> = {
+	const methodLabel = $derived<Record<string, string>>({
 		ONLINE: 'Pay online',
-		CASH: 'Cash at pickup'
-	};
+		CASH: exp.words.cash
+	});
 	const methodHint: Record<string, string> = {
 		ONLINE: 'UPI, card or net banking',
 		CASH: 'Pay when you collect your order'
@@ -172,7 +171,7 @@
 		<div class="sf-empty">
 			<h3>Nothing to check out</h3>
 			<p>Your cart is empty.</p>
-			<a class="sf-btn sf-btn-primary" href="/menu">Browse the menu</a>
+			<a class="sf-btn sf-btn-primary" href="/menu">Browse the {exp.words.catalog.toLowerCase()}</a>
 		</div>
 	{:else}
 		<form onsubmit={placeOrder} novalidate>
@@ -289,10 +288,10 @@
 				<div class="sf-choice" data-selected="true" role="group">
 					<span class="sf-choice-mark" aria-hidden="true"></span>
 					<span class="sf-choice-body">
-						<span class="sf-choice-title">Pickup</span>
+						<span class="sf-choice-title">{exp.words.fulfilment}</span>
 						<span class="sf-choice-hint">
-							Ready in about {config?.ordering.prep_time_minutes ?? 20} min ·{' '}
-							{config?.store?.address || 'Collect from the counter'}
+							Ready in about {config?.ordering.prep_time_minutes ?? 20} min, at
+							{config?.store?.address || 'the counter'}.
 						</span>
 					</span>
 				</div>
@@ -319,11 +318,11 @@
 			{/if}
 
 			<label class="sf-field" style="margin-top:18px;">
-				<span class="sf-label">Note for the kitchen <span class="sf-optional">(optional)</span></span>
+				<span class="sf-label">{exp.words.note} <span class="sf-optional">(optional)</span></span>
 				<textarea class="sf-textarea" bind:value={notes} maxlength="140" placeholder="Anything else?"></textarea>
 			</label>
 
-			{#if !signedIn && (config?.ordering?.customer_login_mode ?? 'optional') === 'optional'}
+			{#if !signedIn && exp.features.signIn && !exp.features.signInRequired}
 				<div class="sf-panel" style="margin-top:18px;background:var(--sf-surface-2);">
 					<p style="margin:0 0 4px;font-size:var(--fs-body);font-weight:650;color:var(--sf-text);">
 						Save your details for next time
@@ -353,7 +352,7 @@
 				{:else if method === 'ONLINE' && config?.ordering.payment_requirement === 'BEFORE_PREPARATION'}
 					Pay {money(totals.total, currency)}
 				{:else}
-					Place order · {money(totals.total, currency)}
+					Place order for {money(totals.total, currency)}
 				{/if}
 			</button>
 

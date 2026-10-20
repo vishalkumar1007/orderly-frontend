@@ -10,6 +10,7 @@
 	import Switch from '$lib/components/admin/Switch.svelte';
 	import TextInput from '$lib/components/admin/TextInput.svelte';
 	import { toast } from '$lib/components/admin/toast';
+	import WorkingHoursPanel from '$lib/components/tenant/WorkingHoursPanel.svelte';
 	import {
 		createService,
 		deleteService,
@@ -163,6 +164,8 @@
 			{/each}
 		</DataTable>
 	</section>
+
+	<WorkingHoursPanel />
 </div>
 
 <Modal bind:open={formOpen} title={editing ? 'Edit service' : 'Add service'}>

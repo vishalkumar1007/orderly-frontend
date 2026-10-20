@@ -122,6 +122,14 @@ export default defineConfig(async ({ command }): Promise<UserConfig> => {
 		ssr: {
 			noExternal: ['@lucide/svelte']
 		},
+		// The dashboard charts are only imported once someone opens a page that
+		// shows one, so Vite used to discover them mid-session, re-bundle, and
+		// answer the open tab with 504 "Outdated Optimize Dep": the dashboard
+		// showed "500 Internal Error" until a hard reload. Bundling them at
+		// startup means there is nothing left to discover.
+		optimizeDeps: {
+			include: ['layerchart', 'd3-scale']
+		},
 		server: {
 			port: finalPort,
 			host: true,

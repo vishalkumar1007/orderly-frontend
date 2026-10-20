@@ -27,18 +27,23 @@ export function money(amount: number, currency = 'INR'): string {
 	const value = Number.isFinite(amount) ? amount : 0;
 	const symbol = currencySymbol(currency);
 	// Whole amounts read better without ".00" on a phone screen.
-	return `${symbol}${trimZeros(value.toFixed(2))}`;
+	return `${symbol}${group(value, currency, 0)}`;
+}
+
+/** Digits grouped the way the currency's customers read them: 1,00,000 for rupees. */
+function group(value: number, currency: string, minDecimals: number): string {
+	return value.toLocaleString(currency.toUpperCase() === 'INR' ? 'en-IN' : 'en-US', {
+		minimumFractionDigits: minDecimals,
+		maximumFractionDigits: 2
+	});
 }
 
 /** `moneyPrecise` always shows both decimals, for totals that need them. */
 export function moneyPrecise(amount: number, currency = 'INR'): string {
 	const value = Number.isFinite(amount) ? amount : 0;
-	return `${currencySymbol(currency)}${value.toFixed(2)}`;
+	return `${currencySymbol(currency)}${group(value, currency, 2)}`;
 }
 
-function trimZeros(value: string): string {
-	return value.includes('.') ? value.replace(/\.?0+$/, '') : value;
-}
 
 /** `itemSummary` reads as "2 × Veg Momo" for a compact line. */
 export function itemSummary(quantity: number, name: string): string {

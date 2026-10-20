@@ -161,7 +161,7 @@
 			key: 'payment' as const,
 			label: 'Payment Methods',
 			hint: 'UPI, cash, cards',
-			href: '/shop/payments'
+			href: '/shop/configuration?section=payments'
 		},
 		{
 			key: 'hours' as const,

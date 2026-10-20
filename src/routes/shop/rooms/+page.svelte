@@ -16,6 +16,8 @@
 	import ConfirmDialog from '$lib/components/admin/ConfirmDialog.svelte';
 	import DataTable from '$lib/components/admin/DataTable.svelte';
 	import FormField from '$lib/components/admin/FormField.svelte';
+	import ImageUpload from '$lib/components/menu/ImageUpload.svelte';
+	import TextArea from '$lib/components/admin/TextArea.svelte';
 	import Menu from '$lib/components/admin/Menu.svelte';
 	import Modal from '$lib/components/admin/Modal.svelte';
 	import SelectField from '$lib/components/admin/SelectField.svelte';
@@ -38,7 +40,7 @@
 
 	let typeFormOpen = $state(false);
 	let editingType = $state<RoomType | null>(null);
-	let typeForm = $state({ name: '', base_price: '0', max_guests: '2' });
+	let typeForm = $state({ name: '', base_price: '0', max_guests: '2', description: '', image_url: '' as string | undefined });
 	let typeErrors = $state<Record<string, string>>({});
 	let typeSaving = $state(false);
 
@@ -68,14 +70,20 @@
 
 	function openCreateType() {
 		editingType = null;
-		typeForm = { name: '', base_price: '0', max_guests: '2' };
+		typeForm = { name: '', base_price: '0', max_guests: '2', description: '', image_url: '' };
 		typeErrors = {};
 		typeFormOpen = true;
 	}
 
 	function openEditType(t: RoomType) {
 		editingType = t;
-		typeForm = { name: t.name, base_price: String(t.base_price), max_guests: String(t.max_guests) };
+		typeForm = {
+			name: t.name,
+			base_price: String(t.base_price),
+			max_guests: String(t.max_guests),
+			description: t.description ?? '',
+			image_url: t.image_url ?? ''
+		};
 		typeErrors = {};
 		typeFormOpen = true;
 	}
@@ -92,7 +100,9 @@
 			const payload = {
 				name: typeForm.name.trim(),
 				base_price: Number(typeForm.base_price),
-				max_guests: Number(typeForm.max_guests) || 2
+				max_guests: Number(typeForm.max_guests) || 2,
+				description: typeForm.description.trim(),
+				image_url: typeForm.image_url ?? ''
 			};
 			if (editingType) {
 				await updateRoomType(editingType.id, payload);
@@ -261,6 +271,12 @@
 		</FormField>
 		<FormField label="Max guests" htmlFor="rt-guests">
 			<TextInput id="rt-guests" type="number" min={1} bind:value={typeForm.max_guests} />
+		</FormField>
+		<FormField label="Photo" htmlFor="rt-photo" hint="Shown to guests when they choose a room.">
+			<ImageUpload bind:url={typeForm.image_url} onupload={() => {}} disabled={typeSaving} />
+		</FormField>
+		<FormField label="Description" htmlFor="rt-desc" hint="Bed, view, what is included. One or two sentences.">
+			<TextArea id="rt-desc" rows={3} bind:value={typeForm.description} placeholder="King bed, sea view, breakfast included" />
 		</FormField>
 	</div>
 	{#snippet footer()}

@@ -26,6 +26,7 @@
 	} from '$lib/auth';
 	import type { MfaSetup } from '$lib/mfaApi';
 	import AuthLayout from './AuthLayout.svelte';
+	import MfaPanel from '$lib/components/auth/MfaPanel.svelte';
 
 	let email = $state('');
 	let password = $state('');
@@ -38,13 +39,17 @@
 	let challengeToken = $state('');
 	let mfaCode = $state('');
 	let useRecoveryCode = $state(false);
-	let challengeMethod = $state<'TOTP' | 'EMAIL_OTP'>('TOTP');
+	type Method = 'TOTP' | 'EMAIL_OTP';
+	/** The methods this account has set up; several are offered as a choice. */
+	let challengeMethods = $state<string[]>([]);
+	let challengeMethod = $state<Method | ''>('');
 	let emailSending = $state(false);
 	let resendCooldown = $state(0);
 
 	let enrollStep = $state(false);
 	let enrollmentToken = $state('');
-	let enrollMethod = $state<'TOTP' | 'EMAIL_OTP'>('TOTP');
+	let enrollMethods = $state<string[]>([]);
+	let enrollMethod = $state<Method | ''>('');
 	let enrollSetup = $state<MfaSetup | null>(null);
 	let enrollCode = $state('');
 	let enrollEmailSending = $state(false);
@@ -62,8 +67,28 @@
 		}, 1000);
 	}
 
-	function pickMethod(methods: string[]): 'TOTP' | 'EMAIL_OTP' {
-		return methods.includes('TOTP') ? 'TOTP' : 'EMAIL_OTP';
+	// One method goes straight to it; several are offered as a choice.
+	function only(methods: string[]): Method | '' {
+		return methods.length === 1 ? (methods[0] as Method) : '';
+	}
+
+	async function chooseChallenge(m: Method | '') {
+		challengeMethod = m;
+		if (m === 'EMAIL_OTP') await sendChallengeEmail();
+	}
+
+	async function chooseEnroll(m: Method | '') {
+		enrollMethod = m;
+		enrollSetup = null;
+		if (m === 'TOTP') {
+			try {
+				enrollSetup = await enrollMfaStart(enrollmentToken);
+			} catch (err) {
+				error = errorMessage(err, 'start setup');
+			}
+		} else if (m === 'EMAIL_OTP') {
+			await startEnrollEmail();
+		}
 	}
 
 	async function sendChallengeEmail() {
@@ -131,22 +156,18 @@
 			// can ever reach either step on this portal.
 			if ('mfaRequired' in result) {
 				challengeToken = result.challengeToken;
-				challengeMethod = pickMethod(result.methods.length ? result.methods : ['TOTP']);
+				challengeMethods = result.methods.length ? result.methods : ['TOTP'];
 				mfaCode = '';
 				useRecoveryCode = false;
 				mfaStep = true;
-				if (challengeMethod === 'EMAIL_OTP') await sendChallengeEmail();
+				await chooseChallenge(only(challengeMethods));
 				return;
 			}
 			if ('mfaEnrollRequired' in result) {
 				enrollmentToken = result.enrollmentToken;
-				enrollMethod = pickMethod(result.methods.length ? result.methods : ['TOTP']);
+				enrollMethods = result.methods.length ? result.methods : ['TOTP'];
 				enrollStep = true;
-				if (enrollMethod === 'TOTP') {
-					enrollSetup = await enrollMfaStart(enrollmentToken);
-				} else {
-					await startEnrollEmail();
-				}
+				await chooseEnroll(only(enrollMethods));
 				return;
 			}
 			if (result.role !== 'SUPER_ADMIN') {
@@ -170,7 +191,7 @@
 				challengeToken,
 				mfaCode.trim(),
 				useRecoveryCode,
-				useRecoveryCode ? undefined : challengeMethod
+				useRecoveryCode ? undefined : challengeMethod || undefined
 			);
 			goto(homeForRole(user.role, 'admin'));
 		} catch (err) {
@@ -205,6 +226,10 @@
 		enrollmentToken = '';
 		enrollSetup = null;
 		enrollCode = '';
+		challengeMethods = [];
+		enrollMethods = [];
+		challengeMethod = '';
+		enrollMethod = '';
 		clearInterval(cooldownHandle);
 		resendCooldown = 0;
 		enrollResendCooldown = 0;
@@ -213,167 +238,57 @@
 </script>
 
 {#if checking}
-	<AuthLayout title="Signing you in" subtitle="Checking your session and platform status…">
+	<AuthLayout title="Signing you in" subtitle="Checking your session and platform status...">
 		<div class="auth-loading">
 			<LoaderCircle class="auth-spinner" size={22} stroke={1.6} />
-			<p class="muted text-sm">Loading…</p>
+			<p class="muted text-sm">Loading...</p>
 		</div>
 	</AuthLayout>
 {:else}
 	<AuthLayout
 		title="Run every shop from one console"
-		subtitle="Onboard tenants, assign plans, and watch platform-wide orders and revenue: with every shop's data strictly separated."
+		subtitle="Onboard tenants, assign plans, and watch platform-wide orders and revenue, with every shop's data kept strictly separate."
 	>
 		<span class="auth-eyebrow"><ShieldCheck size={13} stroke={1.6} /> Super Admin access</span>
 
 		{#if enrollStep}
-			<h2 class="auth-title">Set up two-factor authentication</h2>
-			<p class="auth-sub">The platform requires it before you can continue.</p>
-
 			<form onsubmit={submitEnroll} novalidate>
-				{#if enrollMethod === 'TOTP' && enrollSetup}
-					<p class="auth-sub">
-						Scan this with an authenticator app, or enter the code manually:
-						<code>{enrollSetup.secret}</code>
-					</p>
-					<img
-						src={enrollSetup.qr_code_data_uri}
-						alt="QR code for authenticator app setup"
-						width="160"
-						height="160"
-						style="display:block;margin:0 auto 1.25rem;border-radius:var(--radius-md);"
-					/>
-				{:else if enrollMethod === 'EMAIL_OTP'}
-					<p class="auth-sub">
-						We sent a code to your email.
-						<button
-							type="button"
-							class="btn btn-ghost"
-							disabled={enrollEmailSending || enrollResendCooldown > 0}
-							onclick={startEnrollEmail}
-						>
-							{enrollResendCooldown > 0 ? `Resend in ${enrollResendCooldown}s` : 'Resend code'}
-						</button>
-					</p>
-				{/if}
-
-				<div class="auth-field">
-					<label class="auth-label" for="sa-enroll-code">6-digit code</label>
-					<div class="auth-input-wrap">
-						<span class="auth-input-icon"><ShieldCheck size={16} stroke={1.6} /></span>
-						<input
-							id="sa-enroll-code"
-							class="input auth-input"
-							type="text"
-							bind:value={enrollCode}
-							oninput={clearError}
-							placeholder="123456"
-							inputmode="numeric"
-							autocomplete="one-time-code"
-							required
-						/>
-					</div>
-				</div>
-
-				{#if error}
-					<p class="auth-alert" id="sa-error" role="alert">
-						<TriangleAlert size={16} stroke={1.6} />
-						<span>{error}</span>
-					</p>
-				{/if}
-
-				<button class="btn btn-primary auth-submit" type="submit" disabled={loading}>
-					{#if loading}
-						<LoaderCircle class="auth-spinner" size={17} stroke={1.6} />
-						Confirming…
-					{:else}
-						Confirm and sign in
-						<ArrowRight size={16} stroke={1.6} />
-					{/if}
-				</button>
-				<button type="button" class="btn btn-ghost auth-submit" onclick={backToPassword}>
-					Back
-				</button>
+				<MfaPanel
+					kind="enroll"
+					method={enrollMethod}
+					methods={enrollMethods}
+					onchoose={chooseEnroll}
+					{email}
+					setup={enrollSetup}
+					bind:code={enrollCode}
+					cooldown={enrollResendCooldown}
+					sending={enrollEmailSending}
+					{loading}
+					{error}
+					requiredBy="The platform"
+					onresend={startEnrollEmail}
+					onback={backToPassword}
+					onedit={clearError}
+				/>
 			</form>
 		{:else if mfaStep}
-			<h2 class="auth-title">Enter your code</h2>
-			<p class="auth-sub">
-				{#if useRecoveryCode}
-					Enter one of your recovery codes.
-				{:else if challengeMethod === 'EMAIL_OTP'}
-					Enter the code we emailed you.
-				{:else}
-					Enter the 6-digit code from your authenticator app.
-				{/if}
-			</p>
-
 			<form onsubmit={submitMfaCode} novalidate>
-				{#if !useRecoveryCode && challengeMethod === 'EMAIL_OTP'}
-					<p class="auth-sub">
-						<button
-							type="button"
-							class="btn btn-ghost"
-							disabled={emailSending || resendCooldown > 0}
-							onclick={sendChallengeEmail}
-						>
-							{resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
-						</button>
-					</p>
-				{/if}
-
-				<div class="auth-field">
-					<label class="auth-label" for="sa-mfa-code">
-						{useRecoveryCode ? 'Recovery code' : 'Authentication code'}
-					</label>
-					<div class="auth-input-wrap">
-						<span class="auth-input-icon"><ShieldCheck size={16} stroke={1.6} /></span>
-						<input
-							id="sa-mfa-code"
-							class="input auth-input"
-							type="text"
-							bind:value={mfaCode}
-							oninput={clearError}
-							placeholder={useRecoveryCode ? 'xxxx-xxxx' : '123456'}
-							inputmode={useRecoveryCode ? 'text' : 'numeric'}
-							autocomplete="one-time-code"
-							aria-invalid={error ? 'true' : undefined}
-							aria-describedby={error ? 'sa-error' : undefined}
-							required
-						/>
-					</div>
-				</div>
-
-				{#if error}
-					<p class="auth-alert" id="sa-error" role="alert">
-						<TriangleAlert size={16} stroke={1.6} />
-						<span>{error}</span>
-					</p>
-				{/if}
-
-				<button class="btn btn-primary auth-submit" type="submit" disabled={loading}>
-					{#if loading}
-						<LoaderCircle class="auth-spinner" size={17} stroke={1.6} />
-						Verifying…
-					{:else}
-						Verify and sign in
-						<ArrowRight size={16} stroke={1.6} />
-					{/if}
-				</button>
-
-				<button
-					type="button"
-					class="btn btn-ghost auth-submit"
-					onclick={() => (useRecoveryCode = !useRecoveryCode)}
-				>
-					{useRecoveryCode
-						? challengeMethod === 'EMAIL_OTP'
-							? 'Use my email code instead'
-							: 'Use my authenticator app instead'
-						: 'Use a recovery code instead'}
-				</button>
-				<button type="button" class="btn btn-ghost auth-submit" onclick={backToPassword}>
-					Back
-				</button>
+				<MfaPanel
+					kind="challenge"
+					method={challengeMethod}
+					methods={challengeMethods}
+					onchoose={chooseChallenge}
+					{email}
+					bind:code={mfaCode}
+					bind:useRecovery={useRecoveryCode}
+					cooldown={resendCooldown}
+					sending={emailSending}
+					{loading}
+					{error}
+					onresend={sendChallengeEmail}
+					onback={backToPassword}
+					onedit={clearError}
+				/>
 			</form>
 		{:else}
 		<h2 class="auth-title">Welcome back</h2>
@@ -444,12 +359,13 @@
 			<button class="btn btn-primary auth-submit" type="submit" disabled={loading}>
 				{#if loading}
 					<LoaderCircle class="auth-spinner" size={17} stroke={1.6} />
-					Signing in…
+					Signing in...
 				{:else}
 					Sign in
 					<ArrowRight size={16} stroke={1.6} />
 				{/if}
 			</button>
+			<p class="auth-forgot">Forgot your password? Another platform admin can reset your access.</p>
 		</form>
 		{/if}
 

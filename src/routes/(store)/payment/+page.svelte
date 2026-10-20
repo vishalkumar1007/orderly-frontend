@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { experienceFor } from '$lib/storefront/experience';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
@@ -30,6 +31,7 @@
 	let { data } = $props();
 
 	const config = $derived(data.config);
+	const exp = $derived(experienceFor(config));
 	const currency = $derived(config?.store?.currency ?? 'INR');
 	const orderNumber = $derived(Number($page.url.searchParams.get('order') ?? 0));
 	const methods = $derived(config?.payments.methods ?? []);
@@ -262,7 +264,7 @@
 		<div class="sf-card sf-pay-amount" style="margin-top:14px;">
 			<strong>{money(session.amount, currency)}</strong>
 			<span>
-				Order #{session.order_number} · {config?.store?.name}
+				Order #{session.order_number} at {config?.store?.name}
 			</span>
 			{#if session.is_test}
 				<div class="sf-testbadge">Test payment: no money is charged</div>
@@ -295,7 +297,7 @@
 						<span class="sf-choice-mark" aria-hidden="true"></span>
 						<span class="sf-choice-body">
 							<span class="sf-choice-title">
-								{option === 'ONLINE' ? 'Pay online' : 'Cash at pickup'}
+								{option === 'ONLINE' ? 'Pay online' : exp.words.cash}
 							</span>
 							<span class="sf-choice-hint">
 								{option === 'ONLINE'
@@ -313,7 +315,7 @@
 				disabled={busy}
 				onclick={start}
 			>
-				{busy ? 'Starting…' : method === 'CASH' ? 'Choose cash at pickup' : 'Pay ' + money(session.amount, currency)}
+				{busy ? 'Starting…' : method === 'CASH' ? `Choose ${exp.words.cash.toLowerCase()}` : 'Pay ' + money(session.amount, currency)}
 			</button>
 		{/if}
 
@@ -343,7 +345,7 @@
 		{:else if session.method === 'CASH' && session.payment_status !== 'PAID'}
 			<div class="sf-gateway" style="margin-top:18px;">
 				<p>
-					<strong>Pay at pickup.</strong> Nothing to pay now: hand over {money(session.amount, currency)}
+					<strong>{exp.words.payAtVenue}.</strong> Nothing to pay now: hand over {money(session.amount, currency)}
 					when you collect your order.
 				</p>
 				<a class="sf-btn sf-btn-primary" href={'/order/' + orderNumber}>View my order</a>
@@ -390,7 +392,7 @@
 						void start();
 					}}
 				>
-					Pay at pickup instead
+					{exp.words.payAtVenue} instead
 				</button>
 			{/if}
 		{/if}
