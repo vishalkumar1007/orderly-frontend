@@ -683,7 +683,7 @@ try {
 	eq(
 		'Running destinations',
 		running?.items.map((i) => i.label),
-		['Selling', 'Kitchen', 'Live Activity', 'Appointments', 'Queue']
+		['Selling', 'Kitchen', 'Live Activity', 'Appointments', 'Queue', 'Housekeeping']
 	);
 
 	/* ---------------------------------------------------------------- */
@@ -808,6 +808,106 @@ try {
 			failures++;
 			console.log(`  FAIL ${code} quick actions broken: ${JSON.stringify(bad)}`);
 		}
+	}
+
+	/* ---------------------------------------------------------------- */
+	group('The enabled capabilities shape the console, the type only names it');
+
+	// The capability sets as the API reports them for a fresh tenant of each
+	// type (db/migrations/*capabilities_catalog.sql, *retail_services.sql).
+	const CAPS = {
+		FOOD_SHOP: ['CUSTOMERS', 'STAFF', 'PAYMENTS', 'BILLING', 'CATALOG', 'CART', 'ORDERS', 'KITCHEN'],
+		GROCERY: ['CUSTOMERS', 'STAFF', 'PAYMENTS', 'BILLING', 'CATALOG', 'CART', 'ORDERS'],
+		CAFE: ['CUSTOMERS', 'STAFF', 'PAYMENTS', 'BILLING', 'CATALOG', 'CART', 'ORDERS', 'KITCHEN', 'TABLES'],
+		RESTAURANT: ['CUSTOMERS', 'STAFF', 'PAYMENTS', 'BILLING', 'CATALOG', 'ORDERS', 'KITCHEN', 'TABLES', 'RESERVATIONS'],
+		BARBER: ['CUSTOMERS', 'STAFF', 'PAYMENTS', 'BILLING', 'SERVICES', 'APPOINTMENTS', 'QUEUE'],
+		HOTEL: ['CUSTOMERS', 'STAFF', 'PAYMENTS', 'BILLING', 'SERVICES', 'ROOMS', 'HOUSEKEEPING', 'RESERVATIONS'],
+		GENERAL: ['CUSTOMERS', 'STAFF', 'PAYMENTS']
+	};
+	const railWith = (code, caps) =>
+		itemsOf(nav.visibleGroups(nav.TENANT_NAV, OWNER_PERMS, 'TENANT_ADMIN', code, caps)).map((i) => i.href);
+	const has = (rail, href) => rail.includes(href);
+
+	// 1. Every default set points only at pages that exist.
+	for (const [code, caps] of Object.entries(CAPS)) {
+		const bad = railWith(code, caps).filter((h) => h !== '/' && !hasPage(h));
+		if (bad.length > 0) {
+			failures++;
+			console.log(`  FAIL ${code} capability rail points at missing pages: ${bad.join(', ')}`);
+		} else {
+			ok(`${code} capability rail resolves to real pages`, railWith(code, caps).length);
+		}
+	}
+
+	// 2. The modules a type has on by default appear; the ones it lacks do not.
+	eq('a cafe seats people at tables', has(railWith('CAFE', CAPS.CAFE), '/shop/tables'), true);
+	eq('a grocery has no tables', has(railWith('GROCERY', CAPS.GROCERY), '/shop/tables'), false);
+	eq('a hotel runs housekeeping', has(railWith('HOTEL', CAPS.HOTEL), '/shop/housekeeping'), true);
+	eq('a hotel takes no orders', has(railWith('HOTEL', CAPS.HOTEL), '/shop/orders'), false);
+	eq('a barber has no menu', has(railWith('BARBER', CAPS.BARBER), '/shop/menu'), false);
+
+	// 3. A restaurant's RESERVATIONS row has nothing to show without ROOMS:
+	//    the only reservation flow is a stay. It must not get the hotel screen.
+	eq(
+		'a restaurant is not offered hotel reservations',
+		has(railWith('RESTAURANT', CAPS.RESTAURANT), '/shop/reservations'),
+		false
+	);
+
+	// 4. The point of the feature: what the owner switched on during
+	//    onboarding wins over the type's template. A GENERAL business that
+	//    chose appointments gets them and nothing it did not choose.
+	{
+		const general = railWith('GENERAL', [...CAPS.GENERAL, 'SERVICES', 'APPOINTMENTS']);
+		eq('GENERAL with appointments offers them', has(general, '/shop/appointments'), true);
+		eq('GENERAL with appointments offers services', has(general, '/shop/services'), true);
+		eq('GENERAL without a catalogue has no menu', has(general, '/shop/menu'), false);
+		eq('GENERAL without orders has no board', has(general, '/shop/kitchen'), false);
+	}
+	eq(
+		'a barber that switched on a catalogue gets a menu',
+		has(railWith('BARBER', [...CAPS.BARBER, 'CATALOG']), '/shop/menu'),
+		true
+	);
+	eq(
+		'a cafe that switched on the queue gets it',
+		has(railWith('CAFE', [...CAPS.CAFE, 'QUEUE']), '/shop/queue'),
+		true
+	);
+
+	// 5. A backend that sends no list means the type's template, so an older
+	//    API still produces the rail it used to.
+	eq(
+		'no capability list falls back to the template',
+		railWith('CAFE', null),
+		railFor('CAFE').map((i) => i.href)
+	);
+
+	// 6. The presentational modules ride on their capability.
+	eq('variants need a catalogue', types.hasModule('GROCERY', 'variants', CAPS.BARBER), false);
+	eq('variants with a catalogue', types.hasModule('GROCERY', 'variants', CAPS.GROCERY), true);
+	eq('pickup display needs orders', types.hasModule('CAFE', 'live_display', CAPS.HOTEL), false);
+
+	// 7. The route guard knows which module a typed-in URL belongs to.
+	eq('/shop/rooms belongs to rooms', nav.moduleForPath('/shop/rooms'), 'rooms');
+	eq('/shop/rooms/abc belongs to rooms', nav.moduleForPath('/shop/rooms/abc'), 'rooms');
+	eq('/shop/tables belongs to tables', nav.moduleForPath('/shop/tables'), 'tables');
+	eq('/shop/customers is open to all', nav.moduleForPath('/shop/customers'), null);
+	eq('/shop is open to all', nav.moduleForPath('/shop'), null);
+
+	// 8. Settings offers the order workflow only to a business that has orders.
+	{
+		const owner = ['organization', 'settings', 'storefront'];
+		eq(
+			'a hotel has no order workflow section',
+			tenantSettings.visibleSettingsSections(owner, types.modulesFor('HOTEL', CAPS.HOTEL)).map((s) => s.id),
+			['business', 'appearance', 'security']
+		);
+		eq(
+			'a cafe keeps it',
+			tenantSettings.visibleSettingsSections(owner, types.modulesFor('CAFE', CAPS.CAFE)).map((s) => s.id).includes('workflow'),
+			true
+		);
 	}
 
 	group('Staff-facing nav is unaffected');

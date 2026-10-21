@@ -74,3 +74,37 @@ export async function setRoomStatus(id: string, status: RoomStatus): Promise<Roo
 		body: JSON.stringify({ status })
 	});
 }
+
+/* ------------------------------------------------------------------ *
+ * Housekeeping
+ * ------------------------------------------------------------------ */
+
+export type HousekeepingTaskType = 'CLEANING' | 'INSPECTION' | 'MAINTENANCE';
+
+export type HousekeepingTask = {
+	id: string;
+	room_id: string;
+	task_type: HousekeepingTaskType;
+	status: 'PENDING' | 'IN_PROGRESS' | 'DONE';
+	assigned_to?: string;
+};
+
+/** Open tasks only: the API drops a task from this list once it is DONE. */
+export async function listHousekeepingTasks(): Promise<HousekeepingTask[]> {
+	const data = await api<{ tasks: HousekeepingTask[] }>('/api/v1/tenant/housekeeping');
+	return data.tasks ?? [];
+}
+
+export async function createHousekeepingTask(
+	roomId: string,
+	taskType: HousekeepingTaskType
+): Promise<HousekeepingTask> {
+	return api<HousekeepingTask>('/api/v1/tenant/housekeeping', {
+		method: 'POST',
+		body: JSON.stringify({ room_id: roomId, task_type: taskType })
+	});
+}
+
+export async function completeHousekeepingTask(id: string): Promise<HousekeepingTask> {
+	return api<HousekeepingTask>(`/api/v1/tenant/housekeeping/${id}/complete`, { method: 'POST' });
+}

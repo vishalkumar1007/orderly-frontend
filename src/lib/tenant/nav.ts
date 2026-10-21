@@ -1,6 +1,8 @@
 import type { IconComponent as Component } from '$lib/icons';
 import Activity from '@tabler/icons-svelte/icons/activity';
+import Armchair from '@tabler/icons-svelte/icons/armchair';
 import BedDouble from '@tabler/icons-svelte/icons/bed';
+import Broom from '@tabler/icons-svelte/icons/wash';
 import CalendarCheck from '@tabler/icons-svelte/icons/calendar-check';
 import CalendarClock from '@tabler/icons-svelte/icons/calendar-clock';
 import ChefHat from '@tabler/icons-svelte/icons/chef-hat';
@@ -142,15 +144,35 @@ export function labelFor(item: ShopNavItem, businessType: string | null | undefi
 }
 
 /**
- * Does this business type include this destination?
+ * Does this business include this destination?
  *
- * Absence is rare and deliberate: a module is hidden only when it would be
- * meaningless, never merely unused. Everything else is relabelled instead, so
- * no screen disappears because somebody picked a type.
+ * The capability list from the API decides; the type's template stands in
+ * when there is none. Absence is deliberate: a module is hidden only when the
+ * business has not switched it on, never merely because it is unused.
+ * Everything else is relabelled instead.
  */
-export function inModules(item: ShopNavItem, businessType: string | null | undefined): boolean {
+export function inModules(
+	item: ShopNavItem,
+	businessType: string | null | undefined,
+	capabilities?: readonly string[] | null
+): boolean {
 	if (!item.module) return true;
-	return hasModule(businessType, item.module);
+	return hasModule(businessType, item.module, capabilities);
+}
+
+/**
+ * The module a console path belongs to, or null when it is open to every
+ * business. The layout uses it to send a typed-in URL for a switched-off
+ * module back to the dashboard instead of rendering a screen whose every
+ * request the API will refuse.
+ */
+export function moduleForPath(pathname: string): ModuleKey | null {
+	for (const group of TENANT_NAV) {
+		for (const item of group.items) {
+			if (item.module && isActive(pathname, item)) return item.module;
+		}
+	}
+	return null;
 }
 
 /**
@@ -181,13 +203,17 @@ export function visibleGroups(
 	groups: ShopNavGroup[],
 	permissions: readonly string[] | undefined,
 	role: string | undefined,
-	businessType?: string | null
+	businessType?: string | null,
+	capabilities?: readonly string[] | null
 ): ShopNavGroup[] {
 	return groups
 		.map((group) => ({
 			...group,
 			items: group.items
-				.filter((item) => canOpen(item, permissions, role) && inModules(item, businessType))
+				.filter(
+					(item) =>
+						canOpen(item, permissions, role) && inModules(item, businessType, capabilities)
+				)
 				.map((item) => ({ ...item, label: labelFor(item, businessType) }))
 		}))
 		.filter((group) => group.items.length > 0);
@@ -297,6 +323,14 @@ export const TENANT_NAV: ShopNavGroup[] = [
 				icon: ListOrdered,
 				exact: true,
 				permission: 'selling'
+			},
+			{
+				href: '/shop/housekeeping',
+				label: 'Housekeeping',
+				module: 'housekeeping',
+				icon: Broom,
+				exact: true,
+				permission: 'kitchen'
 			}
 		]
 	},
@@ -334,6 +368,14 @@ export const TENANT_NAV: ShopNavGroup[] = [
 				module: 'rooms',
 				icon: BedDouble,
 				nested: true,
+				permission: 'menu'
+			},
+			{
+				href: '/shop/tables',
+				label: 'Tables',
+				module: 'tables',
+				icon: Armchair,
+				exact: true,
 				permission: 'menu'
 			},
 			{
@@ -456,6 +498,14 @@ const TENANT_SEGMENT_LABELS: Record<string, string> = {
 	menu: 'Menu',
 	kitchen: 'Kitchen',
 	live: 'Live Activity',
+	appointments: 'Appointments',
+	queue: 'Queue',
+	services: 'Services',
+	rooms: 'Rooms',
+	reservations: 'Reservations',
+	tables: 'Tables',
+	housekeeping: 'Housekeeping',
+	inventory: 'Inventory',
 	customers: 'Customers',
 	staff: 'Staff',
 	setup: 'Launch checklist',

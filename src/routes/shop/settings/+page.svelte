@@ -5,6 +5,7 @@
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
 	import SettingsShell from '$lib/components/admin/SettingsShell.svelte';
 	import { me, type User } from '$lib/auth';
+	import { modules } from '$lib/tenant/businessType.svelte';
 	import {
 		ensureLiveStorefrontAdmin,
 		getStorefrontAdminOrDefault,
@@ -118,7 +119,7 @@
 		})();
 	});
 
-	const sections = $derived(visibleSettingsSections(user?.permissions));
+	const sections = $derived(visibleSettingsSections(user?.permissions, modules()));
 	const groups = $derived(
 		SETTINGS_GROUPS.map((label) => ({
 			label,
@@ -126,7 +127,7 @@
 		})).filter((group) => group.items.length > 0)
 	);
 	const active = $derived(
-		settingsSectionFor($page.url.searchParams.get('section'), user?.permissions)
+		settingsSectionFor($page.url.searchParams.get('section'), user?.permissions, modules())
 	);
 
 	/** Only the owner may rewrite what everyone else starts from. */

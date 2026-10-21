@@ -4,6 +4,7 @@ import Palette from '@tabler/icons-svelte/icons/palette';
 import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
 import Store from '@tabler/icons-svelte/icons/building-store';
 import type { ShopPermission } from './nav';
+import type { ModuleKey } from '$lib/admin/businessTypes';
 
 /**
  * The sections inside Settings.
@@ -33,6 +34,8 @@ export type SettingsSection = {
 	 * else's, so every signed-in person gets it.
 	 */
 	permission?: ShopPermission;
+	/** Only offered when the business has this module: a hotel has no order workflow. */
+	module?: ModuleKey;
 	lede: string;
 };
 
@@ -51,6 +54,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
 		icon: ListOrdered,
 		group: 'Business',
 		permission: 'organization',
+		module: 'station',
 		lede: 'How an order moves from placed to collected. The stages themselves are fixed; these settings tune what happens around them.'
 	},
 	{
@@ -80,10 +84,14 @@ export const SETTINGS_GROUPS: Array<SettingsSection['group']> = ['Business', 'Yo
  * empty screen, and the API still refuses anything it should.
  */
 export function visibleSettingsSections(
-	permissions: readonly string[] | undefined
+	permissions: readonly string[] | undefined,
+	modules?: readonly ModuleKey[]
 ): SettingsSection[] {
-	if (!permissions || permissions.length === 0) return SETTINGS_SECTIONS;
-	return SETTINGS_SECTIONS.filter(
+	const withModule = modules
+		? SETTINGS_SECTIONS.filter((s) => !s.module || modules.includes(s.module))
+		: SETTINGS_SECTIONS;
+	if (!permissions || permissions.length === 0) return withModule;
+	return withModule.filter(
 		(section) => !section.permission || permissions.includes(section.permission)
 	);
 }
@@ -96,9 +104,10 @@ export function visibleSettingsSections(
  */
 export function settingsSectionFor(
 	requested: string | null | undefined,
-	permissions: readonly string[] | undefined
+	permissions: readonly string[] | undefined,
+	modules?: readonly ModuleKey[]
 ): SettingsSection {
-	const visible = visibleSettingsSections(permissions);
+	const visible = visibleSettingsSections(permissions, modules);
 	const match = visible.find((section) => section.id === requested);
 	return match ?? visible[0] ?? SETTINGS_SECTIONS[SETTINGS_SECTIONS.length - 1];
 }

@@ -10,6 +10,12 @@ export type HostTenant = {
 	is_published: boolean;
 	/** Drives the console's vocabulary and which modules it shows. */
 	business_type: string;
+	/**
+	 * The capability codes this business has switched on (tenant_capabilities).
+	 * Decides which modules exist; the type only decides what they are called.
+	 * Absent on an older API, in which case the type's template stands in.
+	 */
+	capabilities?: string[];
 };
 
 export type User = {

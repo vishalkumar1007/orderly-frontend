@@ -7,13 +7,14 @@
 	import { ApiClientError, getAccessToken, onPlanBlock } from '$lib/api/client';
 	import { api } from '$lib/api/client';
 	import { termsFor } from '$lib/admin/businessTypes';
-	import { setBusinessType } from '$lib/tenant/businessType.svelte';
+	import { hasBusinessModule, setBusinessType } from '$lib/tenant/businessType.svelte';
 	import { logout, meWithTenant, type HostTenant, type User } from '$lib/auth';
 	import {
 		STAFF_OPS_HREFS,
 		visibleGroups,
 		TENANT_NAV,
 		isOpsFullscreenPath,
+		moduleForPath,
 		tenantCrumbs,
 		tenantTitle
 	} from '$lib/tenant/nav';
@@ -122,7 +123,13 @@
 	const navGroups = $derived.by(() => {
 		const permissions = user?.permissions;
 		if (permissions && permissions.length > 0) {
-			return visibleGroups(TENANT_NAV, permissions, user?.role, businessType);
+			return visibleGroups(
+				TENANT_NAV,
+				permissions,
+				user?.role,
+				businessType,
+				hostTenant?.capabilities
+			);
 		}
 		return TENANT_NAV.map((group) => ({
 			...group,
@@ -185,7 +192,7 @@
 			hostTenant = resolved.tenant;
 			// Publish it before the first child renders, so no screen has to
 			// paint generic wording and then correct itself.
-			setBusinessType(resolved.tenant?.business_type);
+			setBusinessType(resolved.tenant?.business_type, resolved.tenant?.capabilities);
 			adoptAppearance('tenant', data.tenantSlug || 'tenant', appearance);
 			status = 'ready';
 		} catch (err) {
@@ -217,6 +224,18 @@
 		if (resolvedSide === side) return;
 		resolvedSide = side;
 		void resolve(side);
+	});
+
+	// A typed-in or stale URL for a module this business has switched off
+	// goes back to the dashboard. The API refuses every request such a screen
+	// would make (capability_disabled), so rendering it only shows errors.
+	$effect(() => {
+		if (status !== 'ready' || isPublicRoute) return;
+		const module = moduleForPath($page.url.pathname);
+		if (module && !hasBusinessModule(module)) {
+			toast.error('This business does not use that section.');
+			goto('/shop', { replaceState: true });
+		}
 	});
 
 	// Shop identity drives the rail header and the storefront link.

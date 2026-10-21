@@ -119,7 +119,47 @@ export type ModuleKey =
 	/** Room types and rooms. */
 	| 'rooms'
 	/** Bookings against a room type, through check-in/check-out. */
-	| 'reservations';
+	| 'reservations'
+	/** Dine-in tables and their seated/cleaning state. */
+	| 'tables'
+	/** Room cleaning and inspection tasks between stays. */
+	| 'housekeeping';
+
+/**
+ * The capabilities a module needs switched on (tenant_capabilities) before
+ * the console offers it. Every listed code must be enabled.
+ *
+ * A key absent here is presentational (variants, diet tags, search): the type
+ * decides it, and it only matters when the catalogue itself exists.
+ * `reservations` and `housekeeping` need ROOMS too: the only reservation flow
+ * is a stay against a room type, so a RESTAURANT row that enables
+ * RESERVATIONS without ROOMS has nothing the screen could show.
+ */
+export const MODULE_CAPABILITIES: Partial<Record<ModuleKey, string[]>> = {
+	station: ['ORDERS'],
+	live_display: ['ORDERS'],
+	catalog: ['CATALOG'],
+	services: ['SERVICES'],
+	appointments: ['APPOINTMENTS'],
+	queue: ['QUEUE'],
+	rooms: ['ROOMS'],
+	reservations: ['RESERVATIONS', 'ROOMS'],
+	tables: ['TABLES'],
+	housekeeping: ['HOUSEKEEPING', 'ROOMS']
+};
+
+/** Modules whose capability alone is enough; the template need not list them. */
+const CAPABILITY_DRIVEN: ModuleKey[] = [
+	'station',
+	'catalog',
+	'services',
+	'appointments',
+	'queue',
+	'rooms',
+	'reservations',
+	'tables',
+	'housekeeping'
+];
 
 /**
  * Storefront defaults, in the vocabulary the storefront schema already uses.
@@ -435,7 +475,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 			auto_complete: true
 		},
 		starterCategories: ['Coffee', 'Tea', 'Bakery', 'Cold drinks'],
-		modules: ['station', 'live_display', 'variants', 'addons', 'diet_tags', 'catalog'],
+		modules: ['station', 'live_display', 'variants', 'addons', 'diet_tags', 'catalog', 'tables'],
 		quickActions: [
 			{ label: 'Open the bar board', href: '/shop/kitchen' },
 			{ label: 'Take an order', href: '/shop/orders' },
@@ -476,7 +516,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 			auto_complete: false
 		},
 		starterCategories: ['Starters', 'Mains', 'Sides', 'Desserts', 'Drinks'],
-		modules: ['station', 'live_display', 'variants', 'addons', 'diet_tags', 'catalog'],
+		modules: ['station', 'live_display', 'variants', 'addons', 'diet_tags', 'catalog', 'tables'],
 		quickActions: [
 			{ label: 'Open the kitchen board', href: '/shop/kitchen' },
 			{ label: 'Take an order', href: '/shop/orders' },
@@ -535,7 +575,7 @@ export const BUSINESS_TYPE_TEMPLATES: Record<string, BusinessTypeTemplate> = {
 			auto_complete: false
 		},
 		starterCategories: [],
-		modules: ['rooms', 'reservations'],
+		modules: ['rooms', 'reservations', 'housekeeping'],
 		quickActions: [
 			{ label: 'Reservations', href: '/shop/reservations' },
 			{ label: 'Rooms', href: '/shop/rooms' }
@@ -781,9 +821,42 @@ export function templateFor(code?: string | null): BusinessTypeTemplate {
 	return { ...GENERIC_TEMPLATE, code: normalized, label: humanise(normalized) };
 }
 
-/** Does this type enable a module? The one call site for every such check. */
-export function hasModule(code: string | null | undefined, module: ModuleKey): boolean {
-	return templateFor(code).modules.includes(module);
+/**
+ * The modules a business actually has.
+ *
+ * With the enabled capability list from the API, a module exists when its
+ * capabilities are on: the type only contributes the presentational keys
+ * (variants, diet tags, pickup display) that make sense for its shape. Without
+ * a list, an older API or a preview of a type that has no tenant yet, the
+ * template stands in.
+ */
+export function modulesFor(
+	code: string | null | undefined,
+	capabilities?: readonly string[] | null
+): ModuleKey[] {
+	const template = templateFor(code).modules;
+	if (!capabilities) return template;
+	const caps = new Set(capabilities);
+	const enabled = (m: ModuleKey) => (MODULE_CAPABILITIES[m] ?? []).every((c) => caps.has(c));
+	const fromCaps = CAPABILITY_DRIVEN.filter(enabled);
+	// Presentational keys ride on the capability they decorate: no catalogue,
+	// no variants; no orders, no pickup display.
+	const fromTemplate = template.filter((m) => {
+		if (CAPABILITY_DRIVEN.includes(m)) return false;
+		if (m === 'live_display') return enabled(m);
+		if (m === 'room_charge') return caps.has('ROOMS');
+		return caps.has('CATALOG');
+	});
+	return [...fromCaps, ...fromTemplate];
+}
+
+/** Does this business have a module? The one call site for every such check. */
+export function hasModule(
+	code: string | null | undefined,
+	module: ModuleKey,
+	capabilities?: readonly string[] | null
+): boolean {
+	return modulesFor(code, capabilities).includes(module);
 }
 
 /** The words this type uses. The one call site for every label in the UI. */

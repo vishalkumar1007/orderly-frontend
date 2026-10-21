@@ -7,7 +7,7 @@
  * "what type of business is this?": components read `family`, `variant`,
  * `features` and `words` instead of comparing type codes.
  */
-import { templateFor, type ModuleKey } from '$lib/admin/businessTypes';
+import { MODULE_CAPABILITIES, templateFor } from '$lib/admin/businessTypes';
 
 /** The customer journey: buy things, book time, or reserve a stay. */
 export type Family = 'order' | 'book' | 'stay';
@@ -99,16 +99,6 @@ const NEEDS: Record<Family, string[]> = {
 	stay: ['ROOMS']
 };
 
-/** Console modules that imply a capability, for a backend that sends none. */
-const MODULE_CAPS: Partial<Record<ModuleKey, string[]>> = {
-	catalog: ['CATALOG', 'CART', 'ORDERS'],
-	services: ['SERVICES'],
-	appointments: ['APPOINTMENTS'],
-	queue: ['QUEUE'],
-	rooms: ['ROOMS'],
-	reservations: ['RESERVATIONS']
-};
-
 const PAY_AT: Record<string, string> = {
 	BARBER: 'Pay at the shop',
 	SALON: 'Pay at the salon',
@@ -156,8 +146,13 @@ export function experienceFor(config: ConfigLike): Experience {
 	const variant: Variant =
 		VARIANTS[code] ?? (template.modules.includes('diet_tags') ? 'food' : 'general');
 
+	// A backend that sends no list means the type's shape: a catalogue
+	// template implies the whole ordering set, a service one appointments.
 	const caps = new Set(
-		config?.capabilities ?? template.modules.flatMap((m) => MODULE_CAPS[m] ?? [])
+		config?.capabilities ??
+			template.modules.flatMap((m) =>
+				m === 'catalog' ? ['CATALOG', 'CART', 'ORDERS'] : (MODULE_CAPABILITIES[m] ?? [])
+			)
 	);
 	const can = (f: Family) => NEEDS[f].some((c) => caps.has(c));
 	const preferred = PREFERRED[variant];
