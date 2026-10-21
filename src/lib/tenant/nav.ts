@@ -15,6 +15,7 @@ import ListOrdered from '@tabler/icons-svelte/icons/list-numbers';
 import MonitorPlay from '@tabler/icons-svelte/icons/device-tv';
 import Megaphone from '@tabler/icons-svelte/icons/speakerphone';
 import Package from '@tabler/icons-svelte/icons/package';
+import Rocket from '@tabler/icons-svelte/icons/rocket';
 import Scissors from '@tabler/icons-svelte/icons/scissors';
 import Zap from '@tabler/icons-svelte/icons/bolt';
 import Settings from '@tabler/icons-svelte/icons/settings';
@@ -236,8 +237,8 @@ const TITLES: Array<[string, string]> = [
 	['/shop/kitchen', 'Kitchen'],
 	['/shop/orders', 'Selling'],
 	['/shop/menu', 'Menu'],
-	['/shop/storefront/promote', 'Publish & Marketing'],
-	['/shop/storefront/launch', 'Publish & Marketing'],
+	['/shop/storefront/promote', 'Publish'],
+	['/shop/storefront/launch', 'Publish'],
 	['/shop/marketing', 'Marketing'],
 	['/shop/marketing/new', 'New campaign'],
 	['/shop/marketing/offers', 'Offers & Loyalty'],
@@ -422,8 +423,8 @@ export const TENANT_NAV: ShopNavGroup[] = [
 			},
 			{
 				href: '/shop/storefront/promote',
-				label: 'Publish & Marketing',
-				icon: Megaphone,
+				label: 'Publish',
+				icon: Rocket,
 				exact: true,
 				permission: 'storefront'
 			},

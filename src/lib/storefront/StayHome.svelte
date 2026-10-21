@@ -154,7 +154,7 @@
 	.st {
 		--sh-gutter: var(--sf-gutter, 16px);
 		width: 100%;
-		max-width: 1088px;
+		max-width: var(--sf-maxw);
 		margin: 0 auto;
 		padding: 0 var(--sh-gutter) 40px;
 		color: var(--sf-text);

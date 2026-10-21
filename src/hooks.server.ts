@@ -7,10 +7,15 @@ function legacyStorefrontRedirect(pathname: string, searchParams: URLSearchParam
 	const path = pathname.replace(/\/+$/, '') || '/';
 
 	if (path === '/shop/storefront/qr') {
-		return '/shop/storefront/promote?tab=marketing&asset=qr';
+		return '/shop/marketing/kit?asset=qr';
 	}
 	if (path === '/shop/storefront/preview') {
 		return '/shop/storefront/promote';
+	}
+	// The share kit left the Publish screen for Marketing; old links follow it.
+	if (path === '/shop/storefront/promote' && searchParams.get('tab') === 'marketing') {
+		const asset = searchParams.get('asset');
+		return asset ? `/shop/marketing/kit?asset=${encodeURIComponent(asset)}` : '/shop/marketing/kit';
 	}
 	if (path === '/shop/storefront/launch') {
 		const tab = searchParams.get('tab') ?? '';
@@ -21,9 +26,7 @@ function legacyStorefrontRedirect(pathname: string, searchParams: URLSearchParam
 		if (tab === 'readiness' || tab === 'publish') return '/shop/storefront/promote?tab=publish';
 		if (tab === 'marketing') {
 			const asset = searchParams.get('asset');
-			return asset
-				? `/shop/storefront/promote?tab=marketing&asset=${encodeURIComponent(asset)}`
-				: '/shop/storefront/promote?tab=marketing';
+			return asset ? `/shop/marketing/kit?asset=${encodeURIComponent(asset)}` : '/shop/marketing/kit';
 		}
 		return '/shop/storefront/promote';
 	}

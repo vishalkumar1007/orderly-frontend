@@ -5,7 +5,6 @@
 	import { page } from '$app/stores';
 	import Rocket from '@tabler/icons-svelte/icons/rocket';
 	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
-	import Megaphone from '@tabler/icons-svelte/icons/speakerphone';
 	import ExternalLink from '@tabler/icons-svelte/icons/external-link';
 	import Lock from '@tabler/icons-svelte/icons/lock';
 
@@ -13,26 +12,21 @@
 	import Skeleton from '$lib/components/admin/Skeleton.svelte';
 	import ErrorState from '$lib/components/admin/ErrorState.svelte';
 	import { useStorefront, type StorefrontContext } from '$lib/storefront/admin-context';
-	import { storefrontAdminApi, type AdminQr } from '$lib/storefront/admin';
 	import { toast } from '$lib/components/admin/toast';
 	import { policyStore, type PolicySignature } from '$lib/tenant/policyStore';
 	import { resolveStorefrontUrl } from '$lib/tenant/dashboardCache.svelte';
 	import LaunchReadiness from '$lib/components/storefront/launch/LaunchReadiness.svelte';
 	import type { TabKey as LaunchTabKey } from '$lib/components/storefront/launch/types';
 	import {
-		resolveMarketingAsset,
 		resolvePromoteTab,
-		type MarketingAsset,
 		type PromoteTab,
 		type Setup,
 		type StoreLink
 	} from '$lib/components/storefront/promote/types';
-	import MarketingAssetStudio from '$lib/components/storefront/promote/MarketingAssetStudio.svelte';
 	import '$lib/components/storefront/launch/launch-shared.css';
 
 	let sfProps: Partial<StorefrontContext> = $props();
 	const ctx = useStorefront(() => sfProps);
-	const config = $derived(ctx.config);
 
 	const cachedDash = typeof window !== 'undefined' ? getDashboardSnapshot() : null;
 	let setup = $state<Setup | null>(cachedDash?.setup ?? null);
@@ -43,33 +37,18 @@
 	let copiedLink = $state(false);
 
 	let activeTab = $state<PromoteTab>('publish');
-	let marketingAsset = $state<MarketingAsset>('qr');
-
-	let qr = $state<AdminQr | null>(null);
-	let qrLoading = $state(false);
-	let qrError = $state('');
 
 	function setTab(tab: PromoteTab) {
 		if (activeTab === tab) return;
 		activeTab = tab;
 		const url = new URL(window.location.href);
 		url.searchParams.set('tab', tab);
-		if (tab !== 'marketing') url.searchParams.delete('asset');
-		else url.searchParams.set('asset', marketingAsset);
 		url.hash = '';
 		history.replaceState(history.state, '', url);
 	}
 
 	function onLaunchSetTab(tab: LaunchTabKey) {
 		setTab(tab === 'compliance' ? 'compliance' : 'publish');
-	}
-
-	function setMarketingAsset(asset: MarketingAsset) {
-		marketingAsset = asset;
-		const url = new URL(window.location.href);
-		url.searchParams.set('tab', 'marketing');
-		url.searchParams.set('asset', asset);
-		history.replaceState(history.state, '', url);
 	}
 
 	const tenantSlug = $derived(($page.data.tenantSlug as string) || '');
@@ -101,35 +80,13 @@
 		}
 	}
 
-	async function loadQr() {
-		qrLoading = true;
-		try {
-			qr = await storefrontAdminApi.qr();
-			qrError = '';
-		} catch (err) {
-			qrError = err instanceof Error ? err.message : 'Could not generate the QR code';
-		} finally {
-			qrLoading = false;
-		}
-	}
-
 	onMount(() => {
-		activeTab = resolvePromoteTab($page.url.searchParams, {
-			published: cachedDash?.setup?.is_published
-		});
-		marketingAsset = resolveMarketingAsset($page.url.searchParams);
+		activeTab = resolvePromoteTab($page.url.searchParams);
 
 		syncPolicyFromStore();
 		const unsub = policyStore.subscribe(() => syncPolicyFromStore());
 
-		void fetchLaunchData().then(() => {
-			// After setup loads, if no explicit tab was chosen, prefer Marketing when live.
-			const hadTab = $page.url.searchParams.has('tab');
-			if (!hadTab && setup?.is_published) {
-				activeTab = 'marketing';
-			}
-		});
-		void loadQr();
+		void fetchLaunchData();
 
 		return () => unsub();
 	});
@@ -230,7 +187,6 @@
 			toast.success('Storefront is now live.');
 			await loadSetup();
 			store = await api<StoreLink>('/api/v1/tenant/store-link');
-			void loadQr();
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Could not publish');
 		} finally {
@@ -246,7 +202,6 @@
 			await api('/api/v1/tenant/unpublish', { method: 'POST' });
 			toast.info('Store taken offline.');
 			await loadSetup();
-			void loadQr();
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Could not unpublish');
 		} finally {
@@ -284,9 +239,10 @@
 <header class="studio-header">
 	<div class="studio-header-main">
 		<div class="studio-header-titles">
-			<h1 class="studio-title">Publish &amp; Marketing</h1>
+			<h1 class="studio-title">Publish</h1>
 			<p class="studio-subtitle">
-				Go live, then generate QR codes, business cards, thumbnails and print banners for your shop.
+				Finish the checklist, sign the policy and take your store live. QR codes, cards and
+				banners are in <a href="/shop/marketing/kit">Marketing, Share kit</a>.
 			</p>
 		</div>
 
@@ -319,7 +275,7 @@
 		</div>
 	</div>
 
-	<nav class="studio-tabs" aria-label="Publish and marketing sections">
+	<nav class="studio-tabs" aria-label="Publish sections">
 		<button
 			type="button"
 			class="studio-tab-btn"
@@ -329,15 +285,6 @@
 			<Rocket size={17} stroke={1.6} />
 			<span>Publish</span>
 			<span class="studio-tab-badge" class:done={canPublish}>{progress}%</span>
-		</button>
-		<button
-			type="button"
-			class="studio-tab-btn"
-			class:active={activeTab === 'marketing'}
-			onclick={() => setTab('marketing')}
-		>
-			<Megaphone size={17} stroke={1.6} />
-			<span>Marketing</span>
 		</button>
 		<button
 			type="button"
@@ -379,16 +326,6 @@
 		onShare={share}
 		onRetry={fetchLaunchData}
 		{stepLabel}
-	/>
-{:else if activeTab === 'marketing'}
-	<MarketingAssetStudio
-		bind:asset={marketingAsset}
-		{config}
-		{qr}
-		{qrLoading}
-		{qrError}
-		onRetryQr={loadQr}
-		onAssetChange={setMarketingAsset}
 	/>
 {:else if activeTab === 'compliance'}
 	{#await import('$lib/components/storefront/launch/LaunchCompliance.svelte')}

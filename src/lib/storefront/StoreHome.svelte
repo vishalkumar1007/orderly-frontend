@@ -290,7 +290,7 @@
 
 <style>
 	.sh {
-		--sh-maxw: 1088px;
+		--sh-maxw: var(--sf-maxw);
 		--sh-gutter: var(--sf-gutter, 16px);
 		/* A wash of the shop's colour that reads in light and dark mode. */
 		--sh-tint: color-mix(in srgb, var(--sf-primary) 14%, var(--sf-surface));

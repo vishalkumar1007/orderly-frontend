@@ -47,11 +47,13 @@
 	/** Only a loaded config is browsable; any other failure blocks with ServiceError. */
 	const canBrowse = $derived(isTenant && config !== null);
 
-	let signedIn = $state(false);
+	// Follows the session store, so the header, tab bar and footer flip the
+	// moment someone signs in or out, not on the next full reload.
+	const signedIn = $derived($customerSession !== null);
 	let online = $state(true);
 
 	onMount(() => {
-		signedIn = Boolean(customerSession.load(slug));
+		customerSession.load(slug);
 		captureAttribution($page.url.searchParams);
 		online = navigator.onLine;
 		const goOnline = () => (online = true);
@@ -189,7 +191,7 @@
 				{/if}
 				{@render children()}
 			</main>
-			<StoreFooter {config} showHours={footerShowsHours} />
+			<StoreFooter {config} {signedIn} showHours={footerShowsHours} />
 			<StoreCartBar lines={cart.lines} {config} totals={cart.totals} visible={showsCartBar} />
 			<StoreTabBar
 				{exp}

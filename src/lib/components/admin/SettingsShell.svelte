@@ -37,20 +37,22 @@
 <div class="sx-shell">
 	<nav class="sx-rail" aria-label="Settings sections">
 		{#each groups as group (group.label)}
-			<p class="sx-rail-label">{group.label}</p>
-			{#each group.items as item (item.id)}
-				{@const on = item.id === activeId}
-				<button
-					type="button"
-					class="sx-rail-link"
-					class:on
-					aria-current={on ? 'page' : undefined}
-					onclick={() => onselect(item.id)}
-				>
-					<item.icon size={15} stroke={1.6} />
-					<span>{item.label}</span>
-				</button>
-			{/each}
+			<div class="sx-rail-group">
+				<p class="sx-rail-label">{group.label}</p>
+				{#each group.items as item (item.id)}
+					{@const on = item.id === activeId}
+					<button
+						type="button"
+						class="sx-rail-link"
+						class:on
+						aria-current={on ? 'page' : undefined}
+						onclick={() => onselect(item.id)}
+					>
+						<span class="sx-rail-icon" aria-hidden="true"><item.icon size={15} stroke={1.7} /></span>
+						<span class="sx-rail-text">{item.label}</span>
+					</button>
+				{/each}
+			</div>
 		{/each}
 	</nav>
 
@@ -73,14 +75,25 @@
 
 	@media (min-width: 1000px) {
 		.sx-shell {
-			grid-template-columns: 13rem minmax(0, 1fr);
+			grid-template-columns: 15rem minmax(0, 1fr);
 		}
 	}
 
+	/* The rail is a card of its own, like every other panel in the console. */
 	.sx-rail {
 		display: flex;
 		flex-direction: column;
-		gap: var(--sp-1);
+		gap: var(--sp-6);
+		padding: var(--sp-5);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-lg);
+		background: var(--card-bg);
+	}
+
+	.sx-rail-group {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
 	}
 
 	@media (min-width: 1000px) {
@@ -90,72 +103,110 @@
 		}
 	}
 
-	/* On a phone the rail becomes a scrolling row, so it does not read as part of the form. */
+	/* On a phone the rail becomes a scrolling row of chips, so it does not read as part of the form. */
 	@media (max-width: 999px) {
-		.sx-rail {
+		.sx-rail,
+		.sx-rail-group {
 			flex-direction: row;
+		}
+
+		.sx-rail {
 			overflow-x: auto;
 			gap: var(--sp-2);
-			padding-bottom: var(--sp-3);
-			border-bottom: 1px solid var(--border-subtle);
+			padding: var(--sp-3);
 		}
 
 		.sx-rail-label {
 			display: none;
 		}
+
+		.sx-rail-link.on::before {
+			display: none;
+		}
 	}
 
 	.sx-rail-label {
-		margin: var(--sp-8) 0 var(--sp-2);
-		padding: 0 var(--sp-5);
+		margin: 0 0 var(--sp-2);
+		padding: 0 var(--sp-4);
 		font-size: var(--fs-label);
-		font-weight: 600;
-		letter-spacing: 0.05em;
+		font-weight: 650;
+		letter-spacing: 0.06em;
 		text-transform: uppercase;
 		color: var(--text-3);
 	}
 
-	.sx-rail-label:first-child {
-		margin-top: 0;
-	}
-
 	.sx-rail-link {
+		position: relative;
 		display: flex;
 		align-items: center;
-		gap: var(--sp-5);
-		height: 30px;
-		padding: 0 var(--sp-5);
+		gap: var(--sp-4);
+		min-height: 36px;
+		padding: var(--sp-2) var(--sp-4);
 		border: 0;
 		border-radius: var(--radius-md);
 		background: transparent;
 		color: var(--text-2);
 		font: inherit;
 		font-size: var(--fs-body);
-		font-weight: 500;
+		font-weight: 550;
+		text-align: left;
 		white-space: nowrap;
-		cursor: default;
+		cursor: pointer;
 		transition:
-			background 0.1s,
-			color 0.1s;
+			background 0.12s,
+			color 0.12s;
 	}
 
-	.sx-rail-link :global(svg) {
+	.sx-rail-icon {
+		display: grid;
+		place-items: center;
+		width: 26px;
+		height: 26px;
+		flex: none;
+		border-radius: 7px;
+		background: var(--surface-2);
 		color: var(--text-3);
-		flex-shrink: 0;
+		transition:
+			background 0.12s,
+			color 0.12s;
+	}
+
+	.sx-rail-text {
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.sx-rail-link:hover {
-		background: var(--surface-hover);
+		background: var(--surface-2);
 		color: var(--text);
 	}
 
-	.sx-rail-link.on {
-		color: var(--accent);
-		background: color-mix(in srgb, var(--accent) 14%, transparent);
+	.sx-rail-link:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 1px;
 	}
 
-	.sx-rail-link.on :global(svg) {
-		color: var(--accent);
+	.sx-rail-link.on {
+		color: var(--text);
+		font-weight: 650;
+		background: color-mix(in srgb, var(--accent) 10%, transparent);
+	}
+
+	.sx-rail-link.on .sx-rail-icon {
+		background: var(--accent);
+		color: var(--on-accent, #fff);
+	}
+
+	/* A short bar on the left edge marks where you are. */
+	.sx-rail-link.on::before {
+		content: '';
+		position: absolute;
+		left: calc(-1 * var(--sp-5));
+		top: 8px;
+		bottom: 8px;
+		width: 3px;
+		border-radius: 0 3px 3px 0;
+		background: var(--accent);
 	}
 
 	.sx-main {

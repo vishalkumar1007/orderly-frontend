@@ -17,10 +17,10 @@ export type StoreLink = {
 	status_message?: string;
 };
 
-/** Top-level tabs on Publish & Marketing. */
-export type PromoteTab = 'publish' | 'marketing' | 'compliance';
+/** Top-level tabs on Publish. The share kit moved to /shop/marketing/kit. */
+export type PromoteTab = 'publish' | 'compliance';
 
-export const PROMOTE_TABS: PromoteTab[] = ['publish', 'marketing', 'compliance'];
+export const PROMOTE_TABS: PromoteTab[] = ['publish', 'compliance'];
 
 export type MarketingAsset = 'qr' | 'card' | 'thumbnail' | 'banner';
 
@@ -29,23 +29,16 @@ export const MARKETING_ASSETS: MarketingAsset[] = ['qr', 'card', 'thumbnail', 'b
 const LEGACY_TAB_MAP: Record<string, PromoteTab> = {
 	readiness: 'publish',
 	publish: 'publish',
-	marketing: 'marketing',
 	compliance: 'compliance'
 };
 
 /** Resolve tab from ?tab= (legacy readiness → publish). */
-export function resolvePromoteTab(
-	searchParams: URLSearchParams,
-	opts?: { published?: boolean }
-): PromoteTab {
+export function resolvePromoteTab(searchParams: URLSearchParams): PromoteTab {
 	const raw = searchParams.get('tab') ?? '';
-	const mapped = LEGACY_TAB_MAP[raw];
-	if (mapped) return mapped;
-	if (opts?.published) return 'marketing';
-	return 'publish';
+	return LEGACY_TAB_MAP[raw] ?? 'publish';
 }
 
-/** Resolve marketing asset from ?asset= (default qr). */
+/** Resolve marketing asset from ?asset= (default qr), for the share kit. */
 export function resolveMarketingAsset(searchParams: URLSearchParams): MarketingAsset {
 	const raw = searchParams.get('asset') ?? '';
 	if ((MARKETING_ASSETS as readonly string[]).includes(raw)) {

@@ -19,6 +19,7 @@
 		tenantTitle
 	} from '$lib/tenant/nav';
 	import { orderBoard } from '$lib/tenant/orders.svelte';
+	import { storeLinkState } from '$lib/tenant/storeLink.svelte';
 	import { invalidateDashboardSnapshot, resolveStorefrontUrl } from '$lib/tenant/dashboardCache.svelte';
 	import { invalidateMenuSnapshot } from '$lib/tenant/menuCache.svelte';
 	import { invalidateStorefrontAdmin, loadStorefrontAdmin } from '$lib/storefront/adminCache.svelte';
@@ -33,7 +34,6 @@
 	import { toast } from '$lib/components/admin/toast';
 	import AppShell from '$lib/components/shell/AppShell.svelte';
 	import PunchClock from '$lib/components/shop/PunchClock.svelte';
-	import NotificationBell from '$lib/components/admin/NotificationBell.svelte';
 	import BusinessPolicyModal from '$lib/components/tenant/BusinessPolicyModal.svelte';
 	import { policyStore } from '$lib/tenant/policyStore';
 	import PlanNoticeModal from '$lib/components/tenant/PlanNoticeModal.svelte';
@@ -53,6 +53,8 @@
 		public_path?: string;
 		is_published: boolean;
 		name: string;
+		logo_url?: string;
+		show_logo_in_console?: boolean;
 	};
 
 	/**
@@ -66,6 +68,8 @@
 	let loadError = $state<{ code: string; status: number; message: string } | null>(null);
 	let user = $state<User | null>(null);
 	let shopName = $state('');
+	/** The business logo in the rail, when the owner switched it on in Settings. */
+	let railLogo = $state('');
 	let storefrontUrl = $state('');
 	/** Bumps on each auth attempt so stale me() results cannot flip shell status. */
 	let authGen = 0;
@@ -238,15 +242,18 @@
 		}
 	});
 
-	// Shop identity drives the rail header and the storefront link.
+	// Shop identity drives the rail header and the storefront link. Settings
+	// bumps storeLinkState after changing the name or logo, which re-runs this.
 	$effect(() => {
 		if (status !== 'ready' || !user || isPublicRoute) return;
+		void storeLinkState.version;
 		let cancelled = false;
 		(async () => {
 			try {
 				const link = await api<StoreLink>('/api/v1/tenant/store-link');
 				if (cancelled) return;
 				shopName = link.name || data.tenantSlug || 'Your shop';
+				railLogo = link.show_logo_in_console && link.logo_url ? link.logo_url : '';
 				storefrontUrl = resolveStorefrontUrl(link);
 			} catch {
 				if (!cancelled) shopName = data.tenantSlug ?? 'Your shop';
@@ -312,6 +319,23 @@
 	// Plan and license refusals from any screen become one upgrade prompt.
 	onMount(() => onPlanBlock(showPlanNotice));
 
+	// When the owner changes the business theme in another tab or on another
+	// device, everyone following it picks it up the next time they come back
+	// to this tab, without a reload. (The tab that saved it updates at once.)
+	$effect(() => {
+		if (status !== 'ready' || !user || isPublicRoute) return;
+		const onVisible = () => {
+			if (document.visibilityState !== 'visible') return;
+			void loadAppearance('tenant')
+				.then((appearance) => adoptAppearance('tenant', data.tenantSlug || 'tenant', appearance))
+				.catch(() => {
+					/* keep what is painted; the next focus tries again */
+				});
+		};
+		document.addEventListener('visibilitychange', onVisible);
+		return () => document.removeEventListener('visibilitychange', onVisible);
+	});
+
 	// Plan, usage and license state for the banner.
 	$effect(() => {
 		if (status !== 'ready' || !user || isPublicRoute) return;
@@ -371,6 +395,7 @@
 	{:else}
 		<AppShell
 			brandName={railName}
+			logoUrl={railLogo}
 			userEmail={user.email}
 			userName={user.name}
 			role={user.role}
@@ -382,19 +407,15 @@
 			{quickLinks}
 			storageKey="orderly-shop-rail"
 			settingsHref="/shop/settings"
+			profileHref="/shop/settings?section=profile"
 			appearanceHref="/shop/settings?section=appearance"
 			wideContent={isStudioHub}
 			flushContent={isStudioHub}
+			notificationScope="tenant"
 			onSignOut={signOut}
 		>
 			{#snippet actions()}
-				{#if offerSound}
-					<button type="button" class="btn btn-ghost btn-sm" onclick={unlockSound} title="Browsers keep sound off until you click once">
-						<VolumeOff size={14} stroke={1.6} /> Turn on sound
-					</button>
-				{/if}
 				<PunchClock />
-				<NotificationBell scope="tenant" />
 				{#if needsAttention > 0}
 					<a class="btn btn-ghost btn-sm" href="/shop/orders">
 						{needsAttention} open {needsAttention === 1 ? 'order' : 'orders'}

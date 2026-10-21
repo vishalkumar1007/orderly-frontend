@@ -5,12 +5,15 @@
 
 	let {
 		brandName = '',
+		logoUrl = '',
 		collapsed = false,
 		collapsible = true,
 		onToggle,
 		onClose
 	}: {
 		brandName?: string;
+		/** The business logo beside the name; stays visible when collapsed. */
+		logoUrl?: string;
 		collapsed?: boolean;
 		/** False in drawer mode, where collapsing is meaningless: we close instead. */
 		collapsible?: boolean;
@@ -20,6 +23,9 @@
 </script>
 
 <div class="rail-head">
+	{#if logoUrl}
+		<img class="rail-logo" src={logoUrl} alt="" />
+	{/if}
 	{#if !collapsed && brandName}
 		<span class="rail-name">{brandName}</span>
 	{/if}

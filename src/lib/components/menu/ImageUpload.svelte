@@ -9,12 +9,15 @@
 		url = $bindable(undefined),
 		uploading = $bindable(false),
 		onupload,
-		disabled = false
+		disabled = false,
+		endpoint = '/api/v1/tenant/upload'
 	}: {
 		url?: string | undefined;
 		uploading?: boolean;
 		onupload: (url: string) => void;
 		disabled?: boolean;
+		/** Where the file goes: menu images by default, the branding route for a logo. */
+		endpoint?: string;
 	} = $props();
 
 	let dragging = $state(false);
@@ -95,7 +98,7 @@
 		try {
 			const formData = new FormData();
 			formData.append('image', file);
-			const result = await api<{ url: string }>('/api/v1/tenant/upload', {
+			const result = await api<{ url: string }>(endpoint, {
 				method: 'POST',
 				body: formData,
 				timeoutMs: 60_000

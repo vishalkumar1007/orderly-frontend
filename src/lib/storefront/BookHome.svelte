@@ -135,7 +135,7 @@
 		--sh-gutter: var(--sf-gutter, 16px);
 		--bh-tint: color-mix(in srgb, var(--sf-primary) 14%, var(--sf-surface));
 		width: 100%;
-		max-width: 1088px;
+		max-width: var(--sf-maxw);
 		margin: 0 auto;
 		padding: 0 var(--sh-gutter) 40px;
 		color: var(--sf-text);

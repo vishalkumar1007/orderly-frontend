@@ -135,7 +135,7 @@
 		if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
 			next.email = 'Check this email address';
 		}
-		if (!method) next.method = 'Choose how you would like to pay';
+		if (!method && methods.length > 0) next.method = 'Choose how you would like to pay';
 		fieldErrors = next;
 		return Object.keys(next).length === 0;
 	}
@@ -212,7 +212,7 @@
 		<div class="sf-empty">
 			<h3>Nothing to check out</h3>
 			<p>Your cart is empty.</p>
-			<a class="sf-btn sf-btn-primary" href="/menu">Browse the {exp.words.catalog.toLowerCase()}</a>
+			<a class="sf-btn sf-btn-primary" href={exp.paths.catalog}>Browse the {exp.words.catalog.toLowerCase()}</a>
 		</div>
 	{:else}
 		<form onsubmit={placeOrder} novalidate>
@@ -405,6 +405,10 @@
 							</span>
 						</button>
 					{/each}
+				</div>
+			{:else}
+				<div class="sf-alert" data-tone="warn" role="status" style="margin-top:14px;">
+					<span>{config?.store?.name || 'This shop'} has not set up a way to pay yet, so orders cannot be placed online right now.</span>
 				</div>
 			{/if}
 

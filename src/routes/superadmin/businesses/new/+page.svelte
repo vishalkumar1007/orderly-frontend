@@ -38,8 +38,7 @@
 	import { tenantFrontendOrigin } from '$lib/host';
 	import { THEME_PRESETS } from '$lib/storefront/admin';
 	import { api } from '$lib/api/client';
-	import { consoleAppearance, isDarkFamily } from '$lib/appearance.svelte';
-	import { getCachedBrandTheme, type ThemePreset as ConsolePreset } from '$lib/brandTheme';
+	import type { ThemePreset as ConsolePreset } from '$lib/brandTheme';
 	import FormField from '$lib/components/admin/FormField.svelte';
 	import PortalPreview from '$lib/components/admin/PortalPreview.svelte';
 	import SelectField from '$lib/components/admin/SelectField.svelte';
@@ -53,7 +52,7 @@
 	import OnboardAlert from '$lib/components/admin/onboard/OnboardAlert.svelte';
 	import OnboardShell from '$lib/components/admin/onboard/OnboardShell.svelte';
 	import OnboardPlanPicker from '$lib/components/admin/onboard/OnboardPlanPicker.svelte';
-	import ThemePicker from '$lib/components/admin/onboard/ThemePicker.svelte';
+	import BusinessThemeEditor from '$lib/components/admin/onboard/BusinessThemeEditor.svelte';
 	import TypePicker from '$lib/components/admin/onboard/TypePicker.svelte';
 	import LeaveDraftModal from '$lib/components/admin/onboard/LeaveDraftModal.svelte';
 
@@ -187,18 +186,31 @@
 	let isDragOverLogo = $state(false);
 	let logoFileInput = $state<HTMLInputElement | null>(null);
 
-	async function handleLogoFile(file: File) {
+	// Favicon upload state: the same choice as the logo, upload or a URL.
+	let faviconMode = $state<'upload' | 'url'>('upload');
+	let isUploadingFavicon = $state(false);
+	let faviconUploadError = $state<string | null>(null);
+	let isDragOverFavicon = $state(false);
+	let faviconFileInput = $state<HTMLInputElement | null>(null);
+
+	/** Upload a brand image (logo or favicon) into the matching theme field. */
+	async function handleLogoFile(file: File, target: 'logo_url' | 'favicon_url' = 'logo_url') {
 		if (!file) return;
-		logoUploadError = null;
+		const isLogo = target === 'logo_url';
+		const fail = (message: string) => {
+			if (isLogo) logoUploadError = message;
+			else faviconUploadError = message;
+		};
+		fail('');
 
 		if (file.size > 5 * 1024 * 1024) {
-			logoUploadError = 'File exceeds maximum size of 5MB';
+			fail('File exceeds maximum size of 5MB');
 			return;
 		}
 
-		const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
-		if (!validTypes.includes(file.type) && !file.name.match(/\.(png|jpe?g|webp|svg)$/i)) {
-			logoUploadError = 'Please upload a valid image file (PNG, JPG, WebP, or SVG)';
+		const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'image/x-icon', 'image/vnd.microsoft.icon'];
+		if (!validTypes.includes(file.type) && !file.name.match(/\.(png|jpe?g|webp|svg|ico)$/i)) {
+			fail('Please upload a valid image file (PNG, JPG, WebP, SVG or ICO)');
 			return;
 		}
 
@@ -206,29 +218,50 @@
 			const reader = new FileReader();
 			reader.onload = (e) => {
 				if (typeof e.target?.result === 'string') {
-					theme.logo_url = e.target.result;
+					theme[target] = e.target.result;
 					dirty = true;
 					themeSelectedByUser = true;
 				}
 			};
 			reader.readAsDataURL(file);
-			toast.info('Storage is not configured; logo loaded as direct data asset.');
+			toast.info(`Storage is not configured; ${isLogo ? 'logo' : 'favicon'} loaded as direct data asset.`);
 			return;
 		}
 
-		isUploadingLogo = true;
+		if (isLogo) isUploadingLogo = true;
+		else isUploadingFavicon = true;
 		try {
 			const res = await uploadAdminAsset(file);
-			theme.logo_url = res.url;
+			theme[target] = res.url;
 			dirty = true;
 			themeSelectedByUser = true;
-			toast.success('Business logo uploaded successfully');
+			toast.success(isLogo ? 'Business logo uploaded' : 'Favicon uploaded');
 		} catch (err) {
-			logoUploadError = err instanceof Error ? err.message : 'Failed to upload logo';
-			toast.error(logoUploadError);
+			const message = err instanceof Error ? err.message : `Failed to upload ${isLogo ? 'logo' : 'favicon'}`;
+			fail(message);
+			toast.error(message);
 		} finally {
-			isUploadingLogo = false;
+			if (isLogo) isUploadingLogo = false;
+			else isUploadingFavicon = false;
 		}
+	}
+
+	function onFaviconFileSelected(e: Event) {
+		const input = e.target as HTMLInputElement;
+		if (input.files && input.files[0]) void handleLogoFile(input.files[0], 'favicon_url');
+	}
+
+	function onFaviconDrop(e: DragEvent) {
+		e.preventDefault();
+		isDragOverFavicon = false;
+		if (e.dataTransfer?.files && e.dataTransfer.files[0]) void handleLogoFile(e.dataTransfer.files[0], 'favicon_url');
+	}
+
+	function removeFavicon() {
+		theme.favicon_url = '';
+		faviconUploadError = null;
+		dirty = true;
+		if (faviconFileInput) faviconFileInput.value = '';
 	}
 
 	function onLogoFileSelected(e: Event) {
@@ -253,61 +286,33 @@
 		if (logoFileInput) logoFileInput.value = '';
 	}
 
-	function getSuperAdminTheme() {
-		const appearanceTheme = consoleAppearance.appearance?.theme ?? getCachedBrandTheme('platform');
-		const mode: 'light' | 'dark' = isDarkFamily(consoleAppearance.mode)
-			? 'dark'
-			: typeof document !== 'undefined' &&
-				  ['dark', 'night', 'midnight', 'graphite', 'raw'].includes(
-						document.documentElement.dataset.theme ?? ''
-				  )
-				? 'dark'
-				: 'light';
-
-		const primary = appearanceTheme?.tokens?.accent || '#6366f1';
-		const secondary = appearanceTheme?.tokens?.accent2 || '#8b5cf6';
-		const accent = appearanceTheme?.tokens?.accent || '#4f46e5';
-		const preset = appearanceTheme?.preset_id || 'modern';
-		const matchingPreset = THEME_PRESETS.find((p) => p.id === preset) ?? THEME_PRESETS[1];
-
+	/**
+	 * The look a new business starts with, from its business type.
+	 *
+	 * It used to copy the operator's own console theme, so every business
+	 * onboarded by someone on a dark violet console came out dark violet. The
+	 * type's template already names a storefront preset that suits it (street
+	 * food for a food shop, fresh for a grocery), and that is independent of
+	 * whoever happens to be doing the onboarding.
+	 */
+	function typeTheme(code: string) {
+		const wanted = templateFor(code).storefront.theme_preset;
+		const preset = THEME_PRESETS.find((p) => p.id === wanted) ?? THEME_PRESETS[1];
 		return {
-			preset,
-			mode,
-			primary,
-			secondary,
-			accent,
-			font: matchingPreset.font,
-			radius: matchingPreset.radius,
-			button: matchingPreset.button_style,
-			card: matchingPreset.card_style,
-			hero: matchingPreset.hero_style
+			preset: preset.id,
+			mode: preset.mode,
+			primary: preset.primary,
+			secondary: preset.secondary,
+			accent: preset.accent,
+			font: preset.font,
+			radius: preset.radius,
+			button: preset.button_style,
+			card: preset.card_style,
+			hero: preset.hero_style
 		};
 	}
 
-	const currentPortalTheme = $derived.by(() => {
-		const appearanceTheme = consoleAppearance.appearance?.theme ?? getCachedBrandTheme('platform');
-		const mode: 'light' | 'dark' = isDarkFamily(consoleAppearance.mode)
-			? 'dark'
-			: typeof document !== 'undefined' &&
-				  ['dark', 'night', 'midnight', 'graphite', 'raw'].includes(
-						document.documentElement.dataset.theme ?? ''
-				  )
-				? 'dark'
-				: 'light';
-
-		const primary = appearanceTheme?.tokens?.accent || '#6366f1';
-		const secondary = appearanceTheme?.tokens?.accent2 || '#8b5cf6';
-		const accent = appearanceTheme?.tokens?.accent || '#4f46e5';
-		const preset = appearanceTheme?.preset_id || 'modern';
-
-		return {
-			preset,
-			mode,
-			primary,
-			secondary,
-			accent
-		};
-	});
+	const currentPortalTheme = $derived(typeTheme(type));
 
 	const activePreviewTheme = $derived.by(() => {
 		if (themeSelectedByUser) {
@@ -322,7 +327,7 @@
 		return currentPortalTheme;
 	});
 
-	// Keep theme state synchronized with SuperAdmin portal theme unless explicitly chosen
+	// Follow the business type's own look until the operator picks one in Branding
 	$effect(() => {
 		if (!themeSelectedByUser) {
 			theme.mode = currentPortalTheme.mode;
@@ -403,10 +408,10 @@
 				theme = draft.theme;
 				themeSelectedByUser = true;
 			} else {
-				const superadminTheme = getSuperAdminTheme();
+				const typeDefaults = typeTheme(draft.type);
 				theme = {
 					...draft.theme,
-					...superadminTheme,
+					...typeDefaults,
 					product_layout: templateFor(draft.type).storefront.product_layout
 				};
 				themeSelectedByUser = false;
@@ -443,6 +448,9 @@
 				if (!storageConfigured && !theme.logo_url) {
 					logoMode = 'url';
 				}
+				if (!storageConfigured && !theme.favicon_url) {
+					faviconMode = 'url';
+				}
 			}
 			configsLoaded = true;
 		} catch (err) {
@@ -478,10 +486,10 @@
 				product_layout: next.storefront.product_layout
 			};
 		} else {
-			const superadminTheme = getSuperAdminTheme();
+			const typeDefaults = typeTheme(code);
 			theme = {
 				...theme,
-				...superadminTheme,
+				...typeDefaults,
 				product_layout: next.storefront.product_layout,
 				logo_url: theme.logo_url,
 				favicon_url: theme.favicon_url
@@ -543,21 +551,6 @@
 		if (code === plan) return;
 		dirty = true;
 		plan = code;
-	}
-
-	function applyPreset(p: (typeof THEME_PRESETS)[number]) {
-		dirty = true;
-		themeSelectedByUser = true;
-		theme.preset = p.id;
-		theme.mode = p.mode;
-		theme.primary = p.primary;
-		theme.secondary = p.secondary;
-		theme.accent = p.accent;
-		theme.font = p.font;
-		theme.radius = p.radius;
-		theme.button = p.button_style;
-		theme.card = p.card_style;
-		theme.hero = p.hero_style;
 	}
 
 	/* ---------- draft persistence ---------- */
@@ -1403,6 +1396,9 @@
 				themePreset={activePreviewTheme.preset}
 				mode={activePreviewTheme.mode}
 				logoUrl={theme.logo_url}
+				font={theme.font}
+				radius={theme.radius}
+				button={theme.button}
 			/>
 		{/snippet}
 
@@ -1496,7 +1492,7 @@
 					label="Short description"
 					htmlFor="org-desc"
 					error={errors.short_description}
-					hint={`${org.short_description.length}/160`}
+					hint={`One line for the storefront and search results. ${org.short_description.length}/160 characters`}
 				>
 					{#snippet children(control)}
 						<TextArea
@@ -1654,44 +1650,13 @@
 					Select default styling for storefront and admin console. Customizable anytime.
 				</p>
 
-				<ThemePicker value={theme.preset} onselect={(id) => {
-					const preset = THEME_PRESETS.find((candidate) => candidate.id === id);
-					if (preset) applyPreset(preset);
-				}} />
-
-				<div class="onb-row-2">
-					<FormField label="Theme Mode" htmlFor="theme-mode">
-						{#snippet children(control)}
-							<SelectField
-								id="theme-mode"
-								bind:value={theme.mode}
-								onchange={() => {
-									dirty = true;
-									themeSelectedByUser = true;
-								}}
-								options={[
-									{ value: 'light', label: 'Light' },
-									{ value: 'dark', label: 'Dark' },
-									{ value: 'system', label: 'System' }
-								]}
-								{...control}
-							/>
-						{/snippet}
-					</FormField>
-					<FormField label="Favicon URL (Optional)" htmlFor="favicon-url" error={errors.favicon_url}>
-						{#snippet children(control)}
-							<TextInput
-								id="favicon-url"
-								type="url"
-								bind:value={theme.favicon_url}
-								placeholder="https://…/favicon.ico"
-								autocomplete="off"
-								onblur={() => onBlurField('favicon_url')}
-								{...control}
-							/>
-						{/snippet}
-					</FormField>
-				</div>
+				<BusinessThemeEditor
+					bind:look={theme}
+					onchange={() => {
+						dirty = true;
+						themeSelectedByUser = true;
+					}}
+				/>
 
 				<!-- Business Logo Uploader Section -->
 				<div class="onb-logo-uploader">
@@ -1822,6 +1787,99 @@
 										themeSelectedByUser = true;
 									}}
 									onblur={() => onBlurField('logo_url')}
+									{...control}
+								/>
+							{/snippet}
+						</FormField>
+					{/if}
+				</div>
+
+				<!-- Favicon: the same upload-or-URL choice as the logo -->
+				<div class="onb-logo-uploader">
+					<div class="onb-logo-header">
+						<div class="onb-logo-label-group">
+							<span class="onb-logo-label">Favicon <span class="onb-optional">(optional)</span></span>
+							<span class="onb-logo-hint">The small icon on the browser tab. A simple square mark, 64px or larger.</span>
+						</div>
+						<div class="onb-logo-tabs" role="tablist">
+							<button type="button" class="onb-logo-tab" class:is-active={faviconMode === 'upload'} onclick={() => (faviconMode = 'upload')}>
+								<IconUpload size={13} stroke={2} />
+								<span>Upload File</span>
+							</button>
+							<button type="button" class="onb-logo-tab" class:is-active={faviconMode === 'url'} onclick={() => (faviconMode = 'url')}>
+								<IconLink size={13} stroke={2} />
+								<span>Image URL</span>
+							</button>
+						</div>
+					</div>
+
+					{#if faviconMode === 'upload'}
+						<input
+							type="file"
+							bind:this={faviconFileInput}
+							accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,.ico"
+							style="display: none;"
+							onchange={onFaviconFileSelected}
+						/>
+						{#if isUploadingFavicon}
+							<div class="onb-upload-loading">
+								<div class="spinner" style="width: 16px; height: 16px;"></div>
+								<span>Uploading favicon…</span>
+							</div>
+						{:else if theme.favicon_url}
+							<div class="onb-logo-preview-card">
+								<div class="onb-logo-preview-thumb onb-favicon-thumb">
+									<img src={theme.favicon_url} alt="Favicon preview" />
+								</div>
+								<div class="onb-logo-preview-info">
+									<span class="onb-logo-preview-name">Active favicon</span>
+									<span class="onb-logo-preview-url" title={theme.favicon_url}>{theme.favicon_url}</span>
+								</div>
+								<div class="onb-logo-preview-actions">
+									<button type="button" class="onb-logo-btn" onclick={() => faviconFileInput?.click()}>
+										<IconUpload size={12} stroke={2} />
+										<span>Change</span>
+									</button>
+									<button type="button" class="onb-logo-btn onb-logo-btn-danger" onclick={removeFavicon}>
+										<IconTrash size={12} stroke={2} />
+										<span>Remove</span>
+									</button>
+								</div>
+							</div>
+						{:else}
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div
+								class="onb-logo-dropzone onb-logo-dropzone-compact"
+								class:is-dragover={isDragOverFavicon}
+								onclick={() => faviconFileInput?.click()}
+								ondragover={(e) => { e.preventDefault(); isDragOverFavicon = true; }}
+								ondragleave={() => (isDragOverFavicon = false)}
+								ondrop={onFaviconDrop}
+							>
+								<div class="onb-logo-dropzone-icon">
+									<IconPhoto size={18} stroke={1.8} />
+								</div>
+								<span class="onb-logo-dropzone-text">
+									Drop a favicon here, or <span style="color: var(--portal-accent, #6366f1); text-decoration: underline;">browse file</span>
+								</span>
+								<span class="onb-logo-dropzone-sub">PNG, ICO, SVG or WebP up to 5MB</span>
+							</div>
+						{/if}
+						{#if faviconUploadError}
+							<p class="onb-error" role="alert" style="margin-top: 0.25rem;">{faviconUploadError}</p>
+						{/if}
+					{:else}
+						<FormField label="Direct favicon URL" htmlFor="favicon-url" error={errors.favicon_url}>
+							{#snippet children(control)}
+								<TextInput
+									id="favicon-url"
+									type="url"
+									bind:value={theme.favicon_url}
+									placeholder="https://example.com/favicon.png"
+									autocomplete="off"
+									oninput={() => (dirty = true)}
+									onblur={() => onBlurField('favicon_url')}
 									{...control}
 								/>
 							{/snippet}

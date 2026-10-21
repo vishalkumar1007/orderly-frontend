@@ -55,7 +55,7 @@
 	/** The one section link: the catalogue to shop, or your bookings. */
 	const section = $derived(
 		x.family === 'order'
-			? { href: '/menu', label: x.words.catalog, icon: x.variant === 'food' ? UtensilsCrossed : BuildingStore }
+			? { href: x.paths.catalog, label: x.words.catalog, icon: x.variant === 'food' ? UtensilsCrossed : BuildingStore }
 			: x.family === 'book'
 				? { href: '/bookings', label: x.words.history, icon: Calendar }
 				: { href: '/reservations', label: x.words.history, icon: Bed }

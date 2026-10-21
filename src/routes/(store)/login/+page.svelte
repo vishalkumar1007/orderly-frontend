@@ -109,7 +109,7 @@
 				<span>This store does not offer sign-in right now. You can still order as a guest.</span>
 			</div>
 			<div style="margin-top:14px;">
-				<a class="sf-btn sf-btn-primary sf-btn-block" href="/menu">Browse the menu</a>
+				<a class="sf-btn sf-btn-primary sf-btn-block" href={exp.paths.catalog}>Browse the {exp.words.catalog.toLowerCase()}</a>
 			</div>
 		{:else}
 			{#if error}
@@ -179,7 +179,7 @@
 				<a
 					class="sf-btn sf-btn-secondary sf-btn-block"
 					style="margin-top:12px;"
-					href={safeNext === '/profile' ? '/menu' : safeNext}
+					href={safeNext === '/profile' ? exp.paths.catalog : safeNext}
 				>
 					Continue as guest
 				</a>

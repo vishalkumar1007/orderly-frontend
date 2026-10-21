@@ -81,7 +81,9 @@
 				// rather than an error: a guest who just ordered knows the number.
 				phonePrompt = true;
 				phoneError = message;
-			} else {
+			} else if (!order) {
+				// A failed background poll must not replace an order already on
+				// screen with an error: the next poll will catch up.
 				error = message;
 			}
 		} finally {
@@ -125,7 +127,7 @@
 	}
 
 	async function orderAgain() {
-		await goto('/menu');
+		await goto(exp.paths.catalog);
 	}
 
 	const totals = $derived(order?.totals ?? null);

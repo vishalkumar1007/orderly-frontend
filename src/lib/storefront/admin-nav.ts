@@ -72,11 +72,11 @@ export const STOREFRONT_SEGMENT_LABELS: Record<string, string> = {
 	'store-info': 'Business Profile',
 	hours: 'Operating Hours',
 	actions: 'Action',
-	promote: 'Publish & Marketing',
-	launch: 'Publish & Marketing',
+	promote: 'Publish',
+	launch: 'Publish',
 	payments: 'Payments',
 	workflow: 'Order Workflow',
-	qr: 'Publish & Marketing',
+	qr: 'Share kit',
 	preview: 'Preview'
 };
 

@@ -54,7 +54,7 @@
 		'/shop/orders': ClipboardList,
 		'/shop/kitchen': ChefHat,
 		'/shop/menu': UtensilsCrossed,
-		'/shop/storefront/promote': QrCode
+		'/shop/marketing/kit': QrCode
 	};
 
 	/**
@@ -68,7 +68,7 @@
 	const quickLinks = $derived(
 		[
 			...quickActions(),
-			{ label: 'QR & marketing', href: '/shop/storefront/promote?tab=marketing&asset=qr' }
+			{ label: 'QR & marketing', href: '/shop/marketing/kit?asset=qr' }
 		].map((a) => ({
 			...a,
 			icon: ACTION_ICONS[a.href.split('?')[0]] ?? ArrowRight,
@@ -84,7 +84,7 @@
 		}
 		if (href.startsWith('/shop/kitchen')) return `Prep ${t.ticket.toLowerCase()}s`;
 		if (href.startsWith('/shop/menu')) return `${t.items} & availability`;
-		if (href.startsWith('/shop/storefront/promote')) return 'Share your store';
+		if (href.startsWith('/shop/marketing/kit')) return 'Share your store';
 		return 'Open';
 	}
 	import {
@@ -472,7 +472,7 @@
 							</a>
 							<a
 								class="dash-link-btn"
-								href="/shop/storefront/promote?tab=marketing&asset=qr"
+								href="/shop/marketing/kit?asset=qr"
 								aria-label="QR code and marketing"
 							>
 								<QrCode size={14} stroke={1.6} />
@@ -734,7 +734,7 @@
 				description="Share your store link or QR code: new orders will show up here."
 			>
 				{#snippet action()}
-					<a class="btn btn-primary" href="/shop/storefront/promote?tab=marketing&asset=qr">Open marketing kit</a>
+					<a class="btn btn-primary" href="/shop/marketing/kit?asset=qr">Open marketing kit</a>
 				{/snippet}
 			</EmptyState>
 		</Reveal>
@@ -1066,9 +1066,11 @@
 		gap: 0.15rem;
 		min-width: 0;
 		padding: 0.85rem 0.9rem;
+		/* The same surface as every .panel, so the tiles and the chart cards
+		   beneath them read as one system. */
 		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		background: var(--surface);
+		border-radius: var(--radius-lg);
+		background: var(--card-bg);
 		text-decoration: none;
 		color: inherit;
 		transition: border-color var(--tr);
@@ -1123,8 +1125,8 @@
 		min-width: 0;
 		padding: 0.6rem 0.75rem;
 		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		background: var(--surface);
+		border-radius: var(--radius-lg);
+		background: var(--card-bg);
 		color: var(--text-3);
 		text-decoration: none;
 		transition: border-color var(--tr);

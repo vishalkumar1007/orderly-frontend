@@ -991,6 +991,15 @@ select.input {
 	flex: none;
 }
 
+.rail-logo {
+	width: 28px;
+	height: 28px;
+	flex: none;
+	object-fit: contain;
+	border-radius: 7px;
+	background: var(--surface);
+}
+
 .rail-name {
 	font-family: var(--font-display);
 	font-weight: 600;
@@ -1477,6 +1486,59 @@ select.input {
 	background: var(--border);
 	margin: 0 0.15rem;
 	flex-shrink: 0;
+}
+
+/*
+ * The personal controls at the right of the topbar (sound, theme,
+ * notifications): one square size, one hover, so they read as a set.
+ */
+.topbar-icon {
+	position: relative;
+	width: 34px;
+	height: 34px;
+	padding: 0;
+	border-radius: var(--radius-md);
+	color: var(--text-2);
+}
+
+.topbar-icon:hover:not(:disabled) {
+	color: var(--text);
+}
+
+.topbar-icon[aria-pressed='true'] {
+	color: var(--text);
+}
+
+/* Sound is on but the browser still holds it: a quiet pulse asks for one click. */
+.topbar-icon-attention::after {
+	content: '';
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	width: 7px;
+	height: 7px;
+	border-radius: 999px;
+	background: var(--accent);
+	box-shadow: 0 0 0 2px var(--surface);
+	animation: topbar-icon-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes topbar-icon-pulse {
+	0%,
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+	50% {
+		transform: scale(1.35);
+		opacity: 0.6;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.topbar-icon-attention::after {
+		animation: none;
+	}
 }
 
 @media (max-width: 640px) {

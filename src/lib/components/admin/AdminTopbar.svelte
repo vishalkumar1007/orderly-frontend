@@ -2,15 +2,20 @@
 	import type { Snippet } from 'svelte';
 	import ChevronRight from '@tabler/icons-svelte/icons/chevron-right';
 	import type { AdminCrumb as Crumb } from '$lib/admin/nav';
+	import NotificationBell from './NotificationBell.svelte';
+	import SoundToggle from './SoundToggle.svelte';
 	import ThemeToggle from './ThemeToggle.svelte';
 
 	let {
 		crumbs = [] as Crumb[],
 		title = 'Dashboard',
+		notificationScope,
 		actions
 	}: {
 		crumbs?: Crumb[];
 		title?: string;
+		/** Which notification feed the bell polls. No bell when absent. */
+		notificationScope?: 'tenant' | 'admin';
 		actions?: Snippet;
 	} = $props();
 </script>
@@ -36,10 +41,15 @@
 	</div>
 
 	<div class="topbar-actions">
-		<ThemeToggle />
 		{#if actions}
-			<span class="topbar-sep" aria-hidden="true"></span>
 			{@render actions()}
+			<span class="topbar-sep" aria-hidden="true"></span>
+		{/if}
+		<!-- The personal controls sit together at the far right: sound, theme, notifications. -->
+		<SoundToggle />
+		<ThemeToggle />
+		{#if notificationScope}
+			<NotificationBell scope={notificationScope} />
 		{/if}
 	</div>
 </header>

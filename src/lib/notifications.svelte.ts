@@ -18,28 +18,9 @@ const POLL_MS = 25_000;
 const BACKOFF_START_MS = 10_000;
 const BACKOFF_CAP_MS = 120_000;
 
-// A per-viewer convenience, not shared state: whether the bell plays a sound
-// for a new high-priority arrival. Defaults on; stored per browser, same as
-// any other personal UI preference that does not need to survive a device
-// change.
-const SOUND_PREF_KEY = 'orderly-notif-sound-enabled';
-
-export function soundEnabled(): boolean {
-	try {
-		const v = localStorage.getItem(SOUND_PREF_KEY);
-		return v === null ? true : v === 'true';
-	} catch {
-		return true;
-	}
-}
-
-export function setSoundEnabled(on: boolean): void {
-	try {
-		localStorage.setItem(SOUND_PREF_KEY, String(on));
-	} catch {
-		/* private window / blocked storage: the toggle just won't persist */
-	}
-}
+// The sound on/off preference lives with the sounds themselves, so the bell,
+// the order board and the topbar toggle all read one switch.
+export { soundEnabled, setSoundEnabled } from '$lib/sound.svelte';
 
 /**
  * One polling feed, shared by every mounted bell for a given scope (tenant or
@@ -125,7 +106,7 @@ function createNotificationBoard(basePath: '/api/v1/tenant' | '/api/v1/admin') {
 			announced.add(n.id);
 			if (n.read) continue;
 			if (n.priority !== 'HIGH' && n.priority !== 'CRITICAL') continue;
-			if (soundEnabled()) playSound('CHIME');
+			playSound('CHIME');
 			toast[n.priority === 'CRITICAL' ? 'error' : 'info'](n.title);
 		}
 	}

@@ -49,7 +49,7 @@
 
 	{#if loading}
 		<div class="rows">
-			{#each [1, 2, 3, 4, 5] as _, i (i)}
+			{#each [1, 2, 3] as _, i (i)}
 				<Skeleton height="2.4rem" />
 			{/each}
 		</div>
@@ -63,13 +63,15 @@
 					<span class="row-main">
 						<span class="line">
 							<span class="name">{row.name}</span>
-							<span class="qty">{value(row)}</span>
+							<span class="metrics">
+								<span class="secondary">{secondary(row)}</span>
+								<span class="qty">{value(row)}</span>
+							</span>
 						</span>
 						<span class="track">
-							<span class="fill" style={`width:${Math.max((Number(row[metric] ?? 0) / peak) * 100, 3)}%`}></span>
+							<span class="fill" style={`width:${Math.max((Number(row[metric] ?? 0) / peak) * 100, 4)}%`}></span>
 						</span>
 					</span>
-					<span class="secondary">{secondary(row)}</span>
 				</li>
 			{/each}
 		</ol>
@@ -92,7 +94,6 @@
 		padding: 0.5rem 1.25rem 1.25rem;
 		display: flex;
 		flex-direction: column;
-		justify-content: space-between;
 		gap: 0.9rem;
 	}
 
@@ -128,14 +129,14 @@
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 0.35rem;
+		gap: 0.4rem;
 	}
 
 	.line {
 		display: flex;
 		align-items: baseline;
 		justify-content: space-between;
-		gap: 0.5rem;
+		gap: 0.75rem;
 	}
 
 	.name {
@@ -147,12 +148,24 @@
 		text-overflow: ellipsis;
 	}
 
-	.qty {
+	.metrics {
 		flex-shrink: 0;
+		display: inline-flex;
+		align-items: baseline;
+		gap: 0.6rem;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.qty {
 		font-size: var(--fs-code);
 		font-weight: 650;
 		color: var(--text);
-		font-variant-numeric: tabular-nums;
+	}
+
+	.secondary {
+		font-size: var(--fs-meta);
+		color: var(--text-3);
+		white-space: nowrap;
 	}
 
 	.track {
@@ -175,24 +188,12 @@
 		background: color-mix(in srgb, var(--accent) 55%, transparent);
 	}
 
-	.secondary {
-		flex: none;
-		width: 5.5rem;
-		text-align: right;
-		font-size: var(--fs-meta);
-		color: var(--text-3);
-		font-variant-numeric: tabular-nums;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
 	.empty {
 		flex: 1;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		min-height: 240px;
+		min-height: 160px;
 		padding: 0 1.25rem;
 		font-size: var(--fs-body);
 		color: var(--text-3);

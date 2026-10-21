@@ -60,7 +60,7 @@
 <div class="notif-root" bind:this={rootEl}>
 	<button
 		type="button"
-		class="btn btn-ghost notif-trigger"
+		class="btn btn-ghost topbar-icon notif-trigger"
 		bind:this={triggerEl}
 		aria-haspopup="true"
 		aria-expanded={open}
@@ -106,6 +106,7 @@
 					Unread
 				</button>
 			</div>
+			<div class="notif-scroll">
 			{#if board.loading && board.items.length === 0}
 				<p class="notif-empty muted">Loading…</p>
 			{:else if visible.length === 0}
@@ -151,6 +152,7 @@
 					{/each}
 				</ul>
 			{/if}
+			</div>
 			<footer class="notif-panel-foot">
 				<a href={viewAllHref} onclick={close}>View all</a>
 			</footer>
@@ -169,44 +171,63 @@
 
 	.notif-dot {
 		position: absolute;
-		top: 2px;
-		right: 2px;
-		min-width: 15px;
-		height: 15px;
-		padding: 0 3px;
+		top: -3px;
+		right: -3px;
+		min-width: 16px;
+		height: 16px;
+		padding: 0 4px;
 		border-radius: 999px;
 		background: var(--danger, #e5484d);
 		color: #fff;
 		font-size: 10px;
 		font-weight: 700;
-		line-height: 15px;
+		line-height: 16px;
 		text-align: center;
+		box-shadow: 0 0 0 2px var(--surface);
 	}
 
+	/*
+	 * Header, tabs and footer are fixed rows; only the list between them
+	 * scrolls. The old panel scrolled as a whole with a sticky header, and
+	 * every item (position: relative) painted over that header as it slid
+	 * underneath, which is the overlap people saw.
+	 */
 	.notif-panel {
 		position: absolute;
 		top: calc(100% + 0.5rem);
 		right: 0;
-		width: 22rem;
+		display: flex;
+		flex-direction: column;
+		width: 23rem;
 		max-width: calc(100vw - 2rem);
-		max-height: 28rem;
-		overflow-y: auto;
-		background: var(--surface, #fff);
+		max-height: min(30rem, calc(100vh - 6rem));
+		overflow: hidden;
+		background: var(--card-bg, #fff);
 		border: 1px solid var(--border, #e5e5e5);
-		border-radius: 0.75rem;
-		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+		border-radius: var(--radius-lg, 0.75rem);
+		box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
 		z-index: 60;
 	}
 
 	.notif-panel-head {
+		flex: none;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0.7rem 0.9rem;
-		border-bottom: 1px solid var(--border-subtle, #eee);
-		position: sticky;
-		top: 0;
-		background: inherit;
+		gap: 0.75rem;
+		padding: 0.75rem 0.9rem 0.25rem;
+	}
+
+	.notif-panel-head strong {
+		font-size: var(--fs-title, 0.95rem);
+		color: var(--text, #111);
+	}
+
+	.notif-scroll {
+		flex: 1;
+		min-height: 0;
+		overflow-y: auto;
+		overscroll-behavior: contain;
 	}
 
 	.notif-markall {
@@ -220,15 +241,18 @@
 	}
 
 	.notif-tabs {
+		flex: none;
 		display: flex;
-		gap: 0.3rem;
-		padding: 0.5rem 0.9rem 0;
+		gap: 0.9rem;
+		padding: 0.25rem 0.9rem 0;
+		border-bottom: 1px solid var(--border-subtle, #eee);
 	}
 
 	.notif-tab {
 		background: none;
 		border: none;
-		padding: 0.25rem 0.1rem 0.5rem;
+		margin-bottom: -1px;
+		padding: 0.35rem 0.1rem 0.5rem;
 		font-size: var(--fs-code, 0.78rem);
 		font-weight: 600;
 		color: var(--text-3, #999);
@@ -262,27 +286,35 @@
 	.notif-item {
 		display: flex;
 		align-items: flex-start;
-		gap: 0.5rem;
+		gap: 0.55rem;
 		width: 100%;
 		text-align: left;
 		background: none;
 		border: none;
-		border-radius: 0.5rem;
-		padding: 0.55rem 0.6rem;
+		border-radius: var(--radius-md, 0.5rem);
+		padding: 0.6rem 0.65rem;
 		cursor: pointer;
-		position: relative;
+		color: inherit;
 	}
 
-	.notif-item:hover {
-		background: var(--surface-hover, rgba(0, 0, 0, 0.04));
+	.notif-item:hover,
+	.notif-item:focus-visible {
+		background: var(--surface-2, rgba(0, 0, 0, 0.04));
 	}
 
-	.notif-item:hover .notif-item-toggle {
+	.notif-item:hover .notif-item-toggle,
+	.notif-item:focus-within .notif-item-toggle {
 		opacity: 1;
+	}
+
+	.notif-item-title {
+		color: var(--text-2, #444);
+		line-height: 1.35;
 	}
 
 	.notif-item.unread .notif-item-title {
 		font-weight: 650;
+		color: var(--text, #111);
 	}
 
 	:global(.notif-item-icon) {
@@ -313,6 +345,7 @@
 
 	.notif-item-title {
 		font-size: var(--fs-body, 0.85rem);
+		overflow-wrap: anywhere;
 	}
 
 	.notif-item-text {
@@ -335,11 +368,9 @@
 	}
 
 	.notif-panel-foot {
-		position: sticky;
-		bottom: 0;
-		padding: 0.55rem 0.9rem;
+		flex: none;
+		padding: 0.6rem 0.9rem;
 		border-top: 1px solid var(--border-subtle, #eee);
-		background: inherit;
 		text-align: center;
 	}
 

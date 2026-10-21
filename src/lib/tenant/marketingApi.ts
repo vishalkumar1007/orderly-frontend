@@ -330,7 +330,8 @@ export const MARKETING_SECTIONS: { href: string; label: string }[] = [
 	{ href: '/shop/marketing', label: 'Overview' },
 	{ href: '/shop/marketing/offers', label: 'Offers & Loyalty' },
 	{ href: '/shop/marketing/automations', label: 'Automations' },
-	{ href: '/shop/marketing/social', label: 'Social' }
+	{ href: '/shop/marketing/social', label: 'Social' },
+	{ href: '/shop/marketing/kit', label: 'Share kit' }
 ];
 
 /** Badge wording and tone for a campaign state. */

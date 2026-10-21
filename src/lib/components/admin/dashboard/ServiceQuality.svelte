@@ -55,7 +55,7 @@
 		<div class="pad">
 			<div class="ring-row">
 				<div
-					class="ring"
+					class="dial"
 					role="img"
 					aria-label={fulfilment == null ? 'No finished orders yet' : `${fulfilment}% of finished orders served`}
 				>
@@ -127,24 +127,25 @@
 	.ring-row {
 		flex: 1;
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
-		gap: 1.25rem;
+		gap: 1rem 1.15rem;
 	}
 
-	.ring {
+	.dial {
 		position: relative;
 		flex: none;
-		width: 132px;
-		height: 132px;
+		width: 120px;
+		height: 120px;
 	}
 
-	.ring svg {
+	.dial svg {
 		width: 100%;
 		height: 100%;
 		transform: rotate(-90deg);
 	}
 
-	.ring circle {
+	.dial circle {
 		fill: none;
 		stroke-width: 12;
 	}
@@ -192,7 +193,7 @@
 		list-style: none;
 		margin: 0;
 		padding: 0;
-		flex: 1;
+		flex: 1 1 8.5rem;
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
@@ -210,6 +211,9 @@
 	.legend-label {
 		flex: 1;
 		min-width: 0;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.legend strong {

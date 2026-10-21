@@ -25,8 +25,7 @@ export const load: PageServerLoad = ({ url }) => {
 	}
 	if (tab === 'marketing') {
 		const asset = url.searchParams.get('asset');
-		const q = asset ? `?tab=marketing&asset=${encodeURIComponent(asset)}` : '?tab=marketing';
-		throw redirect(302, `/shop/storefront/promote${q}`);
+		throw redirect(302, asset ? `/shop/marketing/kit?asset=${encodeURIComponent(asset)}` : '/shop/marketing/kit');
 	}
 
 	throw redirect(302, '/shop/storefront/promote');

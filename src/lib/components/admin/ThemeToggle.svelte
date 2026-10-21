@@ -29,7 +29,7 @@
 
 <button
 	type="button"
-	class="btn btn-ghost theme-toggle"
+	class="btn btn-ghost topbar-icon"
 	aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
 	aria-pressed={dark}
 	title={dark ? 'Light mode' : 'Dark mode'}

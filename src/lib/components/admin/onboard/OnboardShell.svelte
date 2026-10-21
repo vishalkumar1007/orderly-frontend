@@ -6,7 +6,6 @@
 	import IconLoader from '@tabler/icons-svelte/icons/loader-2';
 	import IconEye from '@tabler/icons-svelte/icons/eye';
 	import IconEyeOff from '@tabler/icons-svelte/icons/eye-off';
-	import IconX from '@tabler/icons-svelte/icons/x';
 	import OnboardStepper from './OnboardStepper.svelte';
 
 	let {
@@ -211,16 +210,7 @@
 				style:--tenant-secondary={themeColors.secondary || '#8b5cf6'}
 				style:--tenant-accent={themeColors.accent || '#06b6d4'}
 			>
-				<button
-					type="button"
-					class="onb-close-pane-btn onb-preview-corner-close"
-					title="Close Preview Panel"
-					aria-label="Close Preview Panel"
-					onclick={() => (showPreview = false)}
-				>
-					<IconX size={13} stroke={2} />
-				</button>
-
+				<!-- One way to hide the preview: the "Hide Preview" button in the header. -->
 				{#if preview}
 					{@render preview()}
 				{/if}

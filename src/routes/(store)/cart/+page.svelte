@@ -97,7 +97,7 @@
 			</span>
 			<h3>Your cart is empty</h3>
 			<p>Add something from the {exp.words.catalog.toLowerCase()} and it will show up here.</p>
-			<a class="sf-btn sf-btn-primary" href="/menu">Browse the {exp.words.catalog.toLowerCase()}</a>
+			<a class="sf-btn sf-btn-primary" href={exp.paths.catalog}>Browse the {exp.words.catalog.toLowerCase()}</a>
 		</div>
 	{:else}
 		<div class="sf-panel">
@@ -204,10 +204,16 @@
 					{config?.store?.name ?? 'This shop'} asks you to sign in with your phone before ordering. It takes one code.
 				</p>
 			{/if}
-			<a class="sf-btn sf-btn-primary sf-btn-lg sf-btn-block" href={mustSignIn ? '/login?next=%2Fcheckout' : '/checkout'}>
-				{mustSignIn ? 'Sign in to check out' : `Checkout, ${money(totals.total, currency)}`}
-			</a>
-			<a class="sf-btn sf-btn-secondary sf-btn-block" href="/menu">
+			{#if orderable}
+				<a class="sf-btn sf-btn-primary sf-btn-lg sf-btn-block" href={mustSignIn ? '/login?next=%2Fcheckout' : '/checkout'}>
+					{mustSignIn ? 'Sign in to check out' : `Checkout, ${money(totals.total, currency)}`}
+				</a>
+			{:else}
+				<button type="button" class="sf-btn sf-btn-primary sf-btn-lg sf-btn-block" disabled>
+					Ordering is paused right now
+				</button>
+			{/if}
+			<a class="sf-btn sf-btn-secondary sf-btn-block" href={exp.paths.catalog}>
 				<ArrowLeft size={17} stroke={1.6} aria-hidden="true" />
 				Continue shopping
 			</a>

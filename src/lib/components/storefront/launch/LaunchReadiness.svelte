@@ -274,7 +274,7 @@
 						<h3 class="section-h">Storefront Link</h3>
 						<p class="section-note">Share or open your public storefront.</p>
 					</div>
-					<a class="btn btn-ghost btn-sm" href="/shop/storefront/promote?tab=marketing&asset=qr">
+					<a class="btn btn-ghost btn-sm" href="/shop/marketing/kit?asset=qr">
 						<QrCode size={15} stroke={1.6} />
 						<span>QR</span>
 					</a>

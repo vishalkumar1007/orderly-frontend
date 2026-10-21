@@ -92,6 +92,7 @@ try {
 	const studio = await vite.ssrLoadModule('/src/lib/storefront/studioSections.ts');
 	const sf = await vite.ssrLoadModule('/src/lib/storefront/admin-nav.ts');
 	const sa = await vite.ssrLoadModule('/src/lib/admin/nav.ts');
+	const adminSettings = await vite.ssrLoadModule('/src/lib/admin/settings.ts');
 	const types = await vite.ssrLoadModule('/src/lib/admin/businessTypes.ts');
 
 	/* ---------------------------------------------------------------- */
@@ -151,8 +152,8 @@ try {
 	eq('/shop/live', nav.tenantTitle('/shop/live'), 'Live Activity');
 	eq('/shop/customize', nav.tenantTitle('/shop/customize'), 'Customize');
 	eq('/shop/storefront/actions', nav.tenantTitle('/shop/storefront/actions'), 'Action');
-	eq('/shop/storefront/promote', nav.tenantTitle('/shop/storefront/promote'), 'Publish & Marketing');
-	eq('/shop/storefront/launch', nav.tenantTitle('/shop/storefront/launch'), 'Publish & Marketing');
+	eq('/shop/storefront/promote', nav.tenantTitle('/shop/storefront/promote'), 'Publish');
+	eq('/shop/storefront/launch', nav.tenantTitle('/shop/storefront/launch'), 'Publish');
 	eq('/shop/configuration', nav.tenantTitle('/shop/configuration'), 'Configuration');
 	eq('/shop/customers', nav.tenantTitle('/shop/customers'), 'Customers');
 	eq('/shop/iam', nav.tenantTitle('/shop/iam'), 'IAM');
@@ -207,7 +208,7 @@ try {
 		[
 			{ label: 'Overview', href: '/shop' },
 			{ label: 'Storefront', href: '/shop/customize' },
-			{ label: 'Publish & Marketing', href: null }
+			{ label: 'Publish', href: null }
 		]
 	);
 
@@ -255,7 +256,7 @@ try {
 		eq(
 			'Storefront destinations',
 			storefront?.items.map((i) => i.label),
-			['Customize', 'Action', 'Publish & Marketing', 'Marketing']
+			['Customize', 'Action', 'Publish', 'Marketing']
 		);
 	}
 
@@ -278,7 +279,7 @@ try {
 
 	{
 		const ids = tenantSettings.SETTINGS_SECTIONS.map((s) => s.id);
-		eq('section ids', ids, ['business', 'workflow', 'appearance', 'security']);
+		eq('section ids', ids, ['business', 'workflow', 'profile', 'appearance', 'security']);
 		eq('no duplicate section id', ids.length, new Set(ids).size);
 
 		// Every section names a capability the API actually grants, or none at
@@ -298,7 +299,7 @@ try {
 		const staffSections = tenantSettings
 			.visibleSettingsSections(['selling', 'kitchen'])
 			.map((s) => s.id);
-		eq('what staff can open', staffSections, ['appearance', 'security']);
+		eq('what staff can open', staffSections, ['profile', 'appearance', 'security']);
 
 		const ownerSections = tenantSettings
 			.visibleSettingsSections(['organization', 'integrations', 'settings', 'storefront'])
@@ -314,13 +315,33 @@ try {
 		eq(
 			'a section this role cannot open falls back',
 			tenantSettings.settingsSectionFor('integrations', ['selling', 'kitchen']).id,
-			'appearance'
+			'profile'
 		);
 		eq(
 			'a section link points at the settings screen',
 			tenantSettings.settingsHref('workflow'),
 			'/shop/settings?section=workflow'
 		);
+	}
+
+	/* ---------------------------------------------------------------- */
+	group('Platform settings sections mirror the business console');
+
+	{
+		const ids = adminSettings.ADMIN_SETTINGS_SECTIONS.map((s) => s.id);
+		eq('section ids', ids, ['general', 'business-types', 'security', 'tenant-access', 'profile', 'appearance']);
+		eq('no duplicate section id', ids.length, new Set(ids).size);
+		eq(
+			'an operator without platform settings keeps only their own account',
+			adminSettings.visibleAdminSettingsSections(['monitoring']).map((s) => s.id),
+			['profile', 'appearance']
+		);
+		eq(
+			'a section this operator cannot open falls back',
+			adminSettings.adminSettingsSectionFor('security', ['monitoring']).id,
+			'profile'
+		);
+		eq('no permissions means every section', adminSettings.visibleAdminSettingsSections([]).length, ids.length);
 	}
 
 	/* ---------------------------------------------------------------- */
@@ -901,7 +922,7 @@ try {
 		eq(
 			'a hotel has no order workflow section',
 			tenantSettings.visibleSettingsSections(owner, types.modulesFor('HOTEL', CAPS.HOTEL)).map((s) => s.id),
-			['business', 'appearance', 'security']
+			['business', 'profile', 'appearance', 'security']
 		);
 		eq(
 			'a cafe keeps it',

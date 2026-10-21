@@ -2,13 +2,12 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import Building2 from '@tabler/icons-svelte/icons/building';
-	import Globe from '@tabler/icons-svelte/icons/world';
-	import Shapes from '@tabler/icons-svelte/icons/category';
-	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
-	import UserRound from '@tabler/icons-svelte/icons/user';
-	import Palette from '@tabler/icons-svelte/icons/palette';
 	import SettingsShell from '$lib/components/admin/SettingsShell.svelte';
+	import {
+		ADMIN_SETTINGS_GROUPS,
+		adminSettingsSectionFor,
+		visibleAdminSettingsSections
+	} from '$lib/admin/settings';
 	import { me, type User } from '$lib/auth';
 	import AppearancePanel from '$lib/components/tenant/settings/AppearancePanel.svelte';
 	import BusinessTypesPanel from '$lib/components/admin/settings/BusinessTypesPanel.svelte';
@@ -27,67 +26,10 @@
 	 * spends their day on.
 	 *
 	 * The tab lives in the query string so a link can point at a section, the
-	 * back button works, and a reload stays where you were.
+	 * back button works, and a reload stays where you were. The list itself is
+	 * a pure module (`lib/admin/settings.ts`) so `check:nav` can exercise it,
+	 * exactly as the business console does.
 	 */
-
-	type Section = {
-		id: string;
-		label: string;
-		icon: typeof Building2;
-		group: 'Platform' | 'Your account';
-		/** Capability the API requires. Sections you cannot use are not shown. */
-		requires?: string;
-		lede: string;
-	};
-
-	const SECTIONS: Section[] = [
-		{
-			id: 'general',
-			label: 'General',
-			icon: Building2,
-			group: 'Platform',
-			requires: 'platform_settings',
-			lede: 'How the platform identifies itself, and the defaults every new business starts from.'
-		},
-		{
-			id: 'business-types',
-			label: 'Business types',
-			icon: Shapes,
-			group: 'Platform',
-			requires: 'platform_settings',
-			lede: 'What a business can be. The type chosen at onboarding sets its theme, layout, terminology and order workflow.'
-		},
-		{
-			id: 'security',
-			label: 'Security',
-			icon: ShieldCheck,
-			group: 'Platform',
-			requires: 'platform_settings',
-			lede: 'Password rules, session lifetime and invite expiry, applied across every business.'
-		},
-		{
-			id: 'tenant-access',
-			label: 'Business access',
-			icon: Globe,
-			group: 'Platform',
-			requires: 'platform_settings',
-			lede: 'Which businesses may use the platform’s shared providers, on top of each provider’s own on/off switch. Credentials themselves live under Providers & integrations.'
-		},
-		{
-			id: 'profile',
-			label: 'Profile',
-			icon: UserRound,
-			group: 'Your account',
-			lede: 'Your own account and password.'
-		},
-		{
-			id: 'appearance',
-			label: 'Appearance',
-			icon: Palette,
-			group: 'Your account',
-			lede: 'How this console looks to you. Your choice follows your account and changes nothing for anyone else who signs in here: and, if you may change platform settings, what everyone starts from.'
-		}
-	];
 
 	let user = $state<User | null>(null);
 
@@ -100,20 +42,13 @@
 		}
 	});
 
-	/** Sections this account may actually use. */
-	const visible = $derived(
-		SECTIONS.filter((section) => {
-			if (!section.requires) return true;
-			const held = user?.permissions;
-			if (!held || held.length === 0) return true;
-			return held.includes(section.requires);
-		})
-	);
+	const visible = $derived(visibleAdminSettingsSections(user?.permissions));
 
 	const groups = $derived(
-		(['Platform', 'Your account'] as const)
-			.map((label) => ({ label, items: visible.filter((s) => s.group === label) }))
-			.filter((group) => group.items.length > 0)
+		ADMIN_SETTINGS_GROUPS.map((label) => ({
+			label,
+			items: visible.filter((s) => s.group === label)
+		})).filter((group) => group.items.length > 0)
 	);
 
 	/** Only an operator who may write platform settings can move the default. */
@@ -122,9 +57,8 @@
 			(user?.permissions ?? []).length === 0
 	);
 
-	const requested = $derived($page.url.searchParams.get('section') ?? 'general');
 	const active = $derived(
-		visible.find((s) => s.id === requested) ?? visible[0] ?? SECTIONS[0]
+		adminSettingsSectionFor($page.url.searchParams.get('section'), user?.permissions)
 	);
 
 	function select(id: string) {

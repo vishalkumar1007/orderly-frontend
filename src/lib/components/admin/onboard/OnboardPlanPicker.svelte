@@ -36,17 +36,18 @@
 			class:is-selected={isSelected}
 			onclick={() => onselect?.(plan.code)}
 		>
-			<!-- Top Right Radio Indicator -->
-			<span class="onb-card-radio" aria-hidden="true">
-				{#if isSelected}
-					<span class="onb-radio-dot"></span>
-				{/if}
-			</span>
-
+			<!-- Name left; price and the radio share the right edge, in flow, so they never overlap. -->
 			<div class="onb-plan-head">
 				<span class="onb-plan-name">{plan.label}</span>
-				<span class="onb-plan-price" class:is-free={plan.price === 0}>
-					{priceLabel(plan)}
+				<span class="onb-plan-end">
+					<span class="onb-plan-price" class:is-free={plan.price === 0}>
+						{priceLabel(plan)}
+					</span>
+					<span class="onb-card-radio onb-card-radio-inline" aria-hidden="true">
+						{#if isSelected}
+							<span class="onb-radio-dot"></span>
+						{/if}
+					</span>
 				</span>
 			</div>
 

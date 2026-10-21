@@ -71,7 +71,7 @@
 			<button
 				type="button"
 				style="border:none;background:transparent;color:var(--sf-primary);font:inherit;font-weight:600;cursor:pointer;padding:0;"
-				onclick={() => goto('/menu', { replaceState: true })}
+				onclick={() => goto('/', { replaceState: true })}
 			>
 				Clear
 			</button>
@@ -83,7 +83,7 @@
 				</span>
 				<h3>Nothing matched</h3>
 				<p>Try a different word, or browse the full {exp.words.catalog.toLowerCase()}.</p>
-				<a class="sf-btn sf-btn-secondary" href="/menu">Browse the {exp.words.catalog.toLowerCase()}</a>
+				<a class="sf-btn sf-btn-secondary" href={exp.paths.catalog}>Browse the {exp.words.catalog.toLowerCase()}</a>
 			</div>
 		{:else}
 			<div class="sf-products results" data-layout={layout}>

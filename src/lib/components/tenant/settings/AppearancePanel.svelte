@@ -4,7 +4,7 @@
 	import CircleCheck from '@tabler/icons-svelte/icons/circle-check';
 	import RotateCcw from '@tabler/icons-svelte/icons/rotate';
 	import Users from '@tabler/icons-svelte/icons/users';
-	import UserRound from '@tabler/icons-svelte/icons/user';
+	import SettingsSection from '$lib/components/admin/SettingsSection.svelte';
 	import { api } from '$lib/api/client';
 	import { applyBrandTheme, type BrandTheme, type ThemePreset } from '$lib/brandTheme';
 	import {
@@ -342,27 +342,15 @@
 {:else if error && !appearance}
 	<ErrorState message={error} onretry={bootstrap} />
 {:else}
-	<div class="panel">
-		<div class="ap-head">
-			<span class="ap-head-icon" aria-hidden="true">
-				{#if usingOwn}
-					<UserRound size={17} stroke={1.6} />
-				{:else}
-					<Users size={17} stroke={1.6} />
-				{/if}
-			</span>
-			<div class="ap-head-text">
-				<h2 class="panel-h" style="margin:0;">
-					{usingOwn
-						? 'Your own appearance'
-						: copy.defaultName.charAt(0).toUpperCase() + copy.defaultName.slice(1)}
-				</h2>
-				<p class="panel-note" style="margin:0.15rem 0 0;">
-					{usingOwn
-						? 'These colours are yours alone. Nobody else sees them.'
-						: 'You are on the appearance everyone starts from. Change anything below and it becomes yours alone.'}
-				</p>
-			</div>
+	<SettingsSection
+		title={usingOwn
+			? 'Your own appearance'
+			: copy.defaultName.charAt(0).toUpperCase() + copy.defaultName.slice(1)}
+		description={usingOwn
+			? 'These colours are yours alone. Nobody else sees them.'
+			: 'You are on the appearance everyone starts from. Change anything below and it becomes yours alone.'}
+	>
+		<div class="ap-reset">
 			<!-- Always here, not only once you have something to undo: a reset
 			     you can only find after changing something is a reset you do
 			     not know exists while you are deciding whether to change it. -->
@@ -390,11 +378,12 @@
 			{accent2Error}
 		/>
 
+		{#snippet footer()}
 		<div class="ap-foot">
 			<p class="ap-foot-note">
 				{#if copy.customerNote}
 					Customer-facing colours are separate and live under
-					<a href="/shop/customize/theme">Customize → Theme</a>.
+					<a href="/shop/customize/theme">Customize, Theme</a>.
 				{:else}
 					A business's own console and storefront carry their brand, never this one.
 				{/if}
@@ -431,7 +420,8 @@
 				{/if}
 			</div>
 		</div>
-	</div>
+		{/snippet}
+	</SettingsSection>
 {/if}
 
 <ConfirmDialog
@@ -460,39 +450,19 @@
 		grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
 	}
 
-	.ap-head {
+	.ap-reset {
 		display: flex;
-		align-items: flex-start;
-		gap: 0.75rem;
-		margin-bottom: 1.1rem;
-		flex-wrap: wrap;
+		justify-content: flex-end;
 	}
 
-	.ap-head-icon {
-		display: grid;
-		place-items: center;
-		width: 2.2rem;
-		height: 2.2rem;
-		flex: none;
-		border-radius: 10px;
-		background: var(--icon-bg);
-		color: var(--icon-fg);
-	}
-
-	.ap-head-text {
-		flex: 1;
-		min-width: 14rem;
-	}
-
+	/* Sits inside the section's own footer, which already draws the rule. */
 	.ap-foot {
+		width: 100%;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 1rem;
 		flex-wrap: wrap;
-		margin-top: 1.2rem;
-		padding-top: 1rem;
-		border-top: 1px solid var(--border-subtle);
 	}
 
 	.ap-foot-note {

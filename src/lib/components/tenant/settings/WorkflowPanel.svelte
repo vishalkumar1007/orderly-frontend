@@ -5,6 +5,7 @@
 		storefrontAdminApi
 	} from '$lib/storefront/admin';
 	import { seed, useStorefront, type StorefrontContext } from '$lib/storefront/admin-context';
+	import SettingsSection from '$lib/components/admin/SettingsSection.svelte';
 	import { toast } from '$lib/components/admin/toast';
 	import { configHref } from '$lib/tenant/configuration';
 
@@ -18,12 +19,12 @@
 	 */
 	let props: Partial<StorefrontContext> = $props();
 	const ctx = useStorefront(() => props);
-	const save = (run: Parameters<StorefrontContext['save']>[0]) => ctx.save(run);
 
 	let acceptance = $state(seed(() => ctx.config.workflow.acceptance_mode));
 	let timing = $state(seed(() => ctx.config.workflow.payment_requirement));
 	let autoComplete = $state(seed(() => ctx.config.workflow.auto_complete));
 	let saving = $state(false);
+	let justSaved = $state(false);
 
 	/**
 	 * Re-seed from the server until the first edit.
@@ -42,10 +43,17 @@
 		}
 	});
 
-	async function submit(event: SubmitEvent) {
-		event.preventDefault();
+	function reset() {
+		dirty = false;
+		const w = ctx.config.workflow;
+		acceptance = w.acceptance_mode;
+		timing = w.payment_requirement;
+		autoComplete = w.auto_complete;
+	}
+
+	async function submit() {
 		saving = true;
-		const ok = await save(() =>
+		const ok = await ctx.save(() =>
 			storefrontAdminApi.saveWorkflow({
 				acceptance_mode: acceptance,
 				payment_requirement: timing,
@@ -53,16 +61,21 @@
 			})
 		);
 		saving = false;
+		if (!ok) {
+			toast.error('Could not save your workflow settings');
+			return;
+		}
 		dirty = false;
-		if (ok) toast.success('Order workflow saved');
-		else toast.error('Could not save your workflow settings');
+		justSaved = true;
+		setTimeout(() => (justSaved = false), 2500);
 	}
 </script>
 
-<form onsubmit={submit}>
-	<div class="sfctl-section">
-		<h2>The pipeline</h2>
-		<p class="sfctl-note">Every order moves through these five stages, in this order.</p>
+<div class="workflow">
+	<SettingsSection
+		title="The pipeline"
+		description="Every order moves through these five stages, in this order. An order can be cancelled while it is Order placed or Accepted; after that the food is already being made, so it can only be completed. This is enforced on the server."
+	>
 		<ol class="wf-stages">
 			<li><strong>Order placed</strong>: the customer has checked out</li>
 			<li><strong>Accepted</strong>: the shop has taken it</li>
@@ -70,17 +83,13 @@
 			<li><strong>Ready</strong>: waiting for collection</li>
 			<li><strong>Completed</strong>: collected</li>
 		</ol>
-		<p class="field-hint" style="margin-top:0.7rem;">
-			An order can be cancelled while it is <em>Order placed</em> or <em>Accepted</em>. After that
-			the food is already being made, so it can only be completed. This is enforced on the server
-			and cannot be changed from here.
-		</p>
-	</div>
+	</SettingsSection>
 
-	<div class="sfctl-section">
-		<h2>Acceptance</h2>
-		<p class="sfctl-note">Whether a new order waits for you before the kitchen starts.</p>
-		<div style="display:grid;gap:0.4rem;">
+	<SettingsSection
+		title="Acceptance"
+		description="Whether a new order waits for you before the kitchen starts."
+	>
+		<div class="wf-options">
 			{#each ACCEPTANCE_MODES as mode (mode.value)}
 				<button
 					class="sfopt"
@@ -99,15 +108,13 @@
 				</button>
 			{/each}
 		</div>
-	</div>
+	</SettingsSection>
 
-	<div class="sfctl-section">
-		<h2>When payment is required</h2>
-		<p class="sfctl-note">
-			Applies to online payment. Cash at the counter is always settled in person, so it never holds
-			the kitchen up.
-		</p>
-		<div style="display:grid;gap:0.4rem;">
+	<SettingsSection
+		title="When payment is required"
+		description="Applies to online payment. Cash at the counter is always settled in person, so it never holds the kitchen up."
+	>
+		<div class="wf-options">
 			{#each PAYMENT_TIMINGS as option (option.value)}
 				<button
 					class="sfopt"
@@ -127,20 +134,28 @@
 			{/each}
 		</div>
 		{#if timing === 'BEFORE_PREPARATION'}
-			<div class="alert alert-info" style="margin-top:0.9rem;">
+			<div class="alert alert-info">
 				An unpaid online order can still be <strong>Accepted</strong>, but it cannot move to
 				<strong>Preparing</strong> until the payment lands. The screen says so instead of failing
 				silently.
 			</div>
 		{/if}
-		<p class="field-hint" style="margin-top:0.7rem;">
-			Which methods you accept is set under <a href={configHref('payments')}>Configuration → Payments</a>.
+		<p class="field-hint">
+			Which methods you accept is set under <a href={configHref('payments')}>Configuration, Payments</a>.
 		</p>
-	</div>
+	</SettingsSection>
 
-	<div class="sfctl-section">
-		<h2>Finishing up</h2>
-		<div style="display:grid;gap:0.4rem;">
+	<SettingsSection
+		title="Finishing up"
+		description="Changes apply to new orders only."
+		{dirty}
+		{saving}
+		saved={justSaved}
+		saveLabel="Save workflow settings"
+		onsave={submit}
+		onreset={reset}
+	>
+		<div class="wf-options">
 			<button
 				class="sfopt"
 				type="button"
@@ -162,26 +177,30 @@
 			</button>
 		</div>
 		{#if autoComplete}
-			<div class="alert alert-warn" style="margin-top:0.9rem;">
+			<div class="alert alert-warn">
 				With this on, <strong>Ready</strong> is never a resting state: an order goes straight from
 				preparing to completed. You will not see ready orders waiting on the board.
 			</div>
 		{/if}
-		<p class="field-hint" style="margin-top:0.7rem;">
+		<p class="field-hint">
 			What the customer is told as their order moves is set under
-			<a href={configHref('notifications')}>Configuration → Notifications</a>.
+			<a href={configHref('notifications')}>Configuration, Notifications</a>.
 		</p>
-	</div>
-
-	<div class="sfctl-foot">
-		<span class="sfctl-foot-note">Changes apply to new orders only.</span>
-		<button class="btn btn-primary" type="submit" disabled={saving}>
-			{saving ? 'Saving…' : 'Save workflow settings'}
-		</button>
-	</div>
-</form>
+	</SettingsSection>
+</div>
 
 <style>
+	.workflow {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-11);
+	}
+
+	.wf-options {
+		display: grid;
+		gap: 0.4rem;
+	}
+
 	.wf-stages {
 		margin: 0;
 		padding-left: 1.4rem;
@@ -194,5 +213,9 @@
 
 	.wf-stages strong {
 		color: var(--text);
+	}
+
+	.field-hint {
+		margin: 0;
 	}
 </style>

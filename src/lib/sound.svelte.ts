@@ -21,8 +21,38 @@
 const KINDS = ['NONE', 'CHIME', 'BELL', 'PING', 'DINGDONG', 'MARIMBA', 'RISE', 'REGISTER', 'URGENT'] as const;
 export type SoundKind = (typeof KINDS)[number];
 
-/** Reactive: `locked` is true while the browser is blocking audio. */
-export const soundState = $state({ locked: true, supported: true });
+// A per-viewer convenience, not shared state: whether alerts make a sound at
+// all. Defaults on; stored per browser, same as any other personal UI
+// preference that does not need to survive a device change.
+const SOUND_PREF_KEY = 'orderly-notif-sound-enabled';
+
+function readSoundPref(): boolean {
+	try {
+		const v = localStorage.getItem(SOUND_PREF_KEY);
+		return v === null ? true : v === 'true';
+	} catch {
+		return true;
+	}
+}
+
+/**
+ * Reactive: `locked` is true while the browser is blocking audio, `enabled`
+ * is the person's own on/off choice.
+ */
+export const soundState = $state({ locked: true, supported: true, enabled: readSoundPref() });
+
+export function soundEnabled(): boolean {
+	return soundState.enabled;
+}
+
+export function setSoundEnabled(on: boolean): void {
+	soundState.enabled = on;
+	try {
+		localStorage.setItem(SOUND_PREF_KEY, String(on));
+	} catch {
+		/* private window / blocked storage: the toggle just won't persist */
+	}
+}
 
 let ctx: AudioContext | null = null;
 let pending: { kind: string; at: number } | null = null;
@@ -175,12 +205,15 @@ const BELLISH: Array<[number, number]> = [
 const WARM: Array<[number, number]> = [[2, 0.3]];
 
 /**
- * Play a configured notification sound. Does nothing for NONE or an unknown
- * kind. If audio is still locked, the sound is kept and played on unlock.
+ * Play a configured notification sound. Does nothing for NONE, an unknown
+ * kind, or while the person has sound switched off (a settings preview passes
+ * `preview` to be heard regardless). If audio is still locked, the sound is
+ * kept and played on unlock.
  */
-export function playSound(kind: string | null | undefined): void {
+export function playSound(kind: string | null | undefined, opts?: { preview?: boolean }): void {
 	const k = (kind || '').toUpperCase();
 	if (!k || k === 'NONE') return;
+	if (!opts?.preview && !soundState.enabled) return;
 	const context = getContext();
 	if (!context) return;
 	if (context.state !== 'running') {

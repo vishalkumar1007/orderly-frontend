@@ -3,6 +3,7 @@ import ListOrdered from '@tabler/icons-svelte/icons/list-numbers';
 import Palette from '@tabler/icons-svelte/icons/palette';
 import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
 import Store from '@tabler/icons-svelte/icons/building-store';
+import UserRound from '@tabler/icons-svelte/icons/user';
 import type { ShopPermission } from './nav';
 import type { ModuleKey } from '$lib/admin/businessTypes';
 
@@ -46,7 +47,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
 		icon: Store,
 		group: 'Business',
 		permission: 'organization',
-		lede: 'Pickup address and phone customers see when collecting an order.'
+		lede: 'The business itself: logo, name, contact details, where to find you online, the regional and tax facts your bills carry, and the theme everyone here starts from.'
 	},
 	{
 		id: 'workflow',
@@ -56,6 +57,13 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
 		permission: 'organization',
 		module: 'station',
 		lede: 'How an order moves from placed to collected. The stages themselves are fixed; these settings tune what happens around them.'
+	},
+	{
+		id: 'profile',
+		label: 'Your profile',
+		icon: UserRound,
+		group: 'You',
+		lede: 'Who is signed in: your name, your role and what it lets you reach, and your password. Everyone who works here has this section.'
 	},
 	{
 		id: 'appearance',

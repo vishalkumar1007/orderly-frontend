@@ -320,4 +320,10 @@
 			</button>
 		</div>
 	{/if}
+{:else}
+	<div class="sf-empty">
+		<h3>This item is no longer available</h3>
+		<p>It may have been removed from the {exp.words.catalog.toLowerCase()}, or the link is out of date.</p>
+		<a class="sf-btn sf-btn-primary" href={exp.paths.catalog}>Browse the {exp.words.catalog.toLowerCase()}</a>
+	</div>
 {/if}

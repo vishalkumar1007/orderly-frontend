@@ -63,6 +63,13 @@ export type AdminStorefront = {
 		business_type: string;
 		currency: string;
 		timezone: string;
+		/** Business profile (Settings): platform facts kept on the tenant. */
+		email: string;
+		legal_name: string;
+		website: string;
+		tax_id: string;
+		social_links: Record<string, string>;
+		show_logo_in_console: boolean;
 	};
 	/** Sent with the live config: which sign-in channels are set up. */
 	sign_in_channels?: Partial<Record<SignInMethod, SignInChannel>>;
@@ -162,6 +169,14 @@ export const storefrontAdminApi = {
 		description?: string;
 		phone?: string;
 		address?: string;
+		email?: string;
+		legal_name?: string;
+		website?: string;
+		tax_id?: string;
+		currency?: string;
+		timezone?: string;
+		social_links?: Record<string, string>;
+		show_logo_in_console?: boolean;
 	}) =>
 		withStorefrontFallback(
 			() =>
@@ -562,7 +577,13 @@ export function createDefaultStorefront(slug = 'your-shop', name = 'Your Store')
 			address: '',
 			business_type: 'RESTAURANT',
 			currency: 'INR',
-			timezone: 'Asia/Kolkata'
+			timezone: 'Asia/Kolkata',
+			email: '',
+			legal_name: '',
+			website: '',
+			tax_id: '',
+			social_links: {},
+			show_logo_in_console: false
 		},
 		theme: {
 			preset: 'modern',

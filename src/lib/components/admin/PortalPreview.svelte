@@ -32,7 +32,10 @@
 		accent = '#06b6d4',
 		themePreset = 'modern',
 		mode = 'light',
-		logoUrl = ''
+		logoUrl = '',
+		font = 'inter',
+		radius = 'md',
+		button = 'rounded'
 	}: {
 		template: BusinessTypeTemplate;
 		businessName?: string;
@@ -47,7 +50,39 @@
 		themePreset?: string;
 		mode?: string;
 		logoUrl?: string;
+		/** Storefront shape choices from the theme editor, so the phone matches them. */
+		font?: string;
+		radius?: string;
+		button?: string;
 	} = $props();
+
+	const FONT_STACK: Record<string, string> = {
+		inter: "'Inter', system-ui, sans-serif",
+		sora: "'Sora', system-ui, sans-serif",
+		poppins: "'Poppins', system-ui, sans-serif",
+		system: 'system-ui, -apple-system, sans-serif'
+	};
+	const RADIUS_PX: Record<string, string> = { none: '0px', sm: '6px', md: '10px', lg: '16px', pill: '20px' };
+	const BUTTON_PX: Record<string, string> = { rounded: '8px', pill: '999px', square: '2px', soft: '12px' };
+
+	/** "Follow device" previews as whatever this device prefers. */
+	const light = $derived(
+		mode === 'light' ||
+			(mode === 'system' &&
+				typeof window !== 'undefined' &&
+				!window.matchMedia('(prefers-color-scheme: dark)').matches)
+	);
+
+	/** A week of sales for the console chart: shape only, so it reads as a dashboard. */
+	const WEEK = [
+		{ d: 'M', v: 42 },
+		{ d: 'T', v: 58 },
+		{ d: 'W', v: 51 },
+		{ d: 'T', v: 73 },
+		{ d: 'F', v: 88 },
+		{ d: 'S', v: 100 },
+		{ d: 'S', v: 79 }
+	];
 
 	let activeTab = $state<'admin' | 'storefront'>('admin');
 
@@ -142,6 +177,36 @@
 					{ name: 'Hydrating Scalp Treatment', cat: 'Spa', price: '₹600' },
 					{ name: 'Precision Styling & Wash', cat: 'Hair', price: '₹350' }
 				];
+			case 'RESTAURANT':
+				return [
+					{ name: 'Butter Chicken & Naan', cat: 'Mains', price: '₹380' },
+					{ name: 'Paneer Tikka Platter', cat: 'Starters', price: '₹290' },
+					{ name: 'Gulab Jamun (2 pcs)', cat: 'Desserts', price: '₹120' }
+				];
+			case 'FASHION':
+				return [
+					{ name: 'Linen Relaxed Shirt', cat: 'Men', price: '₹1,499' },
+					{ name: 'Floral Midi Dress', cat: 'Women', price: '₹2,299' },
+					{ name: 'Canvas Tote Bag', cat: 'Accessories', price: '₹699' }
+				];
+			case 'ELECTRONICS':
+				return [
+					{ name: 'Wireless ANC Earbuds', cat: 'Audio', price: '₹4,999' },
+					{ name: '65W GaN Fast Charger', cat: 'Accessories', price: '₹1,799' },
+					{ name: '14" Ultrabook, 16GB', cat: 'Laptops', price: '₹64,990' }
+				];
+			case 'SALON':
+				return [
+					{ name: 'Haircut & Blow-dry', cat: 'Hair', price: '₹800' },
+					{ name: 'Hydra Facial', cat: 'Skin', price: '₹2,200' },
+					{ name: 'Gel Manicure', cat: 'Nails', price: '₹950' }
+				];
+			case 'AUTOMOTIVE':
+				return [
+					{ name: 'Exterior Foam Wash', cat: 'Wash', price: '₹499' },
+					{ name: 'Full Interior Detailing', cat: 'Detailing', price: '₹2,499' },
+					{ name: 'Engine Oil Change', cat: 'Service', price: '₹1,899' }
+				];
 			case 'HOTEL':
 				return [
 					{ name: 'Deluxe Mountain View Suite', cat: 'Rooms', price: '₹4,500/nt' },
@@ -170,7 +235,7 @@
 	});
 </script>
 
-<div class="pv-container" class:is-light-mode={mode === 'light'}>
+<div class="pv-container" class:is-light-mode={light}>
 	<!-- Top Preview View Mode Switcher -->
 	<div class="pv-view-tabs">
 		<button
@@ -226,24 +291,53 @@
 						</div>
 
 						<nav class="pv-console-nav">
+							<span class="pv-nav-group">Overview</span>
 							<div class="pv-nav-row is-active" style:color={brandInk} style:background={`color-mix(in srgb, ${brandInk} 16%, transparent)`}>
 								<IconDashboard size={14} stroke={2} />
 								<span>Dashboard</span>
 							</div>
-							{#each navItems.slice(0, 4) as item}
+							<span class="pv-nav-group">Running</span>
+							{#each navItems.slice(0, 3) as item}
+								<div class="pv-nav-row">
+									<item.icon size={14} stroke={1.8} />
+									<span>{item.label}</span>
+								</div>
+							{/each}
+							<span class="pv-nav-group">Management</span>
+							{#each navItems.slice(3, 6) as item}
 								<div class="pv-nav-row">
 									<item.icon size={14} stroke={1.8} />
 									<span>{item.label}</span>
 								</div>
 							{/each}
 						</nav>
+						<div class="pv-console-user">
+							<span class="pv-user-avatar">A</span>
+							<span class="pv-user-text"><strong>Owner</strong><small>Business owner</small></span>
+						</div>
 					</div>
 
 					<!-- Console Content Area -->
 					<div class="pv-console-main">
+						<!-- The real console topbar: trail on the left, personal controls on the right. -->
+						<div class="pv-topbar">
+							<span class="pv-crumbs">Overview <i>›</i> <b>Dashboard</b></span>
+							<span class="pv-topbar-icons" aria-hidden="true"><i></i><i></i><i class="dot" style:background={brandInk}></i></span>
+						</div>
+
 						<div class="pv-content-top">
-							<span class="pv-view-title">{template.terminology.orders} live stream</span>
-							<span class="pv-badge" style:border-color={brandInk} style:color={brandInk}>Operational</span>
+							<span class="pv-view-title">Good morning</span>
+							<span class="pv-badge" style:border-color={brandInk} style:color={brandInk}>Open</span>
+						</div>
+
+						<div class="pv-quick">
+							{#each template.quickActions.slice(0, 3) as action, i (action.label)}
+								<span
+									class="pv-quick-chip"
+									style:background={i === 0 ? primary || accent : undefined}
+									class:is-primary={i === 0}
+								>{action.label}</span>
+							{/each}
 						</div>
 
 						<!-- Metric stat tiles -->
@@ -255,6 +349,21 @@
 							<div class="pv-stat-card">
 								<span class="pv-stat-num" style:color={brandInk}>₹12,450</span>
 								<small>Revenue</small>
+							</div>
+						</div>
+
+						<div class="pv-chart">
+							<span class="pv-chart-title">Sales this week</span>
+							<div class="pv-chart-bars">
+								{#each WEEK as day, i (i)}
+									<span class="pv-chart-col">
+										<i
+											style:height={`${day.v}%`}
+											style:background={i === 5 ? primary || accent : `color-mix(in srgb, ${primary || accent} 45%, transparent)`}
+										></i>
+										<small>{day.d}</small>
+									</span>
+								{/each}
 							</div>
 						</div>
 
@@ -277,7 +386,13 @@
 	<!-- TAB 2: STOREFRONT MOBILE PREVIEW -->
 	{:else}
 		<div class="pv-phone-wrapper">
-			<div class="pv-phone" style:--active-accent={accent}>
+			<div
+				class="pv-phone"
+				style:--active-accent={accent}
+				style:--pv-font={FONT_STACK[font] ?? FONT_STACK.inter}
+				style:--pv-radius={RADIUS_PX[radius] ?? '10px'}
+				style:--pv-btn={BUTTON_PX[button] ?? '8px'}
+			>
 				<!-- Phone Speaker / Dynamic Island -->
 				<div class="pv-phone-speaker">
 					<span class="pv-phone-camera"></span>
@@ -405,6 +520,7 @@
 		width: 290px;
 		height: 480px;
 		border-radius: 36px;
+		font-family: var(--pv-font, inherit);
 		background: rgba(12, 16, 26, 0.72);
 		backdrop-filter: blur(16px);
 		-webkit-backdrop-filter: blur(16px);
@@ -561,7 +677,7 @@
 		align-items: center;
 		gap: 8px;
 		padding: 7px 8px;
-		border-radius: 10px;
+		border-radius: var(--pv-radius, 10px);
 		background: rgba(255, 255, 255, 0.035);
 		border: 1px solid rgba(255, 255, 255, 0.06);
 	}
@@ -617,7 +733,7 @@
 	.pv-prod-add {
 		width: 20px;
 		height: 20px;
-		border-radius: 6px;
+		border-radius: var(--pv-btn, 6px);
 		border: none;
 		color: #fff;
 		font-weight: 700;
@@ -631,7 +747,7 @@
 		margin-top: auto;
 		width: 100%;
 		padding: 8px 12px;
-		border-radius: 10px;
+		border-radius: var(--pv-btn, 10px);
 		border: none;
 		color: #fff;
 		font-size: 0.75rem;
@@ -723,7 +839,8 @@
 		padding: 10px 8px;
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: 10px;
+		justify-content: flex-start;
 	}
 
 	.pv-console-brand {
@@ -767,7 +884,8 @@
 	.pv-console-nav {
 		display: flex;
 		flex-direction: column;
-		gap: 3px;
+		gap: 2px;
+		flex: 1;
 	}
 
 	.pv-nav-row {
@@ -1027,4 +1145,178 @@
 		color: #334155;
 	}
 
+
+	/* Rail section labels and the signed-in user, as in the real console. */
+	.pv-nav-group {
+		margin: 6px 8px 2px;
+		font-size: 0.55rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: #64748b;
+	}
+
+	.pv-console-user {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 6px 4px 0;
+		border-top: 1px solid rgba(255, 255, 255, 0.06);
+	}
+
+	.pv-user-avatar {
+		display: grid;
+		place-items: center;
+		width: 20px;
+		height: 20px;
+		border-radius: 6px;
+		background: rgba(148, 163, 184, 0.2);
+		color: #cbd5e1;
+		font-size: 0.6rem;
+		font-weight: 700;
+	}
+
+	.pv-user-text {
+		display: grid;
+		line-height: 1.15;
+	}
+
+	.pv-user-text strong {
+		font-size: 0.62rem;
+		color: #e2e8f0;
+	}
+
+	.pv-user-text small {
+		font-size: 0.55rem;
+		color: #64748b;
+	}
+
+	.pv-topbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin: -12px -12px 0;
+		padding: 8px 12px;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+	}
+
+	.pv-crumbs {
+		font-size: 0.62rem;
+		color: #64748b;
+	}
+
+	.pv-crumbs i {
+		font-style: normal;
+		margin: 0 3px;
+	}
+
+	.pv-crumbs b {
+		color: #e2e8f0;
+		font-weight: 600;
+	}
+
+	.pv-topbar-icons {
+		display: inline-flex;
+		gap: 5px;
+	}
+
+	.pv-topbar-icons i {
+		width: 14px;
+		height: 14px;
+		border-radius: 4px;
+		background: rgba(148, 163, 184, 0.22);
+	}
+
+	.pv-topbar-icons i.dot {
+		border-radius: 999px;
+	}
+
+	.pv-quick {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 5px;
+	}
+
+	.pv-quick-chip {
+		padding: 3px 8px;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 999px;
+		color: #cbd5e1;
+		font-size: 0.6rem;
+		font-weight: 600;
+		white-space: nowrap;
+	}
+
+	.pv-quick-chip.is-primary {
+		border-color: transparent;
+		color: #fff;
+	}
+
+	.pv-chart {
+		display: grid;
+		gap: 6px;
+		padding: 8px 10px;
+		border: 1px solid rgba(255, 255, 255, 0.07);
+		border-radius: 10px;
+		background: rgba(255, 255, 255, 0.02);
+	}
+
+	.pv-chart-title {
+		font-size: 0.62rem;
+		font-weight: 650;
+		color: #cbd5e1;
+	}
+
+	.pv-chart-bars {
+		display: grid;
+		grid-template-columns: repeat(7, 1fr);
+		align-items: end;
+		gap: 5px;
+		height: 64px;
+	}
+
+	.pv-chart-col {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 3px;
+		height: 100%;
+	}
+
+	.pv-chart-col i {
+		display: block;
+		width: 100%;
+		max-height: calc(100% - 12px);
+		border-radius: 3px 3px 1px 1px;
+	}
+
+	.pv-chart-col small {
+		font-size: 0.5rem;
+		color: #64748b;
+	}
+
+	.pv-container.is-light-mode .pv-console-user,
+	.pv-container.is-light-mode .pv-topbar {
+		border-color: rgba(15, 23, 42, 0.08);
+	}
+
+	.pv-container.is-light-mode .pv-user-text strong,
+	.pv-container.is-light-mode .pv-crumbs b {
+		color: #0f172a;
+	}
+
+	.pv-container.is-light-mode .pv-quick-chip:not(.is-primary) {
+		border-color: rgba(15, 23, 42, 0.12);
+		color: #334155;
+	}
+
+	.pv-container.is-light-mode .pv-chart {
+		border-color: rgba(15, 23, 42, 0.08);
+		background: #fff;
+	}
+
+	.pv-container.is-light-mode .pv-chart-title {
+		color: #0f172a;
+	}
 </style>

@@ -111,7 +111,7 @@
 <style>
 	.rv {
 		width: 100%;
-		max-width: 720px;
+		max-width: var(--sf-maxw);
 		margin: 0 auto;
 		padding: 16px var(--sf-gutter, 16px) 48px;
 		color: var(--sf-text);

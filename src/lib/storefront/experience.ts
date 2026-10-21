@@ -39,6 +39,12 @@ export type Experience = {
 		/** How customers can sign in: only methods the shop has set up. */
 		signInMethods: ('PHONE' | 'EMAIL')[];
 	};
+	paths: {
+		/** Where the catalogue lives: /menu for shops, the home page for booking and stays. */
+		catalog: string;
+		/** The customer's history: /orders, /bookings or /reservations. */
+		history: string;
+	};
 	words: {
 		/** The catalogue: Menu, Catalogue, Shop, Services, Rooms. */
 		catalog: string;
@@ -179,6 +185,10 @@ export function experienceFor(config: ConfigLike): Experience {
 			signIn: methods.length > 0 && (!ordering || loginMode(config) !== 'off'),
 			signInRequired: methods.length > 0 && (!ordering || loginMode(config) === 'required'),
 			signInMethods: methods
+		},
+		paths: {
+			catalog: ordering ? '/menu' : '/',
+			history: family === 'book' ? '/bookings' : family === 'stay' ? '/reservations' : '/orders'
 		},
 		words: {
 			catalog: family === 'book' ? 'Services' : family === 'stay' ? 'Rooms' : terms.catalog,

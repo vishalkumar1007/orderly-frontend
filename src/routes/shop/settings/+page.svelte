@@ -22,6 +22,8 @@
 	} from '$lib/tenant/settings';
 	import AppearancePanel from '$lib/components/tenant/settings/AppearancePanel.svelte';
 	import BusinessProfilePanel from '$lib/components/tenant/settings/BusinessProfilePanel.svelte';
+	import BusinessThemeSection from '$lib/components/tenant/settings/BusinessThemeSection.svelte';
+	import YourProfilePanel from '$lib/components/tenant/settings/YourProfilePanel.svelte';
 	import MfaPolicyPanel from '$lib/components/admin/MfaPolicyPanel.svelte';
 	import MfaSetupPanel from '$lib/components/admin/MfaSetupPanel.svelte';
 	import WorkflowPanel from '$lib/components/tenant/settings/WorkflowPanel.svelte';
@@ -177,7 +179,7 @@
 	onselect={select}
 >
 	{#snippet notice()}
-		{#if configError && active.id !== 'appearance' && active.id !== 'security'}
+		{#if configError && active.id !== 'appearance' && active.id !== 'security' && active.id !== 'profile'}
 			<div class="alert alert-danger set-alert">
 				<div><strong>API notice:</strong> {configError}</div>
 				<button
@@ -192,7 +194,9 @@
 		{/if}
 	{/snippet}
 
-	{#if active.id === 'appearance'}
+	{#if active.id === 'profile'}
+		<YourProfilePanel />
+	{:else if active.id === 'appearance'}
 		<AppearancePanel {canSetBusinessDefault} />
 	{:else if active.id === 'security'}
 		{#if canEditMfaPolicy}
@@ -202,13 +206,24 @@
 	{:else if !configLoaded}
 		{@render formSkeleton()}
 	{:else if active.id === 'business'}
-		<BusinessProfilePanel {config} {save} {refresh} />
+		<div class="set-stack">
+			<BusinessProfilePanel {config} {save} {refresh} />
+			{#if canSetBusinessDefault}
+				<BusinessThemeSection {config} {save} {refresh} />
+			{/if}
+		</div>
 	{:else}
 		<WorkflowPanel {config} {save} {refresh} />
 	{/if}
 </SettingsShell>
 
 <style>
+	.set-stack {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-11);
+	}
+
 	.set-skeleton {
 		margin-top: var(--sp-8);
 		display: grid;

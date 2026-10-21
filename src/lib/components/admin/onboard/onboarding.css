@@ -1171,9 +1171,43 @@
 
 .onb-plan-head {
 	display: flex;
-	align-items: baseline;
+	align-items: center;
 	justify-content: space-between;
-	padding-right: 1.25rem;
+	gap: 0.75rem;
+}
+
+.onb-plan-name {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.onb-plan-end {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.6rem;
+	flex: none;
+}
+
+.onb-card-radio.onb-card-radio-inline {
+	position: static;
+	flex: none;
+}
+
+/* Favicon block: a compact drop zone and a small square thumbnail. */
+.onb-logo-dropzone.onb-logo-dropzone-compact {
+	padding-block: 1rem;
+}
+
+.onb-logo-preview-thumb.onb-favicon-thumb {
+	width: 2.5rem;
+	height: 2.5rem;
+}
+
+.onb-optional {
+	font-weight: 500;
+	color: var(--onb-text-muted, #94a3b8);
 }
 
 .onb-plan-name {

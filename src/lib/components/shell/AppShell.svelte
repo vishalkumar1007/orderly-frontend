@@ -40,6 +40,8 @@
 	let {
 		/** Shown in the rail header. Each portal passes its own identity. */
 		brandName = 'Orderly',
+		/** Optional logo beside the brand name in the rail. */
+		logoUrl = '',
 		userEmail = '',
 		userName = '',
 		role = 'SUPER_ADMIN',
@@ -67,12 +69,15 @@
 		appearanceHref = '',
 		/** Mobile bar shortcuts (e.g. Selling + Kitchen). */
 		quickLinks = [] as ShellQuickLink[],
+		/** Which notification feed the topbar bell polls. */
+		notificationScope,
 		onSignOut,
 		/** Buttons rendered at the right of the topbar. */
 		actions,
 		children
 	}: {
 		brandName?: string;
+		logoUrl?: string;
 		userEmail?: string;
 		userName?: string;
 		role?: string;
@@ -89,6 +94,7 @@
 		profileHref?: string;
 		appearanceHref?: string;
 		quickLinks?: ShellQuickLink[];
+		notificationScope?: 'tenant' | 'admin';
 		onSignOut?: () => void;
 		actions?: Snippet;
 		children: Snippet;
@@ -167,6 +173,7 @@
 	<aside class={['rail', mobileOpen ? 'open' : ''].join(' ')}>
 		<SidebarHeader
 			{brandName}
+			{logoUrl}
 			collapsed={railCompact}
 			collapsible={!isDrawer}
 			onToggle={toggleCollapse}
@@ -254,7 +261,7 @@
 			</div>
 		{/if}
 
-		<AdminTopbar {crumbs} {title}>
+		<AdminTopbar {crumbs} {title} {notificationScope}>
 			{#snippet actions()}
 				{#if actions}
 					{@render actions()}

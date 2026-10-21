@@ -188,7 +188,7 @@
 	.bk {
 		--sh-gutter: var(--sf-gutter, 16px);
 		width: 100%;
-		max-width: 720px;
+		max-width: var(--sf-maxw);
 		margin: 0 auto;
 		padding: 16px var(--sh-gutter) 48px;
 		color: var(--sf-text);

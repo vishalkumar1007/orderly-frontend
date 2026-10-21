@@ -66,7 +66,7 @@
 
 	onMount(async () => {
 		if (!orderNumber) {
-			await goto('/menu', { replaceState: true });
+			await goto(exp.paths.catalog, { replaceState: true });
 			return;
 		}
 		method = methods.includes('ONLINE') ? 'ONLINE' : (methods[0] ?? 'ONLINE');

@@ -267,7 +267,7 @@
 
 		<div style="margin-top:20px;display:grid;gap:10px;">
 			{#if exp.family === 'order'}
-				<a class="sf-btn sf-btn-primary sf-btn-block" href="/menu">Order again</a>
+				<a class="sf-btn sf-btn-primary sf-btn-block" href={exp.paths.catalog}>{exp.family === 'order' ? 'Order again' : 'Book again'}</a>
 			{/if}
 			<button class="sf-btn sf-btn-secondary sf-btn-block" type="button" onclick={signOut}>
 				<LogOut size={16} stroke={1.6} aria-hidden="true" />

@@ -228,6 +228,11 @@ export async function meWithTenant(): Promise<{ user: User; tenant: HostTenant |
 	return { user: data as User, tenant: null };
 }
 
+/** Change the signed-in person's own display name. */
+export async function updateMyName(name: string): Promise<User> {
+	return api<User>('/api/v1/auth/me', { method: 'PATCH', body: JSON.stringify({ name }) });
+}
+
 export async function changePassword(currentPassword: string, newPassword: string) {
 	await api(
 		'/api/v1/auth/me/password',

@@ -14,10 +14,13 @@
 	 */
 	let {
 		config,
-		showHours = true
+		showHours = true,
+		signedIn = false
 	}: {
 		config: StoreConfig | null;
 		showHours?: boolean;
+		/** Swaps the sign-in link for the account link once signed in. */
+		signedIn?: boolean;
 	} = $props();
 
 	const store = $derived(config?.store ?? null);
@@ -27,7 +30,7 @@
 	/** Where the customer's history lives and what this business does. */
 	const links = $derived(
 		exp.family === 'order'
-			? [{ href: '/menu', label: exp.words.catalog }, { href: '/orders', label: 'Your orders' }]
+			? [{ href: exp.paths.catalog, label: exp.words.catalog }, { href: exp.paths.history, label: 'Your orders' }]
 			: [{ href: exp.family === 'book' ? '/bookings' : '/reservations', label: `Your ${exp.words.history.toLowerCase()}` }]
 	);
 	const note = $derived(
@@ -58,7 +61,7 @@
 
 	<nav class="sf-footer-links" aria-label="More">
 		{#each links as l (l.href)}<a href={l.href}>{l.label}</a>{/each}
-		{#if exp.features.signIn}<a href="/login">Sign in</a>{/if}
+		{#if exp.features.signIn}<a href={signedIn ? '/profile' : '/login'}>{signedIn ? 'Your account' : 'Sign in'}</a>{/if}
 	</nav>
 
 	<p class="sf-footer-note" style="margin-top:14px;">{note}</p>

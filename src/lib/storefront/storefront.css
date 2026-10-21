@@ -2124,8 +2124,11 @@
 
 @media (min-width: 900px) {
 	.sf-root {
-		--sf-gutter: 28px;
-		--sf-maxw: 1080px;
+		/* One desktop width for every page: the header, the home rails and
+		   the booking screens all read this, so nothing is narrower than
+		   the header above it. */
+		--sf-gutter: 24px;
+		--sf-maxw: 1120px;
 	}
 
 	.sf-header-row {
@@ -2797,12 +2800,6 @@
    STOREFRONT REFACTOR: layout, filters, desktop, qty stepper
    ========================================================================== */
 
-@media (min-width: 900px) {
-	.sf-root {
-		--sf-maxw: 1120px;
-		--sf-gutter: 24px;
-	}
-}
 
 .sf-product-link {
 	display: contents;

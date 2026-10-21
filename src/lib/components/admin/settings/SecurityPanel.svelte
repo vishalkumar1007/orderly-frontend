@@ -206,7 +206,7 @@
 </script>
 
 {#if error}
-	<div class="panel" style="margin-bottom:1rem;"><ErrorState message={error} onretry={load} /></div>
+	<ErrorState message={error} onretry={load} />
 {/if}
 
 {#if loading || !settings}

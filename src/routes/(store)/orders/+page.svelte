@@ -24,6 +24,8 @@
 	let orders = $state<OrderSummary[]>([]);
 	let loading = $state(true);
 	let error = $state('');
+	/** A guest sees "nothing found" only after looking something up. */
+	let searched = $state(false);
 	let signedIn = $state(false);
 	let phone = $state('');
 	let looking = $state(false);
@@ -50,6 +52,7 @@
 		error = '';
 		try {
 			orders = (await storefrontApi.lookupOrders(phone.trim())).orders;
+			searched = true;
 		} catch (err) {
 			error = friendlyError(err, 'Could not find orders for that number');
 		} finally {
@@ -120,7 +123,7 @@
 			</div>
 		{/if}
 
-		{#if orders.length === 0}
+		{#if !error && orders.length === 0 && (signedIn || searched)}
 			<div class="sf-empty">
 				<span class="sf-empty-icon" aria-hidden="true">
 					<Receipt size={26} stroke={1.6} />
@@ -131,7 +134,7 @@
 						? 'Your orders will appear here once you place one.'
 						: 'We could not find an order for that number.'}
 				</p>
-				<a class="sf-btn sf-btn-primary" href="/menu">Browse the {exp.words.catalog.toLowerCase()}</a>
+				<a class="sf-btn sf-btn-primary" href={exp.paths.catalog}>Browse the {exp.words.catalog.toLowerCase()}</a>
 			</div>
 		{:else}
 			<div style="display:grid;gap:10px;">
@@ -171,7 +174,7 @@
 		{/if}
 
 		<div style="margin-top:18px;">
-			<a class="sf-btn sf-btn-primary sf-btn-block" href="/menu" onclick={() => goto('/menu')}>
+			<a class="sf-btn sf-btn-primary sf-btn-block" href={exp.paths.catalog}>
 				Start a new order
 			</a>
 		</div>

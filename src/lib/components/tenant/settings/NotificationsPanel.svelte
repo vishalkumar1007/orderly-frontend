@@ -440,7 +440,7 @@
 		<FormField label="New order sound" htmlFor="ns-new-order" hint="Plays in the shop console.">
 			<div class="sound">
 				<SelectField id="ns-new-order" bind:value={newOrderSound} options={SOUND_OPTIONS} />
-				<button type="button" class="btn btn-ghost btn-sm" aria-label="Preview sound" onclick={() => playSound(newOrderSound)}>
+				<button type="button" class="btn btn-ghost btn-sm" aria-label="Preview sound" onclick={() => playSound(newOrderSound, { preview: true })}>
 					<Volume2 size={15} stroke={1.6} />
 				</button>
 			</div>
@@ -448,7 +448,7 @@
 		<FormField label="Order ready sound" htmlFor="ns-order-ready" hint="Plays on the customer's tracking screen.">
 			<div class="sound">
 				<SelectField id="ns-order-ready" bind:value={orderReadySound} options={SOUND_OPTIONS} />
-				<button type="button" class="btn btn-ghost btn-sm" aria-label="Preview sound" onclick={() => playSound(orderReadySound)}>
+				<button type="button" class="btn btn-ghost btn-sm" aria-label="Preview sound" onclick={() => playSound(orderReadySound, { preview: true })}>
 					<Volume2 size={15} stroke={1.6} />
 				</button>
 			</div>
